@@ -24,10 +24,14 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100svh;
   color: var(--text);
   background: var(--background);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow-x: hidden;
 }
 
 a {
@@ -40,12 +44,17 @@ main,
   margin: 0 auto;
 }
 
+main {
+  display: grid;
+  min-height: 0;
+}
+
 .hero {
   position: relative;
   display: grid;
-  min-height: 100svh;
+  min-height: 0;
   align-items: center;
-  padding: 76px 0;
+  padding: clamp(48px, 7vh, 78px) 0 clamp(34px, 5vh, 62px);
   overflow: hidden;
 }
 
@@ -77,6 +86,8 @@ main,
 .hero-inner {
   position: relative;
   max-width: 920px;
+  align-self: center;
+  margin-top: -2vh;
   animation: reveal 760ms ease both;
 }
 
@@ -166,7 +177,8 @@ h1 {
 }
 
 .hero-subtitle {
-  margin-top: clamp(30px, 4vw, 40px);
+  max-width: 760px;
+  margin-top: clamp(24px, 3.4vw, 36px);
   color: var(--text);
   font-size: clamp(1.35rem, 2.5vw, 2.12rem);
   font-weight: 500;
@@ -174,8 +186,18 @@ h1 {
   line-height: 1.12;
 }
 
+.hero-description {
+  max-width: 620px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: clamp(1rem, 1.45vw, 1.18rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+
 .hero-status {
-  margin-top: 12px;
+  margin-top: 16px;
   color: var(--accent);
   font-size: clamp(1.08rem, 1.8vw, 1.48rem);
   font-weight: 500;
@@ -187,7 +209,7 @@ h1 {
   flex-wrap: wrap;
   gap: 14px;
   align-items: center;
-  margin-top: 44px;
+  margin-top: clamp(30px, 4.8vh, 42px);
 }
 
 .primary-action,
@@ -234,80 +256,17 @@ h1 {
   outline-offset: 3px;
 }
 
-.capabilities {
-  min-height: 100svh;
-  padding: 116px 0;
-  border-top: 1px solid var(--rule);
-}
-
-.capability-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 40px;
-}
-
-.capability {
-  position: relative;
-  min-height: 280px;
-  padding-top: 24px;
-  border-top: 1px solid var(--text);
-  animation: reveal 760ms ease both;
-}
-
-.capability:nth-child(2) {
-  animation-delay: 80ms;
-}
-
-.capability:nth-child(3) {
-  animation-delay: 160ms;
-}
-
-.capability::after {
-  content: "";
-  position: absolute;
-  top: 24px;
-  right: 0;
-  width: 36px;
-  height: 36px;
-  border-top: 1px solid var(--rule);
-  border-right: 1px solid var(--rule);
-}
-
-.capability span {
-  display: block;
-  color: var(--sage);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.capability h3 {
-  margin-top: 42px;
-  font-size: clamp(2rem, 3.5vw, 2.65rem);
-  font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1;
-}
-
-.capability p {
-  max-width: 270px;
-  margin-top: 22px;
-  color: var(--muted);
-  font-size: 0.96rem;
-  line-height: 1.6;
-}
-
 .site-footer {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  padding: 28px 0 38px;
+  padding: 20px 0 28px;
   color: var(--muted);
   border-top: 1px solid var(--rule);
   font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 @keyframes reveal {
@@ -340,21 +299,40 @@ h1 {
   .hero::after {
     width: 220px;
   }
+}
 
-  .capability-grid {
-    grid-template-columns: 1fr;
-    gap: 28px;
+@media (max-height: 720px) and (min-width: 821px) {
+  h1 {
+    font-size: clamp(3rem, 8vw, 6.8rem);
   }
 
-  .capability {
-    min-height: 0;
-    padding-bottom: 36px;
+  .hero-subtitle {
+    margin-top: 26px;
+    font-size: clamp(1.25rem, 2vw, 1.74rem);
+  }
+
+  .hero-description {
+    margin-top: 12px;
+  }
+
+  .hero-status {
+    margin-top: 12px;
+  }
+
+  .hero-actions {
+    margin-top: 28px;
+  }
+
+  .site-footer {
+    padding: 16px 0 22px;
   }
 }
 
 @media (max-width: 560px) {
   h1 {
     gap: 22px;
+    max-width: 100%;
+    font-size: clamp(2.35rem, 12vw, 3.6rem);
   }
 
   .brand-symbol {
@@ -364,6 +342,11 @@ h1 {
 
   .hero-subtitle {
     margin-top: 30px;
+    font-size: clamp(1.22rem, 7vw, 1.72rem);
+  }
+
+  .hero-description br {
+    display: none;
   }
 
   .hero-actions {
@@ -375,16 +358,9 @@ h1 {
     width: 100%;
   }
 
-  .capabilities {
-    padding: 76px 0;
-  }
-
-  .capability h3 {
-    margin-top: 34px;
-  }
-
   .site-footer {
     flex-direction: column;
+    padding-bottom: 24px;
   }
 }
 
