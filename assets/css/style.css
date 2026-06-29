@@ -1,0 +1,70 @@
+:root {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.brand-name,
+.brand-link,
+.site-logo,
+.nav-emphasis {
+  font-family: var(--font-display);
+}
+
+input,
+button,
+select,
+textarea,
+table,
+output {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: 0.94rem;
+}
+
+.mono,
+.numeric,
+.result-value,
+.formula,
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.numeric,
+.result-value {
+  letter-spacing: 0;
+}
+
+.brand-name {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
