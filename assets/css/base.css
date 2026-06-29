@@ -1,4 +1,14 @@
 :root {
+  --bc-black: #171717;
+  --bc-blue: #2457B3;
+  --bc-blue-hover: #1E4B9C;
+  --bc-bg: #F7F5F0;
+  --bc-text: #171717;
+  --bc-secondary: #6E7278;
+  --bc-border: #D6D9DE;
+  --bc-blue-soft: rgba(36, 86, 179, 0.08);
+  --bc-blue-border: rgba(36, 86, 179, 0.32);
+  --bc-focus-ring: rgba(36, 86, 179, 0.16);
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-display: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;

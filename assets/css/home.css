@@ -1,15 +1,17 @@
 :root {
   color-scheme: light;
-  --background: #f0eee9;
-  --surface: #fffdf8;
-  --surface-soft: #f8f6f0;
-  --text: #282725;
-  --muted: #6f6a63;
-  --quiet: #a39b90;
-  --rule: #ded6ca;
-  --accent: #174ea6;
-  --accent-soft: rgba(23, 78, 166, 0.08);
-  --sage: #7d8f78;
+  --background: var(--bc-bg);
+  --surface: var(--bc-bg);
+  --surface-soft: var(--bc-bg);
+  --text: var(--bc-text);
+  --muted: var(--bc-secondary);
+  --quiet: var(--bc-secondary);
+  --rule: var(--bc-border);
+  --accent: var(--bc-blue);
+  --accent-hover: var(--bc-blue-hover);
+  --accent-soft: var(--bc-blue-soft);
+  --accent-border: var(--bc-blue-border);
+  --focus-ring: var(--bc-focus-ring);
   --max-width: 1180px;
 }
 
@@ -70,8 +72,8 @@ main {
   right: 0;
   width: 252px;
   height: 252px;
-  border-top: 1px solid rgba(23, 78, 166, 0.32);
-  border-left: 1px solid rgba(23, 78, 166, 0.18);
+  border-top: 1px solid var(--accent-border);
+  border-left: 1px solid var(--accent-soft);
 }
 
 .hero::after {
@@ -79,8 +81,8 @@ main {
   bottom: 72px;
   width: 360px;
   height: 140px;
-  border-bottom: 1px solid rgba(125, 143, 120, 0.34);
-  border-left: 1px solid rgba(222, 214, 202, 0.9);
+  border-bottom: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
 }
 
 .hero-inner {
@@ -109,71 +111,11 @@ h1 {
   line-height: 0.9;
 }
 
-.brand-symbol {
-  position: relative;
+.brand-mark {
   display: block;
   width: 48px;
   height: 48px;
-  color: var(--accent);
-}
-
-.brand-symbol::before {
-  content: "";
-  position: absolute;
-  inset: 7px;
-  border: 1px solid currentColor;
-}
-
-.axis,
-.curve,
-.point {
-  position: absolute;
-  display: block;
-}
-
-.axis {
-  background: currentColor;
-  opacity: 0.9;
-}
-
-.axis.horizontal {
-  left: 7px;
-  right: 7px;
-  bottom: 15px;
-  height: 1px;
-}
-
-.axis.vertical {
-  left: 15px;
-  top: 7px;
-  bottom: 7px;
-  width: 1px;
-}
-
-.curve {
-  left: 15px;
-  top: 15px;
-  width: 24px;
-  height: 18px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  border-radius: 0 18px 0 0;
-}
-
-.point {
-  width: 5px;
-  height: 5px;
-  background: var(--sage);
-}
-
-.point-a {
-  left: 12px;
-  bottom: 12px;
-}
-
-.point-b {
-  right: 9px;
-  top: 12px;
+  flex: 0 0 auto;
 }
 
 .hero-subtitle {
@@ -233,15 +175,15 @@ h1 {
 }
 
 .primary-action:hover {
-  background: #123d82;
-  border-color: #123d82;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   transform: translateY(-1px);
 }
 
 .secondary-action {
   color: var(--accent);
   background: transparent;
-  border: 1px solid rgba(23, 78, 166, 0.32);
+  border: 1px solid var(--accent-border);
 }
 
 .secondary-action:hover {
@@ -252,13 +194,13 @@ h1 {
 
 .primary-action:focus-visible,
 .secondary-action:focus-visible {
-  outline: 3px solid rgba(23, 78, 166, 0.22);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
 .site-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 18px;
   padding: 20px 0 28px;
   color: var(--muted);
@@ -266,6 +208,7 @@ h1 {
   font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0;
+  text-align: right;
   text-transform: none;
 }
 
@@ -291,13 +234,9 @@ h1 {
     padding: 56px 0;
   }
 
-  .hero::before {
-    width: 164px;
-    height: 164px;
-  }
-
+  .hero::before,
   .hero::after {
-    width: 220px;
+    display: none;
   }
 }
 
@@ -335,7 +274,7 @@ h1 {
     font-size: clamp(2.35rem, 12vw, 3.6rem);
   }
 
-  .brand-symbol {
+  .brand-mark {
     width: 40px;
     height: 40px;
   }

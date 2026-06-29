@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BioassayCraft concentration unit converter for mass and molar concentration.">
+  <title>Concentration Converter | BioassayCraft</title>
+  <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/assets/icons/favicon-32x32.png">
+  <link rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/assets/icons/favicon-16x16.png">
+  <link rel="apple-touch-icon"
+      href="/assets/icons/apple-touch-icon.png">
+  <link rel="manifest"
+      href="/assets/icons/site.webmanifest">
+  <meta name="theme-color"
+      content="#F7F5F0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/tools/concentration-converter.css">
+</head>
+<body>
+  <main class="page">
+    <header class="site-header">
+      <a class="brand-link" href="../../" aria-label="BioassayCraft home">
+        <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+        <span class="brand-name">bioassaycraft</span>
+      </a>
+      <a class="back-link" href="../../">Back to home</a>
+    </header>
+
+    <section class="tool" aria-labelledby="page-title">
+      <div class="panel">
+        <span class="eyebrow">Interactive tool</span>
+        <h1 id="page-title">Concentration Converter</h1>
+        <p class="subtitle">输入任意一个浓度和分子量，自动换算质量浓度与摩尔浓度。</p>
+
+        <div class="field">
+          <label for="concentration">浓度</label>
+          <div class="input-row">
+            <input id="concentration" class="numeric" type="number" min="0" step="any" inputmode="decimal" placeholder="例如 10">
+            <select id="sourceUnit" aria-label="浓度单位">
+              <option value="ngml" selected>ng/mL</option>
+              <option value="ugml">μg/mL</option>
+              <option value="mgml">mg/mL</option>
+              <option value="nm">nM</option>
+              <option value="um">μM</option>
+              <option value="m">M</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="molecularWeight">分子量 MW</label>
+          <div class="input-row">
+            <input id="molecularWeight" class="numeric" type="number" min="0" step="any" inputmode="decimal" placeholder="例如 500">
+            <select id="molecularWeightUnit" aria-label="分子量单位">
+              <option value="da">Da</option>
+              <option value="kda" selected>kDa</option>
+            </select>
+          </div>
+          <div class="hint">Da 与 g/mol 在数值上等同；选择 kDa 时会自动乘以 1000 后计算。</div>
+        </div>
+
+        <div id="message" class="error" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="panel" aria-label="换算结果">
+        <div class="result-head">
+          <h2>换算结果</h2>
+          <span id="baseValue" class="base numeric">等待输入</span>
+        </div>
+
+        <div id="results" class="results"></div>
+
+        <div class="formula">
+          计算公式：质量浓度 (g/L) = 摩尔浓度 (mol/L) × 分子量 (g/mol)
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>bioassaycraft.com</span>
+  </footer>
+
+  <script src="../../assets/js/tools/concentration-converter.js"></script>
+</body>
+</html>

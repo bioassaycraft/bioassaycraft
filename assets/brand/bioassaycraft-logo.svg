@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 72" role="img" aria-labelledby="title desc">
+  <title id="title">BioassayCraft logo</title>
+  <desc id="desc">BioassayCraft wordmark paired with the geometric coordinate and fitted curve symbol.</desc>
+  <rect width="360" height="72" fill="#F7F5F0"/>
+  <g transform="translate(4 4)">
+    <path d="M17 14V48H50" fill="none" stroke="#171717" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M23 43C31 36 34 27 42 23C46 21 50 20 54 20" fill="none" stroke="#2457B3" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="27" cy="39" r="3.4" fill="#171717"/>
+    <circle cx="39" cy="33" r="3.4" fill="#2457B3"/>
+    <circle cx="51" cy="25" r="3.4" fill="#171717"/>
+  </g>
+  <text x="86" y="43" fill="#171717" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="28" font-weight="600" letter-spacing="0">BioassayCraft</text>
+</svg>
