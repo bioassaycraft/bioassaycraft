@@ -1,0 +1,2408 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="BioassayCraft validation simulator for procedure-based validation, method-based validation, and reportable-result risk.">
+  <title>Validation Simulator | BioassayCraft</title>
+  <link rel="icon" href="../../assets/icons/favicon.ico" sizes="any">
+  <link rel="icon" href="../../assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="../../assets/icons/favicon-32x32.png">
+  <link rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="../../assets/icons/favicon-16x16.png">
+  <link rel="apple-touch-icon"
+      href="../../assets/icons/apple-touch-icon.png">
+  <link rel="manifest"
+      href="../../assets/icons/site.webmanifest">
+  <meta name="theme-color"
+      content="#F7F5F0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: var(--bc-text);
+      --muted: var(--bc-secondary);
+      --line: var(--bc-border);
+      --soft-line: rgba(214, 217, 222, 0.72);
+      --paper: var(--bc-bg);
+      --panel: rgba(255, 255, 255, 0.44);
+      --panel-soft: rgba(255, 255, 255, 0.28);
+      --blue: var(--bc-blue);
+      --blue-2: var(--bc-blue);
+      --blue-3: var(--bc-blue-soft);
+      --green: #2c7a57;
+      --green-bg: #eaf5ef;
+      --red: #b34a42;
+      --red-bg: #f8ecea;
+      --amber: #a46f1c;
+      --amber-bg: #fbf3df;
+      --shadow: none;
+      --focus-ring: var(--bc-focus-ring);
+      --mono: var(--font-mono);
+      --sans: var(--font-sans);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: var(--sans);
+      line-height: 1.5;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    .site-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      padding: 18px 0 42px;
+    }
+
+    .brand-link,
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-link {
+      gap: 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .brand-link:hover {
+      color: var(--blue);
+    }
+
+    .back-link {
+      min-height: 40px;
+      padding: 0 14px;
+      color: var(--blue);
+      border: 1px solid var(--bc-blue-border);
+      border-radius: 7px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+
+    .back-link:hover {
+      border-color: var(--blue);
+      background: var(--blue-3);
+      transform: translateY(-1px);
+    }
+
+    .brand-link:focus-visible,
+    .back-link:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+
+    .brand-mark {
+      display: block;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 28px;
+      align-items: end;
+      padding: 28px 0 22px;
+      border-top: 1px solid var(--ink);
+    }
+
+    .eyebrow {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: none;
+    }
+
+    h1 {
+      margin: 14px 0 0;
+      color: var(--ink);
+      font-size: clamp(2.25rem, 4.2vw, 4.35rem);
+      font-weight: 600;
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 18px 0 0;
+      color: var(--ink);
+      font-size: clamp(1.02rem, 1.6vw, 1.32rem);
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    .hero-copy {
+      max-width: 700px;
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .card,
+    .band,
+    .hero-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .card,
+    .band {
+      padding: 16px;
+    }
+
+    .hero-panel {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      background: transparent;
+    }
+
+    .section {
+      margin-top: 22px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 10px;
+    }
+
+    .section h2 {
+      margin-bottom: 0;
+      color: var(--ink);
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .section-note {
+      max-width: 620px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(100px, 1fr));
+      gap: 8px;
+    }
+
+    .workflow-btn {
+      min-height: 66px;
+      border: 1px solid var(--soft-line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 11px;
+      transition: border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .workflow-btn span {
+      display: block;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+    }
+
+    .workflow-btn.active,
+    .workflow-btn:hover {
+      border-color: var(--bc-blue-border);
+      background: var(--blue-3);
+    }
+
+    .workflow-detail {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--soft-line);
+      border-left: 3px solid var(--blue-2);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      min-height: 68px;
+    }
+
+    .workflow-detail h3 {
+      margin-bottom: 4px;
+      font-size: 0.98rem;
+    }
+
+    .workflow-detail p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .control,
+    .select-wrap,
+    .panel,
+    .assessment-item {
+      border: 1px solid var(--soft-line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      padding: 11px;
+    }
+
+    .control label,
+    .select-wrap label,
+    .panel-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 1fr 82px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue-2);
+    }
+
+    input[type="number"],
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 8px 9px;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+    }
+
+    input[type="number"]:focus,
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px var(--focus-ring);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .primary-btn,
+    .ghost-btn {
+      min-height: 40px;
+      border-radius: 7px;
+      padding: 8px 12px;
+      font-weight: 500;
+      transition: background 0.16s ease, border-color 0.16s ease;
+    }
+
+    .primary-btn {
+      border: 1px solid var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .ghost-btn {
+      border: 1px solid var(--bc-blue-border);
+      background: transparent;
+      color: var(--blue);
+    }
+
+    .primary-btn:hover {
+      border-color: var(--bc-blue-hover);
+      background: var(--bc-blue-hover);
+    }
+
+    .ghost-btn:hover {
+      border-color: var(--blue);
+      background: var(--blue-3);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric-grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .metric {
+      min-height: 92px;
+      border: 1px solid var(--soft-line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      padding: 12px;
+    }
+
+    .metric small,
+    .assessment-item small {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 1.12rem;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      word-break: break-word;
+    }
+
+    .metric em {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-style: normal;
+    }
+
+    .mono,
+    .value-readout {
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .status.pass {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .status.fail {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    .status.warn {
+      background: var(--amber-bg);
+      color: var(--amber);
+    }
+
+    .hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .level-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .level-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--soft-line);
+      border-radius: 7px;
+      background: var(--paper);
+      padding: 7px 10px;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .assessment-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .assessment-item strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .assessment-item p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--soft-line);
+      border-radius: 8px;
+      background: var(--paper);
+    }
+
+    .matrix-wrap {
+      max-height: 520px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    th,
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--soft-line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--paper);
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .matrix-input,
+    .small-input {
+      width: 90px;
+      padding: 6px 7px;
+      font-family: var(--mono);
+    }
+
+    .small-input {
+      width: 76px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 330px;
+      border: 1px solid var(--soft-line);
+      border-radius: 8px;
+      background: var(--paper);
+    }
+
+    .formula {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+
+    .decision-panel {
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .decision-score {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-radius: 8px;
+      padding: 22px;
+      text-align: center;
+    }
+
+    .decision-score.pass {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .decision-score.fail {
+      background: var(--amber-bg);
+      color: var(--amber);
+    }
+
+    .decision-score span {
+      color: inherit;
+      font-size: 0.76rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .decision-score strong {
+      margin-top: 6px;
+      font-size: 1.45rem;
+      line-height: 1.08;
+    }
+
+    .recommendations {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .rec {
+      border: 1px solid var(--soft-line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      padding: 12px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .rec.active {
+      border-color: #d6b15d;
+      background: var(--amber-bg);
+      color: var(--amber);
+    }
+
+    .rec.good {
+      border-color: #9fcdb5;
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    @media (max-width: 1060px) {
+      .hero,
+      .grid-2,
+      .decision-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .metric-grid,
+      .assessment-grid,
+      .grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 700px) {
+      .page {
+        width: min(100% - 28px, 1180px);
+        padding-top: 18px;
+      }
+
+      .hero {
+        padding-top: 22px;
+      }
+
+      .workflow,
+      .control-grid,
+      .metric-grid,
+      .assessment-grid,
+      .grid-3,
+      .recommendations {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .section-note {
+        margin-top: 8px;
+      }
+
+      .control-row {
+        grid-template-columns: 1fr 76px;
+      }
+
+      .toolbar {
+        align-items: stretch;
+      }
+
+      .primary-btn,
+      .ghost-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="site-header">
+      <a class="brand-link" href="../../" aria-label="BioassayCraft home">
+        <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+        <span class="brand-name">bioassaycraft</span>
+      </a>
+      <a class="back-link" href="../../">Back to home</a>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <div class="eyebrow">Interactive simulation</div>
+        <h1 id="page-title">Validation Simulator</h1>
+        <p class="subtitle">Procedure-based validation, method-based validation, and reportable-result risk — inspired by USP &lt;1033&gt;.</p>
+        <p class="hero-copy">A data-driven workspace for connecting analytical target profile assumptions, validation design, editable observed RP data, procedure-based analysis, method-based variance modeling, and Prob(OOS) risk.</p>
+      </div>
+      <div class="hero-panel">
+        <div class="metric-grid two">
+          <div class="metric">
+            <small>Matrix rows</small>
+            <strong id="heroRows">0</strong>
+            <em>Run x replicate rows</em>
+          </div>
+          <div class="metric">
+            <small>Potency levels</small>
+            <strong id="heroLevels">0</strong>
+            <em>Current columns</em>
+          </div>
+        </div>
+        <div class="metric">
+          <small>Integrated status</small>
+          <strong id="heroStatus">Ready</strong>
+          <em id="heroRiskLine">Design and data risk are waiting for analysis.</em>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="workflow-title">
+      <div class="section-head">
+        <h2 id="workflow-title">Main Workflow</h2>
+        <p class="section-note">Click each node to inspect how the same matrix data flows from ATP through design, analysis, and final decision.</p>
+      </div>
+      <div class="band">
+        <div class="workflow" id="workflowNodes"></div>
+        <div class="workflow-detail" id="workflowDetail" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="atp-title">
+      <div class="section-head">
+        <h2 id="atp-title">ATP and Procedure Requirement</h2>
+        <p class="section-note">What you set: intended use, limits, acceptable risk, expected bias, and target reportable-result precision.</p>
+      </div>
+      <div class="card">
+        <div class="grid-3">
+          <div class="select-wrap">
+            <label for="procedureUse">Procedure use</label>
+            <select id="procedureUse">
+              <option selected>Release testing</option>
+              <option>Reference standard qualification</option>
+              <option>Comparability / stability</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="lslInput">LSL <span class="value-readout" id="lslValue">0.70</span></label>
+            <div class="control-row">
+              <input id="lslRange" type="range" min="0.50" max="1.00" step="0.01" value="0.70" data-pair="lslInput">
+              <input id="lslInput" type="number" min="0.50" max="1.00" step="0.01" value="0.70" data-pair="lslRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="uslInput">USL <span class="value-readout" id="uslValue">1.43</span></label>
+            <div class="control-row">
+              <input id="uslRange" type="range" min="1.00" max="1.80" step="0.01" value="1.43" data-pair="uslInput">
+              <input id="uslInput" type="number" min="1.00" max="1.80" step="0.01" value="1.43" data-pair="uslRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="lrlInput">LRL <span class="value-readout" id="lrlValue">0.75</span></label>
+            <div class="control-row">
+              <input id="lrlRange" type="range" min="0.50" max="1.00" step="0.01" value="0.75" data-pair="lrlInput">
+              <input id="lrlInput" type="number" min="0.50" max="1.00" step="0.01" value="0.75" data-pair="lrlRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="urlInput">URL <span class="value-readout" id="urlValue">1.33</span></label>
+            <div class="control-row">
+              <input id="urlRange" type="range" min="1.00" max="1.80" step="0.01" value="1.33" data-pair="urlInput">
+              <input id="urlInput" type="number" min="1.00" max="1.80" step="0.01" value="1.33" data-pair="urlRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="lplInput">LPL <span class="value-readout" id="lplValue">0.70</span></label>
+            <div class="control-row">
+              <input id="lplRange" type="range" min="0.50" max="1.00" step="0.01" value="0.70" data-pair="lplInput">
+              <input id="lplInput" type="number" min="0.50" max="1.00" step="0.01" value="0.70" data-pair="lplRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="uplInput">UPL <span class="value-readout" id="uplValue">1.43</span></label>
+            <div class="control-row">
+              <input id="uplRange" type="range" min="1.00" max="1.80" step="0.01" value="1.43" data-pair="uplInput">
+              <input id="uplInput" type="number" min="1.00" max="1.80" step="0.01" value="1.43" data-pair="uplRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="allowedProbInput">Allowed Prob(OOS)% <span class="value-readout" id="allowedProbValue">1.0</span></label>
+            <div class="control-row">
+              <input id="allowedProbRange" type="range" min="0.1" max="10" step="0.1" value="1" data-pair="allowedProbInput">
+              <input id="allowedProbInput" type="number" min="0.1" max="10" step="0.1" value="1" data-pair="allowedProbRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="targetGcvInput">Target GCVRR% <span class="value-readout" id="targetGcvValue">10.0</span></label>
+            <div class="control-row">
+              <input id="targetGcvRange" type="range" min="2" max="30" step="0.5" value="10" data-pair="targetGcvInput">
+              <input id="targetGcvInput" type="number" min="2" max="30" step="0.5" value="10" data-pair="targetGcvRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="expectedRbInput">Expected RB% <span class="value-readout" id="expectedRbValue">0.0</span></label>
+            <div class="control-row">
+              <input id="expectedRbRange" type="range" min="-30" max="30" step="0.5" value="0" data-pair="expectedRbInput">
+              <input id="expectedRbInput" type="number" min="-30" max="30" step="0.5" value="0" data-pair="expectedRbRange">
+            </div>
+          </div>
+        </div>
+        <div class="metric-grid" style="margin-top: 14px;">
+          <div class="metric">
+            <small>Procedure goal</small>
+            <strong id="atpGoal">Release testing</strong>
+            <em>RR must support release decision.</em>
+          </div>
+          <div class="metric">
+            <small>Risk budget</small>
+            <strong id="atpRiskBudget">1.0%</strong>
+            <em>AC should be derived from Prob(OOS).</em>
+          </div>
+          <div class="metric">
+            <small>Precision target</small>
+            <strong id="atpPrecisionTarget">10.0%</strong>
+            <em>Target reportable-result GCV.</em>
+          </div>
+          <div class="metric">
+            <small>ATP summary</small>
+            <strong id="releaseLimitStatus">Pass</strong>
+            <em id="atpSummaryText">Validation design should estimate RB, GCVRR, linearity, and range.</em>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="design-risk-title">
+      <div class="section-head">
+        <h2 id="design-risk-title">Design-stage Prob(OOS) and Replication Planning</h2>
+        <p class="section-note">What it calculates: pre-validation risk from expected RB and target GCVRR, before any observed matrix data exists.</p>
+      </div>
+      <div class="card">
+        <div class="metric-grid">
+          <div class="metric">
+            <small>Design-stage assumption</small>
+            <strong id="designAssumption">RB 0.0%</strong>
+            <em id="designPrecisionAssumption">GCVRR 10.0%</em>
+          </div>
+          <div class="metric">
+            <small>Design-stage Prob(OOS)</small>
+            <strong id="designProbOos">0.00%</strong>
+            <em id="designProbStatus" class="status pass">Within budget</em>
+          </div>
+          <div class="metric">
+            <small>Data-updated evidence</small>
+            <strong id="updatedEvidence">RB 0.00%</strong>
+            <em id="updatedEvidenceGcv">GCVRR 0.00%</em>
+          </div>
+          <div class="metric">
+            <small>Data-updated Prob(OOS)</small>
+            <strong id="updatedProbOos">0.00%</strong>
+            <em id="updatedProbStatus" class="status pass">Within budget</em>
+          </div>
+        </div>
+        <p class="formula">Design-stage: expected RB + target GCVRR. Data-updated: observed RB + observed or predicted GCVRR from the editable matrix.</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="levels-title">
+      <div class="section-head">
+        <h2 id="levels-title">Potency Level Recommendation</h2>
+        <p class="section-note">What you set: level source and custom levels. What it means: coverage beyond specification/procedure limits and log-scale balance.</p>
+      </div>
+      <div class="card">
+        <div class="grid-2">
+          <div>
+            <div class="select-wrap">
+              <label for="levelLimitSource">Limit source for recommendation</label>
+              <select id="levelLimitSource">
+                <option value="spec" selected>Specification limits: LSL / USL</option>
+                <option value="procedure">Procedure limits: LPL / UPL</option>
+              </select>
+            </div>
+            <div class="panel" style="margin-top: 12px;">
+              <div class="panel-label">Confirmed potency levels</div>
+              <div class="level-list" id="selectedLevelChips"></div>
+              <p class="hint">USP &lt;1033&gt; recommends extending the dilutional linearity study beyond release specification limits, with ICH Q2(R2) suggesting 80% of the lower limit and 120% of the upper limit. The values below are suggested rounded, log-scale balanced validation levels.</p>
+            </div>
+            <div class="panel" style="margin-top: 12px;">
+              <div class="panel-label">Recommended validation levels</div>
+              <div class="mono" id="recommendedLevelsText">0.50, 0.71, 1.00, 1.41, 2.00</div>
+              <p class="hint" id="recommendedRationale">These levels extend beyond 80% of the lower limit and 120% of the upper limit, include the target potency of 1.00, and are approximately symmetric on the log scale.</p>
+              <div class="toolbar">
+                <button class="primary-btn" type="button" id="applyRecommendedLevels">Apply recommended levels</button>
+                <button class="ghost-btn" type="button" id="resetExampleLevels">Reset to USP &lt;1033&gt; example levels</button>
+              </div>
+            </div>
+            <div class="panel" style="margin-top: 12px;">
+              <label class="panel-label" for="customLevelsInput">Custom potency levels</label>
+              <input id="customLevelsInput" type="text" value="0.50, 0.71, 1.00, 1.41, 2.00">
+              <div class="toolbar">
+                <button class="ghost-btn" type="button" id="applyCustomLevels">Apply custom levels</button>
+              </div>
+              <p class="hint" id="customLevelMessage">Enter comma-separated values such as 0.50, 0.71, 1.00, 1.41, 2.00.</p>
+            </div>
+          </div>
+          <div>
+            <div class="metric-grid two">
+              <div class="metric">
+                <small>Required lower coverage</small>
+                <strong id="requiredLower">0.560</strong>
+                <em>lower limit x 0.80</em>
+              </div>
+              <div class="metric">
+                <small>Required upper coverage</small>
+                <strong id="requiredUpper">1.716</strong>
+                <em>upper limit x 1.20</em>
+              </div>
+            </div>
+            <div class="assessment-grid" id="levelAssessment"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="design-title">
+      <div class="section-head">
+        <h2 id="design-title">Validation Design Table</h2>
+        <p class="section-note">What it calculates: a compact run-level validation design and the editable matrix shape used downstream.</p>
+      </div>
+      <div class="card">
+        <div class="control-grid">
+          <div class="select-wrap">
+            <label for="validationRuns">Validation runs</label>
+            <select id="validationRuns">
+              <option value="6" selected>6 runs</option>
+              <option value="8">8 runs</option>
+              <option value="12">12 runs</option>
+            </select>
+          </div>
+          <div class="select-wrap">
+            <label for="replicatesPerLevel">Replicates per level</label>
+            <select id="replicatesPerLevel">
+              <option value="1">1 replicate</option>
+              <option value="2" selected>2 replicates</option>
+              <option value="3">3 replicates</option>
+            </select>
+          </div>
+        </div>
+        <div class="metric-grid" style="margin-top: 14px;">
+          <div class="metric">
+            <small>Runs</small>
+            <strong id="summaryRuns">6</strong>
+          </div>
+          <div class="metric">
+            <small>Levels</small>
+            <strong id="summaryLevels">5</strong>
+          </div>
+          <div class="metric">
+            <small>Replicates per level</small>
+            <strong id="summaryReps">2</strong>
+          </div>
+          <div class="metric">
+            <small>Matrix cells</small>
+            <strong id="summaryCells">60</strong>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top: 14px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Run</th>
+                <th>Analyst</th>
+                <th>Day</th>
+                <th>Reagent Lot</th>
+                <th>Instrument</th>
+                <th>Potency Levels</th>
+                <th>Replicates per Level</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody id="compactDesignBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="matrix-title">
+      <div class="section-head">
+        <h2 id="matrix-title">Editable Data Matrix and Excel Paste</h2>
+        <p class="section-note">What you set: observed RP values. Paste a matrix only, or paste a full table with headers.</p>
+      </div>
+      <div class="card">
+        <div class="grid-2">
+          <div class="panel">
+            <label class="panel-label" for="pasteInput">Paste from Excel</label>
+            <textarea id="pasteInput" placeholder="Paste tab-separated observed RP matrix, or a full table with Run, Replicate, Analyst, Day, Reagent Lot, Instrument, and level columns."></textarea>
+            <div class="toolbar">
+              <button class="primary-btn" type="button" id="applyPaste">Parse pasted data</button>
+              <button class="ghost-btn" type="button" id="clearPaste">Clear paste box</button>
+            </div>
+            <p class="hint" id="pasteMessage">Matrix-only paste expects current row count x current potency level count.</p>
+          </div>
+          <div class="metric-grid two">
+            <div class="metric">
+              <small>Rows expected</small>
+              <strong id="pasteRowsExpected">12</strong>
+              <em>Run x replicate</em>
+            </div>
+            <div class="metric">
+              <small>Level columns expected</small>
+              <strong id="pasteColsExpected">5</strong>
+              <em>Current potency levels</em>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap matrix-wrap" style="margin-top: 14px;">
+          <table id="dataMatrixTable">
+            <thead id="dataMatrixHead"></thead>
+            <tbody id="dataMatrixBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="generate-title">
+      <div class="section-head">
+        <h2 id="generate-title">Generate Observed RP Data</h2>
+        <p class="section-note">What it calculates: log-scale observed RP values with overall bias, run effects, and level-specific error.</p>
+      </div>
+      <div class="card">
+        <div class="control-grid">
+          <div class="control">
+            <label for="overallBiasInput">Overall bias% <span class="value-readout" id="overallBiasValue">0.0</span></label>
+            <div class="control-row">
+              <input id="overallBiasRange" type="range" min="-30" max="30" step="0.5" value="0" data-pair="overallBiasInput">
+              <input id="overallBiasInput" type="number" min="-30" max="30" step="0.5" value="0" data-pair="overallBiasRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="overallBetweenInput">Overall between-run GCV% <span class="value-readout" id="overallBetweenValue">10.0</span></label>
+            <div class="control-row">
+              <input id="overallBetweenRange" type="range" min="0" max="35" step="0.5" value="10" data-pair="overallBetweenInput">
+              <input id="overallBetweenInput" type="number" min="0" max="35" step="0.5" value="10" data-pair="overallBetweenRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="overallWithinInput">Overall within-run GCV% <span class="value-readout" id="overallWithinValue">6.0</span></label>
+            <div class="control-row">
+              <input id="overallWithinRange" type="range" min="0" max="35" step="0.5" value="6" data-pair="overallWithinInput">
+              <input id="overallWithinInput" type="number" min="0" max="35" step="0.5" value="6" data-pair="overallWithinRange">
+            </div>
+          </div>
+          <div class="control">
+            <label for="linearitySlopeInput">Linearity slope <span class="value-readout" id="linearitySlopeValue">1.00</span></label>
+            <div class="control-row">
+              <input id="linearitySlopeRange" type="range" min="0.75" max="1.25" step="0.01" value="1" data-pair="linearitySlopeInput">
+              <input id="linearitySlopeInput" type="number" min="0.75" max="1.25" step="0.01" value="1" data-pair="linearitySlopeRange">
+            </div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="primary-btn" type="button" id="generateGood">Generate good data</button>
+          <button class="ghost-btn" type="button" id="generateBorderline">Generate borderline data</button>
+          <button class="ghost-btn" type="button" id="generatePoor">Generate poor data</button>
+          <button class="ghost-btn" type="button" id="resetExpected">Reset to expected values</button>
+        </div>
+        <div class="table-wrap" style="margin-top: 14px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Level</th>
+                <th>Level-specific bias%</th>
+                <th>Level-specific GCV%</th>
+              </tr>
+            </thead>
+            <tbody id="levelControlBody"></tbody>
+          </table>
+        </div>
+        <p class="formula">ln(observed RP) = ln(expected RP) x linearitySlope + ln(1 + overallBias/100) + ln(1 + levelSpecificBias/100) + runEffect + randomError</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="procedure-title">
+      <div class="section-head">
+        <h2 id="procedure-title">Procedure-based Analysis</h2>
+        <p class="section-note">Procedure-based answers: "Does this predefined procedure work?"</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="control-grid">
+            <div class="select-wrap">
+              <label for="procedureFormat">Procedure format</label>
+              <select id="procedureFormat">
+                <option>Average all runs</option>
+                <option>Average selected number of runs</option>
+                <option>Per-run RR then average</option>
+              </select>
+            </div>
+            <div class="control">
+              <label for="procedureRunCountInput">Selected runs <span class="value-readout" id="procedureRunCountValue">3</span></label>
+              <div class="control-row">
+                <input id="procedureRunCountRange" type="range" min="1" max="12" step="1" value="3" data-pair="procedureRunCountInput">
+                <input id="procedureRunCountInput" type="number" min="1" max="12" step="1" value="3" data-pair="procedureRunCountRange">
+              </div>
+            </div>
+            <div class="select-wrap">
+              <label for="levelInclusion">Potency level inclusion</label>
+              <select id="levelInclusion">
+                <option selected>Include all potency levels</option>
+                <option>Exclude failed levels</option>
+              </select>
+            </div>
+          </div>
+          <div class="metric-grid" style="margin-top: 14px;">
+            <div class="metric">
+              <small>Overall mean RB</small>
+              <strong id="procOverallRb">0.00%</strong>
+            </div>
+            <div class="metric">
+              <small>Procedure GCVRR</small>
+              <strong id="procGcvRR">0.00%</strong>
+            </div>
+            <div class="metric">
+              <small>Linearity slope</small>
+              <strong id="procSlope">1.000</strong>
+            </div>
+            <div class="metric">
+              <small>Range</small>
+              <strong id="procRange">Pass</strong>
+            </div>
+          </div>
+          <div class="table-wrap" style="margin-top: 14px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Expected RP</th>
+                  <th>Mean Observed RP</th>
+                  <th>RB%</th>
+                  <th>GCV%</th>
+                  <th>Decision</th>
+                </tr>
+              </thead>
+              <tbody id="procedureSummaryBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <canvas id="procedureCanvas" width="900" height="560" aria-label="Procedure-based log mean observed versus log expected plot"></canvas>
+          <p class="formula">x = ln(expected RP), y = ln(mean observed RP). Gray: y=x. Blue: fitted line.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="method-title">
+      <div class="section-head">
+        <h2 id="method-title">Method-based Analysis</h2>
+        <p class="section-note">Method-based answers: "How should this method be used to design a procedure?"</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="control-grid">
+            <div class="select-wrap">
+              <label for="varianceModel">Variance model</label>
+              <select id="varianceModel">
+                <option selected>Simple run-level variance decomposition</option>
+                <option>Nested: replicate within run</option>
+              </select>
+              <p class="hint">Training approximation: variance is estimated from log-scale residuals after fitting linearity.</p>
+            </div>
+            <div class="control">
+              <label for="optimizerRunsInput">n runs per RR <span class="value-readout" id="optimizerRunsValue">3</span></label>
+              <div class="control-row">
+                <input id="optimizerRunsRange" type="range" min="1" max="8" step="1" value="3" data-pair="optimizerRunsInput">
+                <input id="optimizerRunsInput" type="number" min="1" max="8" step="1" value="3" data-pair="optimizerRunsRange">
+              </div>
+            </div>
+            <div class="control">
+              <label for="optimizerRepsInput">k replicates per run <span class="value-readout" id="optimizerRepsValue">1</span></label>
+              <div class="control-row">
+                <input id="optimizerRepsRange" type="range" min="1" max="6" step="1" value="1" data-pair="optimizerRepsInput">
+                <input id="optimizerRepsInput" type="number" min="1" max="6" step="1" value="1" data-pair="optimizerRepsRange">
+              </div>
+            </div>
+          </div>
+          <div class="metric-grid" style="margin-top: 14px;">
+            <div class="metric">
+              <small>Between-run GCV</small>
+              <strong id="methodBetweenGcv">0.00%</strong>
+            </div>
+            <div class="metric">
+              <small>Within-run GCV</small>
+              <strong id="methodWithinGcv">0.00%</strong>
+            </div>
+            <div class="metric">
+              <small>IP GCV</small>
+              <strong id="methodIpGcv">0.00%</strong>
+            </div>
+            <div class="metric">
+              <small>Optimizer GCVRR</small>
+              <strong id="optimizerGcvRR">0.00%</strong>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Format</th>
+                  <th>Predicted GCVRR</th>
+                  <th>Prob(OOS) using current RB</th>
+                  <th>Meets Target?</th>
+                  <th>Workload</th>
+                </tr>
+              </thead>
+              <tbody id="methodStrategyBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="decision-title">
+      <div class="section-head">
+        <h2 id="decision-title">Final Decision Panel</h2>
+        <p class="section-note">What it means: combine ATP risk, level coverage, procedure performance, method variance, and procedure format feasibility.</p>
+      </div>
+      <div class="card decision-panel">
+        <div class="decision-score pass" id="decisionScore">
+          <span>Integrated readout</span>
+          <strong id="decisionHeadline">Validation design appears aligned with ATP</strong>
+        </div>
+        <div class="recommendations">
+          <div class="rec good" data-rec="aligned">Validation design appears aligned with ATP</div>
+          <div class="rec" data-rec="levels">Review potency level coverage</div>
+          <div class="rec" data-rec="runs">Increase runs</div>
+          <div class="rec" data-rec="replicates">Increase within-run replicates</div>
+          <div class="rec" data-rec="bias">Tighten bias control</div>
+          <div class="rec" data-rec="limits">Reconsider procedure limits or risk budget</div>
+          <div class="rec" data-rec="range">Reduce validated range or investigate nonlinearity</div>
+          <div class="rec" data-rec="data">Review matrix data entry or paste warnings</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const candidatePotencyLevels = [0.25, 0.32, 0.40, 0.50, 0.64, 0.71, 0.80, 1.00, 1.25, 1.41, 1.56, 2.00, 2.50, 3.13, 4.00];
+    const examplePotencyLevels = [0.50, 0.71, 1.00, 1.41, 2.00];
+    const workflowSteps = [
+      ["ATP", "Set procedure use, specification limits, procedure limits, acceptable risk, expected RB, and target GCVRR."],
+      ["Procedure Budget", "Use design-stage assumptions to judge whether the target precision is compatible with the risk budget."],
+      ["Potency Levels", "Recommend rounded validation levels that extend beyond the lower and upper limits and support linearity."],
+      ["Validation Design", "Build compact run-level design and an editable Run x Replicate data matrix."],
+      ["Data Entry", "Paste Excel data, type observed RP values, or generate log-scale simulated observations."],
+      ["Procedure-based", "Ask whether the predefined procedure works by analyzing mean RB, GCVRR, linearity, and range."],
+      ["Method-based", "Estimate variance components and predict reportable-result precision under alternative formats."],
+      ["Final Decision", "Combine ATP risk, observed evidence, and procedure format feasibility into a validation decision."]
+    ];
+
+    const state = {
+      atp: {},
+      selectedLevels: [...examplePotencyLevels],
+      recommendedLevels: [...examplePotencyLevels],
+      levelControls: {},
+      levelControlsTouched: false,
+      designRows: [],
+      matrixRows: [],
+      levelAssessment: {},
+      procedure: {},
+      method: {},
+      designProbOos: 0,
+      updatedProbOos: 0,
+      pasteWarning: false
+    };
+
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
+    function numberValue(id) {
+      return Number(byId(id).value);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function fmt(value, digits = 2) {
+      if (!Number.isFinite(value)) return "-";
+      return value.toFixed(digits);
+    }
+
+    function pct(value, digits = 2) {
+      return fmt(value, digits) + "%";
+    }
+
+    function levelKey(level) {
+      return Number(level).toFixed(2);
+    }
+
+    function rowKey(run, replicate) {
+      return `${run}|${replicate}`;
+    }
+
+    function syncPairedInput(source) {
+      const pair = byId(source.dataset.pair);
+      if (!pair) return;
+      const min = Number(source.min);
+      const max = Number(source.max);
+      const value = clamp(Number(source.value), min, max);
+      source.value = value;
+      pair.value = value;
+    }
+
+    function erfApprox(x) {
+      const sign = x < 0 ? -1 : 1;
+      const absX = Math.abs(x);
+      const a1 = 0.254829592;
+      const a2 = -0.284496736;
+      const a3 = 1.421413741;
+      const a4 = -1.453152027;
+      const a5 = 1.061405429;
+      const p = 0.3275911;
+      const t = 1 / (1 + p * absX);
+      const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
+      return sign * y;
+    }
+
+    function normalCdf(x, mean = 0, sd = 1) {
+      if (sd <= 0) return x < mean ? 0 : 1;
+      return 0.5 * (1 + erfApprox((x - mean) / (sd * Math.SQRT2)));
+    }
+
+    function randomNormal() {
+      let u = 0;
+      let v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+
+    function mean(values) {
+      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : NaN;
+    }
+
+    function sampleVariance(values) {
+      if (values.length < 2) return 0;
+      const avg = mean(values);
+      return values.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / (values.length - 1);
+    }
+
+    function sampleSd(values) {
+      return Math.sqrt(sampleVariance(values));
+    }
+
+    function gcvFromLogSd(logSd) {
+      return 100 * (Math.exp(Math.max(logSd, 0)) - 1);
+    }
+
+    function gcvFromLogVariance(logVariance) {
+      return 100 * (Math.exp(Math.sqrt(Math.max(logVariance, 0))) - 1);
+    }
+
+    function uniqueSortedLevels(levels) {
+      const rounded = levels
+        .filter(value => Number.isFinite(value) && value > 0)
+        .map(value => Number(value.toFixed(4)));
+      return Array.from(new Set(rounded)).sort((a, b) => a - b);
+    }
+
+    function combinations(values, size) {
+      const result = [];
+      function walk(start, combo) {
+        if (combo.length === size) {
+          result.push([...combo]);
+          return;
+        }
+        for (let index = start; index <= values.length - (size - combo.length); index++) {
+          combo.push(values[index]);
+          walk(index + 1, combo);
+          combo.pop();
+        }
+      }
+      walk(0, []);
+      return result;
+    }
+
+    function symmetryScore(levels) {
+      const lows = levels.filter(level => level < 1).map(level => Math.abs(Math.log(level))).sort((a, b) => a - b);
+      const highs = levels.filter(level => level > 1).map(level => Math.abs(Math.log(level))).sort((a, b) => a - b);
+      const pairCount = Math.min(lows.length, highs.length);
+      if (!pairCount) return 10;
+      let score = Math.abs(lows.length - highs.length) * 0.75;
+      for (let index = 0; index < pairCount; index++) {
+        score += Math.abs(lows[index] - highs[index]);
+      }
+      return score;
+    }
+
+    function regression(points) {
+      if (points.length < 2) return { slope: NaN, intercept: NaN, residualSd: NaN, residuals: [] };
+      const xs = points.map(point => point.x);
+      const ys = points.map(point => point.y);
+      const xMean = mean(xs);
+      const yMean = mean(ys);
+      const sxx = xs.reduce((sum, x) => sum + Math.pow(x - xMean, 2), 0);
+      const sxy = points.reduce((sum, point) => sum + (point.x - xMean) * (point.y - yMean), 0);
+      const slope = sxx === 0 ? NaN : sxy / sxx;
+      const intercept = yMean - slope * xMean;
+      const residuals = points.map(point => point.y - (intercept + slope * point.x));
+      const residualSd = points.length > 2
+        ? Math.sqrt(residuals.reduce((sum, residual) => sum + residual * residual, 0) / (points.length - 2))
+        : 0;
+      return { slope, intercept, residualSd, residuals };
+    }
+
+    function initWorkflow() {
+      const container = byId("workflowNodes");
+      workflowSteps.forEach(([title], index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "workflow-btn";
+        button.innerHTML = `<span>${String(index + 1).padStart(2, "0")}</span>${title}`;
+        button.addEventListener("click", () => selectWorkflowStep(index));
+        container.appendChild(button);
+      });
+      selectWorkflowStep(0);
+    }
+
+    function selectWorkflowStep(index) {
+      document.querySelectorAll(".workflow-btn").forEach((button, buttonIndex) => {
+        button.classList.toggle("active", buttonIndex === index);
+      });
+      const [title, text] = workflowSteps[index];
+      byId("workflowDetail").innerHTML = `<h3>${title}</h3><p>${text}</p>`;
+    }
+
+    function updateATP() {
+      state.atp = {
+        procedureUse: byId("procedureUse").value,
+        lsl: numberValue("lslInput"),
+        usl: numberValue("uslInput"),
+        lrl: numberValue("lrlInput"),
+        url: numberValue("urlInput"),
+        lpl: numberValue("lplInput"),
+        upl: numberValue("uplInput"),
+        allowedProb: numberValue("allowedProbInput"),
+        targetGcvRR: numberValue("targetGcvInput"),
+        expectedRb: numberValue("expectedRbInput")
+      };
+
+      byId("lslValue").textContent = fmt(state.atp.lsl, 2);
+      byId("uslValue").textContent = fmt(state.atp.usl, 2);
+      byId("lrlValue").textContent = fmt(state.atp.lrl, 2);
+      byId("urlValue").textContent = fmt(state.atp.url, 2);
+      byId("lplValue").textContent = fmt(state.atp.lpl, 2);
+      byId("uplValue").textContent = fmt(state.atp.upl, 2);
+      byId("allowedProbValue").textContent = fmt(state.atp.allowedProb, 1);
+      byId("targetGcvValue").textContent = fmt(state.atp.targetGcvRR, 1);
+      byId("expectedRbValue").textContent = fmt(state.atp.expectedRb, 1);
+      byId("atpGoal").textContent = state.atp.procedureUse;
+      byId("atpRiskBudget").textContent = pct(state.atp.allowedProb, 1);
+      byId("atpPrecisionTarget").textContent = pct(state.atp.targetGcvRR, 1);
+
+      const releaseTighter = state.atp.lrl > state.atp.lsl && state.atp.url < state.atp.usl;
+      byId("releaseLimitStatus").textContent = releaseTighter ? "Pass" : "Warning";
+      byId("atpSummaryText").textContent = releaseTighter
+        ? "Validation design should support estimation of RB, GCVRR, linearity, and range."
+        : "Release limits should be tighter than specification limits.";
+    }
+
+    function probOosFromRbGcv(rbPercent, gcvPercent, lpl, upl) {
+      const sigma = Math.sqrt(Math.log(1 + Math.pow(gcvPercent / 100, 2)));
+      const mu = Math.log(1 + rbPercent / 100);
+      const lower = normalCdf(Math.log(lpl), mu, sigma);
+      const upper = 1 - normalCdf(Math.log(upl), mu, sigma);
+      return clamp(lower + upper, 0, 1) * 100;
+    }
+
+    function calculateDesignStageProbOos() {
+      return probOosFromRbGcv(state.atp.expectedRb, state.atp.targetGcvRR, state.atp.lpl, state.atp.upl);
+    }
+
+    function getLevelLimits() {
+      if (byId("levelLimitSource").value === "procedure") {
+        return { lower: state.atp.lpl, upper: state.atp.upl, source: "Procedure limits" };
+      }
+      return { lower: state.atp.lsl, upper: state.atp.usl, source: "Specification limits" };
+    }
+
+    function suggestPotencyLevels(lowerLimit, upperLimit) {
+      const requiredLower = lowerLimit * 0.8;
+      const requiredUpper = upperLimit * 1.2;
+      const idealCombos = combinations(candidatePotencyLevels, 5)
+        .filter(levels => levels.includes(1.00))
+        .filter(levels => Math.min(...levels) <= requiredLower && Math.max(...levels) >= requiredUpper);
+
+      if (idealCombos.length) {
+        const scored = idealCombos.map(levels => {
+          const lowerSlack = Math.abs(Math.log(requiredLower / Math.min(...levels)));
+          const upperSlack = Math.abs(Math.log(Math.max(...levels) / requiredUpper));
+          const lowerAnchor = Math.min(...levels.map(level => Math.abs(Math.log(level / lowerLimit))));
+          const upperAnchor = Math.min(...levels.map(level => Math.abs(Math.log(level / upperLimit))));
+          return {
+            levels,
+            score: symmetryScore(levels) + 0.18 * (lowerSlack + upperSlack) + 0.08 * (lowerAnchor + upperAnchor)
+          };
+        });
+        scored.sort((left, right) => left.score - right.score);
+        return scored[0].levels;
+      }
+
+      const lowCoverage = candidatePotencyLevels.find(level => level <= requiredLower) || candidatePotencyLevels[0];
+      const highCoverage = [...candidatePotencyLevels].reverse().find(level => level >= requiredUpper) || candidatePotencyLevels[candidatePotencyLevels.length - 1];
+      const nearLower = candidatePotencyLevels.reduce((best, level) => Math.abs(Math.log(level / lowerLimit)) < Math.abs(Math.log(best / lowerLimit)) ? level : best, candidatePotencyLevels[0]);
+      const nearUpper = candidatePotencyLevels.reduce((best, level) => Math.abs(Math.log(level / upperLimit)) < Math.abs(Math.log(best / upperLimit)) ? level : best, candidatePotencyLevels[0]);
+      return uniqueSortedLevels([lowCoverage, nearLower, 1.00, nearUpper, highCoverage]);
+    }
+
+    function parseCustomLevels(text) {
+      const errors = [];
+      const parts = text.split(/[,\s]+/).map(part => part.trim()).filter(Boolean);
+      const rawLevels = parts.map(part => Number(part));
+      if (rawLevels.some(value => !Number.isFinite(value) || value <= 0)) errors.push("Use positive numeric potency levels only.");
+      const levels = uniqueSortedLevels(rawLevels);
+      if (levels.length < 3) errors.push("At least 3 potency levels are required.");
+      return { levels, errors };
+    }
+
+    function assessPotencyLevels(levels, lowerLimit, upperLimit) {
+      const sorted = uniqueSortedLevels(levels);
+      const requiredLower = lowerLimit * 0.8;
+      const requiredUpper = upperLimit * 1.2;
+      const lowest = sorted.length ? Math.min(...sorted) : NaN;
+      const highest = sorted.length ? Math.max(...sorted) : NaN;
+      const coveragePass = sorted.length > 0 && lowest <= requiredLower && highest >= requiredUpper;
+      const enoughLevels = sorted.length >= 3;
+      const recommendedLevelCount = sorted.length >= 5;
+      const centerPass = sorted.some(level => Math.abs(level - 1) <= 0.02);
+      const hasBelowSpec = sorted.some(level => level < lowerLimit);
+      const hasAboveSpec = sorted.some(level => level > upperLimit);
+      const outsidePass = hasBelowSpec && hasAboveSpec;
+      const lows = sorted.filter(level => level < 1);
+      let matched = 0;
+      lows.forEach(low => {
+        const reciprocal = 1 / low;
+        if (sorted.some(level => level > 1 && Math.abs(level - reciprocal) / reciprocal <= 0.10)) matched += 1;
+      });
+      const symmetryRatio = lows.length ? matched / lows.length : 0;
+      const symmetryLabel = lows.length === 0 ? "Poor symmetry" : symmetryRatio >= 0.9 ? "Good symmetry" : symmetryRatio >= 0.5 ? "Acceptable" : "Poor symmetry";
+      const symmetryStatus = symmetryLabel === "Good symmetry" ? "pass" : symmetryLabel === "Acceptable" ? "warn" : "fail";
+      return {
+        levels: sorted,
+        lowerLimit,
+        upperLimit,
+        requiredLower,
+        requiredUpper,
+        lowest,
+        highest,
+        coveragePass,
+        enoughLevels,
+        recommendedLevelCount,
+        centerPass,
+        hasBelowSpec,
+        hasAboveSpec,
+        outsidePass,
+        symmetryLabel,
+        symmetryStatus,
+        fullyAligned: coveragePass && enoughLevels && centerPass && outsidePass && symmetryStatus !== "fail"
+      };
+    }
+
+    function renderLevelAssessment(assessment) {
+      const countStatus = !assessment.enoughLevels ? "fail" : assessment.recommendedLevelCount ? "pass" : "warn";
+      const centerStatus = assessment.centerPass ? "pass" : "warn";
+      const outsideStatus = assessment.outsidePass ? "pass" : "warn";
+      byId("requiredLower").textContent = fmt(assessment.requiredLower, 3);
+      byId("requiredUpper").textContent = fmt(assessment.requiredUpper, 3);
+      byId("levelAssessment").innerHTML = `
+        <div class="assessment-item">
+          <small>Coverage check</small>
+          <strong><span class="status ${assessment.coveragePass ? "pass" : "warn"}">${assessment.coveragePass ? "Pass" : "Warning"}</span></strong>
+          <p>Current: ${fmt(assessment.lowest, 2)} to ${fmt(assessment.highest, 2)}</p>
+        </div>
+        <div class="assessment-item">
+          <small>Number of levels</small>
+          <strong><span class="status ${countStatus}">${assessment.recommendedLevelCount ? "Recommended" : assessment.enoughLevels ? "Minimum" : "Fail"}</span></strong>
+          <p>${assessment.levels.length} level(s). 5 or more supports linearity.</p>
+        </div>
+        <div class="assessment-item">
+          <small>Center point</small>
+          <strong><span class="status ${centerStatus}">${assessment.centerPass ? "Includes 1.00" : "Add 1.00"}</span></strong>
+          <p>Target potency should be represented.</p>
+        </div>
+        <div class="assessment-item">
+          <small>Outside specification</small>
+          <strong><span class="status ${outsideStatus}">${assessment.outsidePass ? "Pass" : "Warning"}</span></strong>
+          <p>Below lower: ${assessment.hasBelowSpec ? "yes" : "no"}<br>Above upper: ${assessment.hasAboveSpec ? "yes" : "no"}</p>
+        </div>
+        <div class="assessment-item">
+          <small>Log-scale symmetry</small>
+          <strong><span class="status ${assessment.symmetryStatus}">${assessment.symmetryLabel}</span></strong>
+          <p>Reciprocal pairs checked within 10% relative deviation.</p>
+        </div>
+      `;
+    }
+
+    function renderSelectedLevelChips(levels) {
+      byId("selectedLevelChips").innerHTML = levels.map(level => `<span class="level-chip">${levelKey(level)}</span>`).join("");
+      byId("customLevelsInput").value = levels.map(levelKey).join(", ");
+    }
+
+    function updatePotencyRecommendation() {
+      const limits = getLevelLimits();
+      state.recommendedLevels = suggestPotencyLevels(limits.lower, limits.upper);
+      state.levelAssessment = assessPotencyLevels(state.selectedLevels, limits.lower, limits.upper);
+      byId("recommendedLevelsText").textContent = state.recommendedLevels.map(levelKey).join(", ");
+      byId("recommendedRationale").textContent = "These levels extend beyond 80% of the lower limit and 120% of the upper limit, include the target potency of 1.00, and are approximately symmetric on the log scale.";
+      renderLevelAssessment(state.levelAssessment);
+      if (!state.levelAssessment.fullyAligned) {
+        byId("customLevelMessage").textContent = "Current levels no longer fully cover the updated limits. Consider applying recommended levels.";
+      }
+    }
+
+    function applySelectedLevels(levels) {
+      const parsed = uniqueSortedLevels(levels);
+      const limits = getLevelLimits();
+      const assessment = assessPotencyLevels(parsed, limits.lower, limits.upper);
+      if (!assessment.enoughLevels) {
+        byId("customLevelMessage").textContent = "At least 3 potency levels are required before applying.";
+        renderLevelAssessment(assessment);
+        return false;
+      }
+      state.selectedLevels = parsed;
+      state.levelControlsTouched = false;
+      ensureLevelControls();
+      resetLevelSpecificGcvDefaults();
+      renderSelectedLevelChips(parsed);
+      updatePotencyRecommendation();
+      buildDataMatrix(true);
+      updateAll();
+      return true;
+    }
+
+    function factorForRun(run) {
+      return {
+        analyst: run % 2 === 1 ? "A" : "B",
+        day: ((run - 1) % 3) + 1,
+        lot: run % 2 === 1 ? 1 : 2,
+        instrument: run % 2 === 1 ? 1 : 2
+      };
+    }
+
+    function buildCompactDesignTable() {
+      const runs = numberValue("validationRuns");
+      const reps = numberValue("replicatesPerLevel");
+      state.designRows = [];
+      for (let run = 1; run <= runs; run++) {
+        const factors = factorForRun(run);
+        state.designRows.push({
+          run,
+          ...factors,
+          levels: [...state.selectedLevels],
+          reps,
+          purpose: "Validation run"
+        });
+      }
+      byId("compactDesignBody").innerHTML = state.designRows.map(row => `
+        <tr>
+          <td class="mono">${row.run}</td>
+          <td>${row.analyst}</td>
+          <td>Day ${row.day}</td>
+          <td>Lot ${row.lot}</td>
+          <td>Instrument ${row.instrument}</td>
+          <td class="mono">${row.levels.map(levelKey).join(", ")}</td>
+          <td class="mono">${row.reps}</td>
+          <td>${row.purpose}</td>
+        </tr>
+      `).join("");
+    }
+
+    function buildDataMatrix(preserveExisting) {
+      const oldRows = new Map(state.matrixRows.map(row => [row.key, row]));
+      const runs = numberValue("validationRuns");
+      const reps = numberValue("replicatesPerLevel");
+      const rows = [];
+      for (let run = 1; run <= runs; run++) {
+        const factors = factorForRun(run);
+        for (let replicate = 1; replicate <= reps; replicate++) {
+          const key = rowKey(run, replicate);
+          const previous = oldRows.get(key);
+          const values = {};
+          state.selectedLevels.forEach(level => {
+            const lk = levelKey(level);
+            values[lk] = preserveExisting && previous && Number.isFinite(previous.values[lk])
+              ? previous.values[lk]
+              : level;
+          });
+          rows.push({ key, run, replicate, ...factors, values });
+        }
+      }
+      state.matrixRows = rows;
+      buildCompactDesignTable();
+      renderDataMatrix();
+      renderLevelControls();
+      updateDesignSummaries();
+    }
+
+    function updateDesignSummaries() {
+      const rows = state.matrixRows.length;
+      const levels = state.selectedLevels.length;
+      byId("summaryRuns").textContent = numberValue("validationRuns");
+      byId("summaryLevels").textContent = levels;
+      byId("summaryReps").textContent = numberValue("replicatesPerLevel");
+      byId("summaryCells").textContent = rows * levels;
+      byId("heroRows").textContent = rows;
+      byId("heroLevels").textContent = levels;
+      byId("pasteRowsExpected").textContent = rows;
+      byId("pasteColsExpected").textContent = levels;
+      byId("procedureRunCountRange").max = numberValue("validationRuns");
+      byId("procedureRunCountInput").max = numberValue("validationRuns");
+      if (numberValue("procedureRunCountInput") > numberValue("validationRuns")) {
+        byId("procedureRunCountInput").value = numberValue("validationRuns");
+        byId("procedureRunCountRange").value = numberValue("validationRuns");
+      }
+    }
+
+    function renderDataMatrix() {
+      const levelHeaders = state.selectedLevels.map(level => `<th>${levelKey(level)}</th>`).join("");
+      byId("dataMatrixHead").innerHTML = `
+        <tr>
+          <th>Run</th>
+          <th>Replicate</th>
+          <th>Analyst</th>
+          <th>Day</th>
+          <th>Reagent Lot</th>
+          <th>Instrument</th>
+          ${levelHeaders}
+        </tr>
+      `;
+      byId("dataMatrixBody").innerHTML = state.matrixRows.map(row => `
+        <tr>
+          <td class="mono">${row.run}</td>
+          <td class="mono">${row.replicate}</td>
+          <td>${row.analyst}</td>
+          <td>Day ${row.day}</td>
+          <td>Lot ${row.lot}</td>
+          <td>Instrument ${row.instrument}</td>
+          ${state.selectedLevels.map(level => {
+            const lk = levelKey(level);
+            return `<td><input class="matrix-input" type="number" min="0.0001" step="0.001" value="${fmt(row.values[lk], 3)}" data-row="${row.key}" data-level="${lk}"></td>`;
+          }).join("")}
+        </tr>
+      `).join("");
+    }
+
+    function parseExcelPaste(text) {
+      const warnings = [];
+      const lines = text.trim().split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      if (!lines.length) return { applied: false, warnings: ["Paste box is empty."] };
+      const delimiter = lines.some(line => line.includes("\t")) ? "\t" : ",";
+      const rows = lines.map(line => line.split(delimiter).map(cell => cell.trim()));
+      const first = rows[0].map(cell => cell.toLowerCase());
+      const hasHeader = first.some(cell => ["run", "replicate", "analyst", "day"].includes(cell)) || first.some(cell => state.selectedLevels.map(levelKey).includes(cell));
+      const dataRows = hasHeader ? rows.slice(1) : rows;
+
+      if (!hasHeader) {
+        if (dataRows.length !== state.matrixRows.length) warnings.push(`Expected ${state.matrixRows.length} matrix rows but received ${dataRows.length}.`);
+        dataRows.forEach((cells, rowIndex) => {
+          const target = state.matrixRows[rowIndex];
+          if (!target) return;
+          if (cells.length !== state.selectedLevels.length) warnings.push(`Row ${rowIndex + 1}: expected ${state.selectedLevels.length} level values but received ${cells.length}.`);
+          state.selectedLevels.forEach((level, levelIndex) => {
+            const value = Number(cells[levelIndex]);
+            if (Number.isFinite(value) && value > 0) target.values[levelKey(level)] = value;
+          });
+        });
+        return { applied: true, warnings };
+      }
+
+      const header = rows[0];
+      const headerLower = header.map(cell => cell.toLowerCase());
+      const runIndex = headerLower.indexOf("run");
+      const replicateIndex = headerLower.indexOf("replicate");
+      const levelColumnMap = new Map();
+      state.selectedLevels.forEach(level => {
+        const lk = levelKey(level);
+        const index = header.findIndex(cell => Number(cell).toFixed(2) === lk);
+        if (index >= 0) levelColumnMap.set(lk, index);
+        else warnings.push(`Missing level column ${lk}.`);
+      });
+      if (runIndex < 0 || replicateIndex < 0) warnings.push("Full-table paste should include Run and Replicate columns; rows will be applied sequentially where needed.");
+
+      dataRows.forEach((cells, rowIndex) => {
+        let target = null;
+        if (runIndex >= 0 && replicateIndex >= 0) {
+          const key = rowKey(Number(cells[runIndex]), Number(cells[replicateIndex]));
+          target = state.matrixRows.find(row => row.key === key);
+        }
+        if (!target) target = state.matrixRows[rowIndex];
+        if (!target) return;
+        levelColumnMap.forEach((columnIndex, lk) => {
+          const value = Number(cells[columnIndex]);
+          if (Number.isFinite(value) && value > 0) target.values[lk] = value;
+        });
+      });
+      if (dataRows.length !== state.matrixRows.length) warnings.push(`Expected ${state.matrixRows.length} data rows but received ${dataRows.length}.`);
+      return { applied: true, warnings };
+    }
+
+    function ensureLevelControls() {
+      state.selectedLevels.forEach(level => {
+        const lk = levelKey(level);
+        if (!state.levelControls[lk]) {
+          state.levelControls[lk] = {
+            bias: 0,
+            gcv: defaultLevelGcv(level)
+          };
+        }
+      });
+      Object.keys(state.levelControls).forEach(key => {
+        if (!state.selectedLevels.map(levelKey).includes(key)) delete state.levelControls[key];
+      });
+    }
+
+    function defaultLevelGcv(level) {
+      const base = Number.isFinite(numberValue("overallWithinInput")) ? numberValue("overallWithinInput") : 6;
+      return Math.max(0, base + Math.round(Math.abs(Math.log(level)) * 3));
+    }
+
+    function resetLevelSpecificGcvDefaults() {
+      state.selectedLevels.forEach(level => {
+        const lk = levelKey(level);
+        if (!state.levelControls[lk]) state.levelControls[lk] = { bias: 0, gcv: defaultLevelGcv(level) };
+        state.levelControls[lk].gcv = defaultLevelGcv(level);
+      });
+      renderLevelControls();
+    }
+
+    function renderLevelControls() {
+      ensureLevelControls();
+      byId("levelControlBody").innerHTML = state.selectedLevels.map(level => {
+        const lk = levelKey(level);
+        const control = state.levelControls[lk];
+        return `
+          <tr>
+            <td class="mono">${lk}</td>
+            <td><input class="small-input level-bias-input" type="number" step="0.5" value="${fmt(control.bias, 1)}" data-level="${lk}"></td>
+            <td><input class="small-input level-gcv-input" type="number" min="0" step="0.5" value="${fmt(control.gcv, 1)}" data-level="${lk}"></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function setScenario(type) {
+      const settings = {
+        good: { bias: 0, between: 8, within: 5, slope: 1.00, edge: 8 },
+        borderline: { bias: 4, between: 13, within: 8, slope: 1.06, edge: 12 },
+        poor: { bias: 9, between: 18, within: 13, slope: 0.88, edge: 18 }
+      }[type];
+      byId("overallBiasInput").value = settings.bias;
+      byId("overallBiasRange").value = settings.bias;
+      byId("overallBetweenInput").value = settings.between;
+      byId("overallBetweenRange").value = settings.between;
+      byId("overallWithinInput").value = settings.within;
+      byId("overallWithinRange").value = settings.within;
+      byId("linearitySlopeInput").value = settings.slope;
+      byId("linearitySlopeRange").value = settings.slope;
+      state.selectedLevels.forEach(level => {
+        const lk = levelKey(level);
+        const distance = Math.abs(Math.log(level));
+        state.levelControls[lk] = {
+          bias: type === "poor" && level > 1 ? 5 : 0,
+          gcv: settings.within + distance * (type === "good" ? 3 : type === "borderline" ? 5 : 8)
+        };
+      });
+      renderLevelControls();
+      generateObservedMatrix();
+    }
+
+    function generateObservedMatrix() {
+      const overallBias = numberValue("overallBiasInput");
+      const betweenGcv = numberValue("overallBetweenInput");
+      const slope = numberValue("linearitySlopeInput");
+      const biasTerm = Math.log(1 + overallBias / 100);
+      const betweenSd = Math.log(1 + betweenGcv / 100);
+      const runEffects = new Map();
+      state.matrixRows.forEach(row => {
+        if (!runEffects.has(row.run)) runEffects.set(row.run, randomNormal() * betweenSd);
+        state.selectedLevels.forEach(level => {
+          const lk = levelKey(level);
+          const control = state.levelControls[lk];
+          const levelBiasTerm = Math.log(1 + control.bias / 100);
+          const errorSd = Math.log(1 + control.gcv / 100);
+          const lnObserved = Math.log(level) * slope + biasTerm + levelBiasTerm + runEffects.get(row.run) + randomNormal() * errorSd;
+          row.values[lk] = Math.exp(lnObserved);
+        });
+      });
+      renderDataMatrix();
+      updateAll();
+    }
+
+    function resetToExpected() {
+      state.matrixRows.forEach(row => {
+        state.selectedLevels.forEach(level => {
+          row.values[levelKey(level)] = level;
+        });
+      });
+      renderDataMatrix();
+      updateAll();
+    }
+
+    function matrixObservations() {
+      const observations = [];
+      state.matrixRows.forEach(row => {
+        state.selectedLevels.forEach(level => {
+          const lk = levelKey(level);
+          const observed = Number(row.values[lk]);
+          if (Number.isFinite(observed) && observed > 0) {
+            observations.push({
+              run: row.run,
+              replicate: row.replicate,
+              expected: level,
+              levelKey: lk,
+              observed,
+              logExpected: Math.log(level),
+              logObserved: Math.log(observed),
+              logRatio: Math.log(observed / level)
+            });
+          }
+        });
+      });
+      return observations;
+    }
+
+    function analyzeProcedureBased() {
+      const format = byId("procedureFormat").value;
+      const runLimit = format === "Average selected number of runs"
+        ? numberValue("procedureRunCountInput")
+        : numberValue("validationRuns");
+      const observations = matrixObservations().filter(obs => obs.run <= runLimit);
+      const target = state.atp.targetGcvRR;
+      const levelRows = state.selectedLevels.map(level => {
+        const lk = levelKey(level);
+        const values = observations.filter(obs => obs.levelKey === lk);
+        const observedValues = values.map(obs => obs.observed);
+        const meanObserved = mean(observedValues);
+        const rb = (meanObserved / level - 1) * 100;
+        const gcvBasis = format === "Per-run RR then average"
+          ? Array.from(new Set(values.map(obs => obs.run))).map(run => {
+            const runValues = values.filter(obs => obs.run === run);
+            return Math.log(mean(runValues.map(obs => obs.observed)) / level);
+          })
+          : values.map(obs => obs.logRatio);
+        const gcv = gcvFromLogSd(sampleSd(gcvBasis));
+        const decision = Math.abs(rb) <= 10 && gcv <= target ? "Pass" : "Warning";
+        return { level, levelKey: lk, expected: level, meanObserved, rb, gcv, decision };
+      });
+      const includedLevels = byId("levelInclusion").value === "Exclude failed levels"
+        ? levelRows.filter(row => row.decision === "Pass").map(row => row.levelKey)
+        : levelRows.map(row => row.levelKey);
+      const includedObs = observations.filter(obs => includedLevels.includes(obs.levelKey));
+      const overallRb = (mean(includedObs.map(obs => obs.observed / obs.expected)) - 1) * 100;
+      const procedureLogRatios = format === "Per-run RR then average"
+        ? Array.from(new Set(includedObs.map(obs => `${obs.run}|${obs.levelKey}`))).map(key => {
+          const [runText, lk] = key.split("|");
+          const runValues = includedObs.filter(obs => obs.run === Number(runText) && obs.levelKey === lk);
+          return Math.log(mean(runValues.map(obs => obs.observed)) / runValues[0].expected);
+        })
+        : includedObs.map(obs => obs.logRatio);
+      const procedureGcvRR = gcvFromLogSd(sampleSd(procedureLogRatios));
+      const meanPoints = levelRows
+        .filter(row => includedLevels.includes(row.levelKey) && Number.isFinite(row.meanObserved) && row.meanObserved > 0)
+        .map(row => ({ x: Math.log(row.expected), y: Math.log(row.meanObserved), row }));
+      const fit = regression(meanPoints);
+      const rangePass = state.levelAssessment.fullyAligned && levelRows.every(row => row.decision === "Pass");
+      return { observations, levelRows, includedLevels, overallRb, procedureGcvRR, fit, rangePass, meanPoints };
+    }
+
+    function analyzeMethodBased() {
+      const observations = matrixObservations();
+      const points = observations.map(obs => ({ x: obs.logExpected, y: obs.logObserved, obs }));
+      const fit = regression(points);
+      const residualsByRun = new Map();
+      points.forEach(point => {
+        const residual = Number.isFinite(fit.intercept) ? point.y - (fit.intercept + fit.slope * point.x) : point.obs.logRatio;
+        if (!residualsByRun.has(point.obs.run)) residualsByRun.set(point.obs.run, []);
+        residualsByRun.get(point.obs.run).push(residual);
+      });
+      const runMeans = Array.from(residualsByRun.values()).map(values => mean(values));
+      let withinSs = 0;
+      let withinDf = 0;
+      let totalN = 0;
+      residualsByRun.forEach(values => {
+        const avg = mean(values);
+        values.forEach(value => {
+          withinSs += Math.pow(value - avg, 2);
+        });
+        withinDf += Math.max(values.length - 1, 0);
+        totalN += values.length;
+      });
+      const withinVar = withinDf > 0 ? withinSs / withinDf : 0;
+      const avgRunN = residualsByRun.size ? totalN / residualsByRun.size : 1;
+      const runMeanVar = sampleVariance(runMeans);
+      const betweenVar = Math.max(runMeanVar - withinVar / avgRunN, 0);
+      const strategies = [
+        { label: "1 run x 3 replicates", runs: 1, reps: 3 },
+        { label: "2 runs x 2 replicates", runs: 2, reps: 2 },
+        { label: "3 runs x 1 replicate", runs: 3, reps: 1 },
+        { label: "3 runs x 2 replicates", runs: 3, reps: 2 },
+        { label: "5 runs x 1 replicate", runs: 5, reps: 1 }
+      ].map(strategy => {
+        const gcv = calculatePredictedGcvRR(betweenVar, withinVar, strategy.runs, strategy.reps);
+        return {
+          ...strategy,
+          gcv,
+          probOos: probOosFromRbGcv(state.procedure.overallRb || 0, gcv, state.atp.lpl, state.atp.upl),
+          workload: strategy.runs * strategy.reps
+        };
+      });
+      return {
+        fit,
+        betweenVar,
+        withinVar,
+        betweenGcv: gcvFromLogVariance(betweenVar),
+        withinGcv: gcvFromLogVariance(withinVar),
+        ipGcv: gcvFromLogVariance(betweenVar + withinVar),
+        strategies
+      };
+    }
+
+    function calculatePredictedGcvRR(varBetween, varWithin, runs, reps) {
+      return gcvFromLogVariance(varBetween / runs + varWithin / (runs * reps));
+    }
+
+    function renderProcedureAnalysis() {
+      const p = state.procedure;
+      byId("procedureRunCountValue").textContent = fmt(numberValue("procedureRunCountInput"), 0);
+      byId("procOverallRb").textContent = pct(p.overallRb, 2);
+      byId("procGcvRR").textContent = pct(p.procedureGcvRR, 2);
+      byId("procSlope").textContent = fmt(p.fit.slope, 3);
+      byId("procRange").textContent = p.rangePass ? "Pass" : "Warning";
+      byId("procedureSummaryBody").innerHTML = p.levelRows.map(row => `
+        <tr>
+          <td class="mono">${row.levelKey}</td>
+          <td class="mono">${fmt(row.expected, 3)}</td>
+          <td class="mono">${fmt(row.meanObserved, 3)}</td>
+          <td class="mono">${pct(row.rb, 2)}</td>
+          <td class="mono">${pct(row.gcv, 2)}</td>
+          <td><span class="status ${row.decision === "Pass" ? "pass" : "warn"}">${row.decision}</span></td>
+        </tr>
+      `).join("");
+      drawProcedurePlot();
+    }
+
+    function renderMethodAnalysis() {
+      const m = state.method;
+      const optRuns = numberValue("optimizerRunsInput");
+      const optReps = numberValue("optimizerRepsInput");
+      const optimizerGcv = calculatePredictedGcvRR(m.betweenVar, m.withinVar, optRuns, optReps);
+      byId("optimizerRunsValue").textContent = fmt(optRuns, 0);
+      byId("optimizerRepsValue").textContent = fmt(optReps, 0);
+      byId("methodBetweenGcv").textContent = pct(m.betweenGcv, 2);
+      byId("methodWithinGcv").textContent = pct(m.withinGcv, 2);
+      byId("methodIpGcv").textContent = pct(m.ipGcv, 2);
+      byId("optimizerGcvRR").textContent = pct(optimizerGcv, 2);
+      byId("methodStrategyBody").innerHTML = m.strategies.map(strategy => {
+        const meets = strategy.gcv <= state.atp.targetGcvRR && strategy.probOos <= state.atp.allowedProb;
+        return `
+          <tr>
+            <td>${strategy.label}</td>
+            <td class="mono">${pct(strategy.gcv, 2)}</td>
+            <td class="mono">${pct(strategy.probOos, 2)}</td>
+            <td><span class="status ${meets ? "pass" : "fail"}">${meets ? "Pass" : "Fail"}</span></td>
+            <td class="mono">${strategy.workload} IP</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function calculateUpdatedProbOos() {
+      return probOosFromRbGcv(state.procedure.overallRb || 0, state.procedure.procedureGcvRR || 0, state.atp.lpl, state.atp.upl);
+    }
+
+    function renderRiskPanels() {
+      state.designProbOos = calculateDesignStageProbOos();
+      state.updatedProbOos = calculateUpdatedProbOos();
+      const designPass = state.designProbOos <= state.atp.allowedProb;
+      const updatedPass = state.updatedProbOos <= state.atp.allowedProb;
+      byId("designAssumption").textContent = `RB ${pct(state.atp.expectedRb, 1)}`;
+      byId("designPrecisionAssumption").textContent = `GCVRR ${pct(state.atp.targetGcvRR, 1)}`;
+      byId("designProbOos").textContent = pct(state.designProbOos, 2);
+      byId("designProbStatus").textContent = designPass ? "Within budget" : "Exceeds budget";
+      byId("designProbStatus").className = "status " + (designPass ? "pass" : "fail");
+      byId("updatedEvidence").textContent = `RB ${pct(state.procedure.overallRb || 0, 2)}`;
+      byId("updatedEvidenceGcv").textContent = `GCVRR ${pct(state.procedure.procedureGcvRR || 0, 2)}`;
+      byId("updatedProbOos").textContent = pct(state.updatedProbOos, 2);
+      byId("updatedProbStatus").textContent = updatedPass ? "Within budget" : "Exceeds budget";
+      byId("updatedProbStatus").className = "status " + (updatedPass ? "pass" : "fail");
+      byId("heroRiskLine").textContent = `Design Prob(OOS): ${pct(state.designProbOos, 2)}; data-updated Prob(OOS): ${pct(state.updatedProbOos, 2)}.`;
+    }
+
+    function updateFinalDecision() {
+      const designPass = state.designProbOos <= state.atp.allowedProb;
+      const updatedPass = state.updatedProbOos <= state.atp.allowedProb;
+      const precisionPass = (state.procedure.procedureGcvRR || 0) <= state.atp.targetGcvRR;
+      const slopePass = Number.isFinite(state.procedure.fit?.slope) && Math.abs(state.procedure.fit.slope - 1) <= 0.10;
+      const levelPass = state.levelAssessment.fullyAligned;
+      const aligned = designPass && updatedPass && precisionPass && slopePass && levelPass && !state.pasteWarning;
+      const score = byId("decisionScore");
+      const headline = byId("decisionHeadline");
+      document.querySelectorAll(".rec").forEach(rec => rec.classList.remove("active", "good"));
+      if (aligned) {
+        score.className = "decision-score pass";
+        headline.textContent = "Validation design appears aligned with ATP";
+        byId("heroStatus").textContent = "Aligned";
+        document.querySelector('[data-rec="aligned"]').classList.add("good");
+        return;
+      }
+      score.className = "decision-score fail";
+      headline.textContent = "Design or data need risk reduction before release use";
+      byId("heroStatus").textContent = "Needs action";
+      if (!levelPass) document.querySelector('[data-rec="levels"]').classList.add("active");
+      if (!precisionPass) {
+        document.querySelector('[data-rec="runs"]').classList.add("active");
+        document.querySelector('[data-rec="replicates"]').classList.add("active");
+      }
+      if (!updatedPass || Math.abs(state.procedure.overallRb || 0) > 5) document.querySelector('[data-rec="bias"]').classList.add("active");
+      if (!designPass || !updatedPass) document.querySelector('[data-rec="limits"]').classList.add("active");
+      if (!slopePass || !state.procedure.rangePass) document.querySelector('[data-rec="range"]').classList.add("active");
+      if (state.pasteWarning) document.querySelector('[data-rec="data"]').classList.add("active");
+    }
+
+    function updateAll() {
+      updateATP();
+      updatePotencyRecommendation();
+      state.procedure = analyzeProcedureBased();
+      state.method = analyzeMethodBased();
+      renderProcedureAnalysis();
+      renderMethodAnalysis();
+      renderRiskPanels();
+      updateFinalDecision();
+    }
+
+    function drawProcedurePlot() {
+      const canvas = byId("procedureCanvas");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      const pad = { left: 70, right: 28, top: 28, bottom: 60 };
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+      const points = state.procedure.meanPoints || [];
+      const fit = state.procedure.fit || {};
+      const rootStyles = getComputedStyle(document.documentElement);
+      const paper = rootStyles.getPropertyValue("--bc-bg").trim() || "#F7F5F0";
+      const text = rootStyles.getPropertyValue("--bc-text").trim() || "#171717";
+      const muted = rootStyles.getPropertyValue("--bc-secondary").trim() || "#6E7278";
+      const rule = rootStyles.getPropertyValue("--bc-border").trim() || "#D6D9DE";
+      const blue = rootStyles.getPropertyValue("--bc-blue").trim() || "#2457B3";
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = paper;
+      ctx.fillRect(0, 0, width, height);
+      const xValues = points.map(point => point.x);
+      const yValues = points.map(point => point.y);
+      const minValue = Math.min(-0.75, ...xValues, ...yValues) - 0.05;
+      const maxValue = Math.max(0.75, ...xValues, ...yValues) + 0.05;
+      function sx(x) {
+        return pad.left + ((x - minValue) / (maxValue - minValue)) * plotW;
+      }
+      function sy(y) {
+        return pad.top + plotH - ((y - minValue) / (maxValue - minValue)) * plotH;
+      }
+      ctx.strokeStyle = rule;
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 5; i++) {
+        const x = pad.left + (plotW / 5) * i;
+        const y = pad.top + (plotH / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, pad.top);
+        ctx.lineTo(x, pad.top + plotH);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + plotW, y);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = muted;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([7, 6]);
+      ctx.beginPath();
+      ctx.moveTo(sx(minValue), sy(minValue));
+      ctx.lineTo(sx(maxValue), sy(maxValue));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (Number.isFinite(fit.slope) && Number.isFinite(fit.intercept)) {
+        ctx.strokeStyle = blue;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(sx(minValue), sy(fit.intercept + fit.slope * minValue));
+        ctx.lineTo(sx(maxValue), sy(fit.intercept + fit.slope * maxValue));
+        ctx.stroke();
+      }
+      points.forEach(point => {
+        ctx.fillStyle = point.row.decision === "Pass" ? "#2c7a57" : "#a46f1c";
+        ctx.beginPath();
+        ctx.arc(sx(point.x), sy(point.y), 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = paper;
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+      });
+      ctx.strokeStyle = text;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, pad.top + plotH);
+      ctx.lineTo(pad.left + plotW, pad.top + plotH);
+      ctx.moveTo(pad.left, pad.top);
+      ctx.lineTo(pad.left, pad.top + plotH);
+      ctx.stroke();
+      ctx.fillStyle = muted;
+      ctx.font = "16px IBM Plex Mono, ui-monospace, monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("ln(expected RP)", pad.left + plotW / 2, height - 18);
+      ctx.save();
+      ctx.translate(22, pad.top + plotH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText("ln(mean observed RP)", 0, 0);
+      ctx.restore();
+      ctx.textAlign = "right";
+      ctx.fillText("gray: y=x   blue: fitted", width - pad.right, 24);
+    }
+
+    function updateSimulatorReadouts(source) {
+      byId("overallBiasValue").textContent = fmt(numberValue("overallBiasInput"), 1);
+      byId("overallBetweenValue").textContent = fmt(numberValue("overallBetweenInput"), 1);
+      byId("overallWithinValue").textContent = fmt(numberValue("overallWithinInput"), 1);
+      byId("linearitySlopeValue").textContent = fmt(numberValue("linearitySlopeInput"), 2);
+      if (source && (source.id === "overallWithinInput" || source.id === "overallWithinRange") && !state.levelControlsTouched) {
+        resetLevelSpecificGcvDefaults();
+      }
+    }
+
+    function initPairedControls(ids, callback) {
+      ids.forEach(id => {
+        byId(id).addEventListener("input", event => {
+          syncPairedInput(event.target);
+          callback(event.target);
+        });
+      });
+    }
+
+    function initEvents() {
+      initPairedControls([
+        "lslRange", "lslInput", "uslRange", "uslInput", "lrlRange", "lrlInput", "urlRange", "urlInput",
+        "lplRange", "lplInput", "uplRange", "uplInput", "allowedProbRange", "allowedProbInput",
+        "targetGcvRange", "targetGcvInput", "expectedRbRange", "expectedRbInput"
+      ], updateAll);
+
+      initPairedControls([
+        "overallBiasRange", "overallBiasInput", "overallBetweenRange", "overallBetweenInput",
+        "overallWithinRange", "overallWithinInput", "linearitySlopeRange", "linearitySlopeInput"
+      ], updateSimulatorReadouts);
+
+      initPairedControls([
+        "procedureRunCountRange", "procedureRunCountInput", "optimizerRunsRange", "optimizerRunsInput",
+        "optimizerRepsRange", "optimizerRepsInput"
+      ], updateAll);
+
+      ["procedureUse", "levelLimitSource", "procedureFormat", "levelInclusion", "varianceModel"].forEach(id => {
+        byId(id).addEventListener("change", updateAll);
+      });
+
+      ["validationRuns", "replicatesPerLevel"].forEach(id => {
+        byId(id).addEventListener("change", () => {
+          buildDataMatrix(true);
+          updateAll();
+        });
+      });
+
+      byId("applyRecommendedLevels").addEventListener("click", () => {
+        byId("customLevelMessage").textContent = "Recommended levels applied.";
+        applySelectedLevels(state.recommendedLevels);
+      });
+      byId("resetExampleLevels").addEventListener("click", () => {
+        byId("customLevelMessage").textContent = "USP <1033> example levels applied.";
+        applySelectedLevels(examplePotencyLevels);
+      });
+      byId("applyCustomLevels").addEventListener("click", () => {
+        const parsed = parseCustomLevels(byId("customLevelsInput").value);
+        if (parsed.errors.length) {
+          byId("customLevelMessage").textContent = parsed.errors.join(" ");
+          renderLevelAssessment(assessPotencyLevels(parsed.levels, getLevelLimits().lower, getLevelLimits().upper));
+          return;
+        }
+        applySelectedLevels(parsed.levels);
+        byId("customLevelMessage").textContent = state.levelAssessment.fullyAligned ? "Custom levels applied." : "Custom levels applied with warnings. Review the assessment.";
+      });
+
+      byId("applyPaste").addEventListener("click", () => {
+        const result = parseExcelPaste(byId("pasteInput").value);
+        state.pasteWarning = result.warnings.length > 0;
+        byId("pasteMessage").textContent = result.warnings.length ? result.warnings.join(" ") : "Pasted data applied.";
+        renderDataMatrix();
+        updateAll();
+      });
+      byId("clearPaste").addEventListener("click", () => {
+        byId("pasteInput").value = "";
+        byId("pasteMessage").textContent = "Matrix-only paste expects current row count x current potency level count.";
+      });
+
+      byId("dataMatrixBody").addEventListener("input", event => {
+        if (!event.target.matches(".matrix-input")) return;
+        const row = state.matrixRows.find(item => item.key === event.target.dataset.row);
+        if (!row) return;
+        row.values[event.target.dataset.level] = Math.max(Number(event.target.value) || 0.0001, 0.0001);
+        updateAll();
+      });
+
+      byId("levelControlBody").addEventListener("input", event => {
+        const level = event.target.dataset.level;
+        if (!level || !state.levelControls[level]) return;
+        state.levelControlsTouched = true;
+        if (event.target.classList.contains("level-bias-input")) state.levelControls[level].bias = Number(event.target.value) || 0;
+        if (event.target.classList.contains("level-gcv-input")) state.levelControls[level].gcv = Math.max(Number(event.target.value) || 0, 0);
+      });
+
+      byId("generateGood").addEventListener("click", () => setScenario("good"));
+      byId("generateBorderline").addEventListener("click", () => setScenario("borderline"));
+      byId("generatePoor").addEventListener("click", () => setScenario("poor"));
+      byId("resetExpected").addEventListener("click", resetToExpected);
+    }
+
+    function init() {
+      initWorkflow();
+      updateATP();
+      state.recommendedLevels = suggestPotencyLevels(state.atp.lsl, state.atp.usl);
+      state.selectedLevels = [...state.recommendedLevels];
+      ensureLevelControls();
+      renderSelectedLevelChips(state.selectedLevels);
+      buildDataMatrix(false);
+      initEvents();
+      updateAll();
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>

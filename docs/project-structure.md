@@ -12,7 +12,8 @@ BioassayCraft is organized by product responsibility rather than by the current 
 │   └── js/                 Shared and page-specific JavaScript
 │       └── tools/          Tool-specific JavaScript
 ├── docs/                   Platform and brand documentation
-├── lessons/                Future educational lesson pages
+├── learn/                  Future educational learning pages
+├── lessons/                Legacy lesson placeholder
 ├── simulations/            Future interactive simulation pages
 ├── tools/                  Interactive calculators, converters, and utilities
 └── index.html              Homepage
@@ -26,6 +27,8 @@ BioassayCraft is organized by product responsibility rather than by the current 
 - Put tool-specific JavaScript in `assets/js/tools/<tool-name>.js`.
 - Put public icon files and the web manifest in `assets/icons/`.
 - Put each interactive tool in `tools/<tool-name>/`.
+- Put each simulation in `simulations/<simulation-name>/`.
+- Put future learning pages under `learn/`.
 - Keep legacy routes as thin redirects only when an existing URL needs to remain valid.
 - Keep long-form notes, brand rules, and architecture notes in `docs/`.
 
