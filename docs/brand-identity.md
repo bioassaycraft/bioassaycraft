@@ -4,6 +4,39 @@ BioassayCraft is an interactive platform for scientific thinking, quantitative r
 
 The visual identity should communicate constructed knowledge rather than biotechnology. The mark is inspired by coordinate systems, fitted models, observed data, calibration, drafting, and engineering notebooks.
 
+## Brand Copy
+
+Use `BioassayCraft` as the canonical browser, app, and share title.
+
+Metadata fields that should use exactly `BioassayCraft`:
+
+- `<title>`
+- `og:title`
+- `twitter:title`
+- `apple-mobile-web-app-title`
+- Web App Manifest `name`
+- Web App Manifest `short_name`
+
+Homepage slogan:
+
+```text
+Crafting interactive learning for bioassay development.
+```
+
+Homepage supporting tagline:
+
+```text
+Interactive tutorials, simulations, practical tools, and real-world bioassay insights.
+```
+
+Homepage status text:
+
+```text
+Coming Soon.
+```
+
+Keep `Coming Soon.` as visible homepage status text while the site is pre-launch, but do not include `Coming Soon` in browser/app/SEO metadata.
+
 ## Concept Explorations
 
 The concept board is available at [concepts.svg](../assets/brand/concepts.svg).
