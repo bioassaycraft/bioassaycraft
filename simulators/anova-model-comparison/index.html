@@ -1,0 +1,2862 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Explore how model assumptions change residuals, SS decomposition, and ANOVA decisions in linear and 4PL bioassays.">
+  <title>BioassayCraft</title>
+  <meta property="og:title" content="BioassayCraft">
+  <meta name="twitter:title" content="BioassayCraft">
+  <meta name="apple-mobile-web-app-title" content="BioassayCraft">
+  <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/icons/favicon-32x32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/icons/favicon-16x16.png" type="image/png" sizes="16x16">
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="/assets/icons/site.webmanifest">
+  <meta name="theme-color" content="#F7F5F0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: var(--bc-bg, #F7F5F0);
+      --panel: rgba(255, 255, 255, 0.44);
+      --panel-soft: rgba(255, 255, 255, 0.32);
+      --soft-line: rgba(214, 217, 222, 0.72);
+      --status-green-bg: rgba(44, 122, 87, 0.09);
+      --status-green-text: #2c7a57;
+      --status-orange-bg: rgba(164, 111, 28, 0.1);
+      --status-orange-text: #7f5615;
+      --text: var(--bc-text, #171717);
+      --muted: var(--bc-secondary, #6E7278);
+      --border: var(--bc-border, #D6D9DE);
+      --blue: var(--bc-blue, #2457B3);
+      --blue-soft: var(--bc-blue-soft, rgba(36, 86, 179, 0.08));
+      --blue-border: var(--bc-blue-border, rgba(36, 86, 179, 0.32));
+      --focus-ring: var(--bc-focus-ring, rgba(36, 86, 179, 0.16));
+      --green: #2c7a57;
+      --orange: #a46f1c;
+      --red: #b34a42;
+      --purple: #6f5aa8;
+      --bar-total: var(--text);
+      --bar-regression: var(--blue);
+      --bar-residual: var(--muted);
+      --bar-extra: var(--orange);
+      --bar-pure: var(--green);
+      --shadow: none;
+      --radius: 8px;
+      --max-width: 1280px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans, "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+      background: var(--bg);
+      color: var(--text);
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .page {
+      width: min(var(--max-width), calc(100% - 48px));
+      margin: 0 auto;
+      padding: 34px 0 64px;
+    }
+
+    .site-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      padding: 18px 0 42px;
+    }
+
+    .brand-link,
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-link {
+      gap: 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .brand-mark {
+      display: block;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+    }
+
+    .back-link {
+      min-height: 40px;
+      padding: 0 14px;
+      color: var(--blue);
+      border: 1px solid var(--blue-border);
+      border-radius: 7px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+
+    .back-link:hover {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+      transform: translateY(-1px);
+    }
+
+    .brand-link:focus-visible,
+    .back-link:focus-visible,
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+
+    .simulator-hero {
+      padding: 20px 0 18px;
+      border-top: 1px solid var(--text);
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    .simulator-hero h1 {
+      max-width: 780px;
+      margin: 0;
+      font-size: clamp(2rem, 3.4vw, 3.35rem);
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 0.96;
+    }
+
+    .simulator-hero p {
+      max-width: 760px;
+      margin: 12px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.98rem;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .layout {
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: 232px minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .sidebar {
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 4px 0 0;
+      height: calc(100vh - 132px);
+      position: sticky;
+      top: 18px;
+      overflow: auto;
+    }
+
+    .side-title {
+      color: var(--muted);
+      font-weight: 600;
+      margin: 0 0 12px;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    .nav-button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      position: relative;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 7px 0 7px 14px;
+      border-radius: 0;
+      margin: 2px 0;
+      cursor: pointer;
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .nav-button:hover {
+      color: var(--text);
+      background: transparent;
+    }
+
+    .nav-button.active {
+      background: transparent;
+      border-color: transparent;
+      color: var(--blue);
+      font-weight: 600;
+    }
+
+    .nav-button.active::before {
+      position: absolute;
+      left: 0;
+      top: 7px;
+      bottom: 7px;
+      width: 2px;
+      background: var(--blue);
+      content: "";
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .panel {
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: var(--shadow);
+      padding: 0;
+    }
+
+    .module-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .module-header h2 {
+      margin: 0 0 8px;
+      font-size: 1.22rem;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .module-header p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.88rem;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      padding: 7px 11px;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--blue);
+      border: 1px solid var(--blue-border);
+      font-size: 0.76rem;
+      font-weight: 500;
+    }
+
+    .step-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 14px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step-button {
+      border: 0;
+      background: transparent;
+      padding: 0 0 3px;
+      border-radius: 0;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+
+    .step-button.active {
+      background: transparent;
+      color: var(--blue);
+      border-bottom: 1px solid var(--blue);
+    }
+
+    .workspace {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.85fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .workspace.anova-workspace {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .region {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .section-label {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .visual-panel {
+      min-width: 0;
+    }
+
+    .analysis-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    svg {
+      width: 100%;
+      min-height: 430px;
+      border-radius: var(--radius);
+      background:
+        linear-gradient(to right, rgba(110, 114, 120, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(110, 114, 120, 0.08) 1px, transparent 1px);
+      background-size: 48px 48px;
+      background-color: rgba(255, 255, 255, 0.22);
+      border: 1px solid var(--soft-line);
+    }
+
+    .axis {
+      stroke: var(--border);
+      stroke-width: 1.3;
+    }
+
+    .axis-label {
+      font-size: 12px;
+      fill: var(--muted);
+    }
+
+    .point {
+      fill: var(--text);
+      stroke: rgba(255, 255, 255, 0.84);
+      stroke-width: 2;
+    }
+
+    .point.ref {
+      fill: var(--blue);
+    }
+
+    .point.test {
+      fill: var(--green);
+    }
+
+    .fit {
+      fill: none;
+      stroke-width: 2.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .fit.blue {
+      stroke: var(--blue);
+    }
+
+    .fit.green {
+      stroke: var(--green);
+    }
+
+    .fit.orange {
+      stroke: var(--muted);
+      stroke-dasharray: 7 6;
+    }
+
+    .fit.purple {
+      stroke: var(--muted);
+      stroke-dasharray: 7 6;
+    }
+
+    .mean-line {
+      stroke: var(--muted);
+      stroke-width: 2.5;
+      stroke-dasharray: 8 6;
+    }
+
+    .residual {
+      stroke: var(--red);
+      stroke-width: 1.6;
+      stroke-dasharray: 4 4;
+      opacity: 0.75;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: -1px;
+    }
+
+    .dot.blue { background: var(--blue); }
+    .dot.green { background: var(--green); }
+    .dot.red { background: var(--red); }
+    .dot.orange { background: var(--muted); }
+
+    .equation-panel {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--soft-line);
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .equation-panel b {
+      color: var(--text);
+    }
+
+    .equation-line + .equation-line {
+      margin-top: 4px;
+    }
+
+    .fourpl-param-table {
+      width: 100%;
+      margin-top: 8px;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--soft-line);
+      border-radius: 7px;
+      overflow: hidden;
+      table-layout: fixed;
+    }
+
+    .fourpl-param-table th,
+    .fourpl-param-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--soft-line);
+      font-size: 11.5px;
+      line-height: 1.35;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .fourpl-param-table th {
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .fourpl-param-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .bar-panel h3,
+    .explain h3 {
+      margin: 0 0 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .bars {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .bar-group {
+      margin-top: 14px;
+    }
+
+    .bar-group h4 {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(92px, 0.72fr) minmax(110px, 1.4fr) 44px;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .bar-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .bar-label::before {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--bar-residual);
+      content: "";
+      flex: 0 0 auto;
+    }
+
+    .track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(110, 114, 120, 0.16);
+      overflow: hidden;
+      border: 0;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--bar-residual);
+      width: 20%;
+      transition: width 0.35s ease, background 0.35s ease;
+    }
+
+    .fill.total,
+    .bar-row.total .bar-label::before {
+      background: var(--bar-total);
+    }
+
+    .fill.regression,
+    .bar-row.regression .bar-label::before {
+      background: var(--bar-regression);
+    }
+
+    .fill.residual,
+    .bar-row.residual .bar-label::before {
+      background: var(--bar-residual);
+    }
+
+    .fill.extra,
+    .bar-row.extra .bar-label::before {
+      background: var(--bar-extra);
+    }
+
+    .fill.pure,
+    .bar-row.pure .bar-label::before {
+      background: var(--bar-pure);
+    }
+
+    .fill.current {
+      box-shadow: 0 0 0 1px rgba(23, 23, 23, 0.12) inset;
+    }
+
+    .delta {
+      margin-top: 0;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+      border: 1px solid var(--soft-line);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 0.86rem;
+    }
+
+    .control-panel {
+      margin-top: 0;
+      padding: 12px;
+      border: 1px solid var(--soft-line);
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+    }
+
+    .analysis-panel .control-panel {
+      margin-top: 0;
+    }
+
+    .control-panel label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .control-panel input {
+      width: 100%;
+      margin-top: 7px;
+      accent-color: var(--blue);
+    }
+
+    .control-panel p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .error-control-row {
+      display: grid;
+      grid-template-columns: minmax(0, 4fr) auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 7px;
+    }
+
+    .error-control-row input {
+      margin-top: 0;
+    }
+
+    .reset-button {
+      border: 1px solid var(--border);
+      border-radius: 0;
+      background: transparent;
+      color: var(--blue);
+      cursor: pointer;
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 0;
+      border: 0;
+      white-space: nowrap;
+    }
+
+    .reset-button:hover {
+      background: transparent;
+      color: var(--bc-blue-hover);
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .control-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .control-column-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .explain {
+      margin-top: 0;
+      box-shadow: none;
+    }
+
+    .explain p,
+    .explain li {
+      color: var(--text);
+      line-height: 1.68;
+      font-size: 0.9rem;
+    }
+
+    .explain ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .key-message {
+      border-left: 2px solid var(--blue);
+      background: var(--panel-soft);
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      margin-top: 12px;
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    .key-message.warning {
+      border-left-color: var(--orange);
+      background: var(--status-orange-bg);
+      color: var(--status-orange-text);
+    }
+
+    .key-message.good {
+      border-left-color: var(--green);
+      background: var(--status-green-bg);
+      color: var(--status-green-text);
+    }
+
+    .quiz {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px dashed var(--soft-line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+    }
+
+    .quiz-title {
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .quiz button {
+      margin: 4px 8px 4px 0;
+      border: 1px solid var(--border);
+      background: transparent;
+      border-radius: 7px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .quiz-result {
+      margin-top: 10px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--soft-line);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: var(--panel-soft);
+    }
+
+    .mini-card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .mini-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid var(--soft-line);
+      table-layout: fixed;
+      background: var(--panel-soft);
+    }
+
+    th,
+    td {
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--soft-line);
+      font-size: 12px;
+      vertical-align: top;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
+
+    th:nth-child(7),
+    td:nth-child(7) {
+      white-space: nowrap;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.24);
+      color: var(--muted);
+      text-align: left;
+      font-weight: 600;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .anova-table-panel {
+      margin-top: 0;
+      overflow-x: auto;
+    }
+
+    .anova-table-panel table {
+      margin-top: 10px;
+    }
+
+    .anova-table-panel th,
+    .anova-table-panel td {
+      padding: 8px 18px;
+      vertical-align: middle;
+      line-height: 1.35;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .anova-table-panel h3 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .key-model-row td {
+      background: transparent;
+      color: var(--blue);
+      font-weight: 600;
+    }
+
+    .error-denominator-row td {
+      background: transparent;
+      color: var(--text);
+    }
+
+    .anova-requirement {
+      display: block;
+      color: #dc2626;
+      font-weight: 700;
+    }
+
+    .anova-table-panel .key-message {
+      margin-top: 12px;
+      padding: 9px 11px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .site-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 18px;
+      margin-top: 28px;
+      padding: 20px 0 28px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0;
+      line-height: 1.6;
+      text-align: right;
+      text-transform: none;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .sidebar {
+        height: auto;
+        position: static;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 12px;
+      }
+
+      .nav-button {
+        display: inline-flex;
+        width: auto;
+        margin-right: 12px;
+        padding-left: 0;
+      }
+
+      .nav-button.active::before {
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+        width: auto;
+        height: 1px;
+      }
+
+      .workspace,
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(100% - 28px, var(--max-width));
+      }
+
+      .site-header {
+        padding-bottom: 30px;
+      }
+
+      .module-header {
+        display: grid;
+      }
+
+      .step-tabs {
+        gap: 10px;
+      }
+
+      .bar-row {
+        grid-template-columns: minmax(84px, 0.78fr) minmax(80px, 1fr) 42px;
+      }
+
+      .anova-table-panel {
+        overflow-x: visible;
+      }
+
+      .anova-table-panel table,
+      .anova-table-panel thead,
+      .anova-table-panel tbody,
+      .anova-table-panel tr,
+      .anova-table-panel th,
+      .anova-table-panel td {
+        display: block;
+      }
+
+      .anova-table-panel table {
+        border: none;
+        border-radius: 0;
+        margin-top: 10px;
+        background: transparent;
+      }
+
+      .anova-table-panel colgroup,
+      .anova-table-panel thead {
+        display: none;
+      }
+
+      .anova-table-panel tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .anova-table-panel tbody tr {
+        border: 1px solid var(--soft-line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--panel-soft);
+      }
+
+      .anova-table-panel tbody td {
+        display: grid;
+        grid-template-columns: 68px minmax(0, 1fr);
+        gap: 10px;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--soft-line);
+        font-size: 12px;
+        line-height: 1.4;
+        white-space: normal;
+      }
+
+      .anova-table-panel tbody td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .anova-table-panel tbody td:first-child {
+        display: block;
+        padding: 9px 10px;
+        font-size: 13px;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.24);
+      }
+
+      .anova-table-panel tbody td:first-child::before {
+        display: none;
+      }
+
+      .anova-table-panel tbody td:last-child {
+        border-bottom: none;
+      }
+
+      .key-model-row td:first-child {
+        background: var(--status-green-bg);
+        color: var(--status-green-text);
+      }
+
+      .error-denominator-row td:first-child {
+        background: rgba(110, 114, 120, 0.08);
+        color: var(--text);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="site-header">
+      <a class="brand-link" href="../../" aria-label="BioassayCraft home">
+        <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+        <span class="brand-name">bioassaycraft</span>
+      </a>
+      <a class="back-link" href="../../">Back to home</a>
+    </header>
+
+    <section class="simulator-hero" aria-labelledby="page-title">
+      <span class="eyebrow">Bioassay explorer</span>
+      <h1 id="page-title">ANOVA Explorer</h1>
+      <p>Explore how model assumptions change residuals, SS decomposition, and ANOVA decisions in linear and 4PL bioassays.</p>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="side-title">Simulator map</div>
+        <button class="nav-button active" data-module="map">0. Bioassay evaluation map</button>
+        <button class="nav-button" data-module="linear">1. One linear model</button>
+        <button class="nav-button" data-module="sra">2. SRA: shared intercept</button>
+        <button class="nav-button" data-module="pla">3. PLA: shared slope</button>
+        <button class="nav-button" data-module="fourpl">4. 4PL: constrained vs unconstrained</button>
+      </aside>
+
+      <div class="main">
+        <section class="panel" id="module-container"></section>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <span>bioassaycraft.com</span>
+    </footer>
+  </main>
+
+  <script>
+    const W = 760;
+    const H = 430;
+    const pad = 54;
+
+    function xScale(x) {
+      return pad + (x - 0.5) / (6.2 - 0.5) * (W - 2 * pad);
+    }
+
+    function yScale(y) {
+      return H - pad - (y - 0) / (105 - 0) * (H - 2 * pad);
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    const datasets = {
+      linear: [
+        { x: 1, yMean: 21, err: -2, g: "all" }, { x: 1, yMean: 21, err: 2, g: "all" },
+        { x: 2, yMean: 36.5, err: -1.5, g: "all" }, { x: 2, yMean: 36.5, err: 1.5, g: "all" },
+        { x: 3, yMean: 52, err: 2, g: "all" }, { x: 3, yMean: 52, err: -2, g: "all" },
+        { x: 4, yMean: 63.5, err: -1.5, g: "all" }, { x: 4, yMean: 63.5, err: 1.5, g: "all" },
+        { x: 5, yMean: 84, err: 2, g: "all" }, { x: 5, yMean: 84, err: -2, g: "all" }
+      ],
+      sra: [
+        { x: 1, yMean: 20, err: -2, g: "S" }, { x: 1, yMean: 20, err: 0, g: "S" }, { x: 1, yMean: 20, err: 2, g: "S" },
+        { x: 2, yMean: 33, err: -2, g: "S" }, { x: 2, yMean: 33, err: 0, g: "S" }, { x: 2, yMean: 33, err: 2, g: "S" },
+        { x: 3, yMean: 50.5, err: -1.5, g: "S" }, { x: 3, yMean: 50.5, err: 0, g: "S" }, { x: 3, yMean: 50.5, err: 1.5, g: "S" },
+        { x: 4, yMean: 64.5, err: -1.5, g: "S" }, { x: 4, yMean: 64.5, err: 0, g: "S" }, { x: 4, yMean: 64.5, err: 1.5, g: "S" },
+        { x: 5, yMean: 82, err: -2, g: "S" }, { x: 5, yMean: 82, err: 0, g: "S" }, { x: 5, yMean: 82, err: 2, g: "S" },
+        { x: 1, yMean: 18.5, err: -1.5, g: "T" }, { x: 1, yMean: 18.5, err: 0, g: "T" }, { x: 1, yMean: 18.5, err: 1.5, g: "T" },
+        { x: 2, yMean: 30.5, err: -1.5, g: "T" }, { x: 2, yMean: 30.5, err: 0, g: "T" }, { x: 2, yMean: 30.5, err: 1.5, g: "T" },
+        { x: 3, yMean: 43.5, err: -1.5, g: "T" }, { x: 3, yMean: 43.5, err: 0, g: "T" }, { x: 3, yMean: 43.5, err: 1.5, g: "T" },
+        { x: 4, yMean: 56.5, err: -1.5, g: "T" }, { x: 4, yMean: 56.5, err: 0, g: "T" }, { x: 4, yMean: 56.5, err: 1.5, g: "T" },
+        { x: 5, yMean: 67.5, err: -1.5, g: "T" }, { x: 5, yMean: 67.5, err: 0, g: "T" }, { x: 5, yMean: 67.5, err: 1.5, g: "T" }
+      ],
+      pla: [
+        { x: 1, yMean: 25, err: -2, g: "S" }, { x: 1, yMean: 25, err: 0, g: "S" }, { x: 1, yMean: 25, err: 2, g: "S" },
+        { x: 2, yMean: 40.5, err: -1.5, g: "S" }, { x: 2, yMean: 40.5, err: 0, g: "S" }, { x: 2, yMean: 40.5, err: 1.5, g: "S" },
+        { x: 3, yMean: 55, err: -2, g: "S" }, { x: 3, yMean: 55, err: 0, g: "S" }, { x: 3, yMean: 55, err: 2, g: "S" },
+        { x: 4, yMean: 74, err: -2, g: "S" }, { x: 4, yMean: 74, err: 0, g: "S" }, { x: 4, yMean: 74, err: 2, g: "S" },
+        { x: 5, yMean: 88, err: -2, g: "S" }, { x: 5, yMean: 88, err: 0, g: "S" }, { x: 5, yMean: 88, err: 2, g: "S" },
+        { x: 1, yMean: 17, err: -2, g: "T" }, { x: 1, yMean: 17, err: 0, g: "T" }, { x: 1, yMean: 17, err: 2, g: "T" },
+        { x: 2, yMean: 32.5, err: -1.5, g: "T" }, { x: 2, yMean: 32.5, err: 0, g: "T" }, { x: 2, yMean: 32.5, err: 1.5, g: "T" },
+        { x: 3, yMean: 49, err: -2, g: "T" }, { x: 3, yMean: 49, err: 0, g: "T" }, { x: 3, yMean: 49, err: 2, g: "T" },
+        { x: 4, yMean: 65, err: -2, g: "T" }, { x: 4, yMean: 65, err: 0, g: "T" }, { x: 4, yMean: 65, err: 2, g: "T" },
+        { x: 5, yMean: 83.5, err: -2, g: "T" }, { x: 5, yMean: 83.5, err: 0, g: "T" }, { x: 5, yMean: 83.5, err: 2, g: "T" }
+      ],
+      fourpl: []
+    };
+
+    function fourplValue(x, params) {
+      return params.a + (params.d - params.a) / (1 + Math.exp(-params.b * (x - params.c)));
+    }
+
+    const fourplParams = {
+      constrained: {
+        S: { a: 8, d: 96, b: 2.65, c: 2.72 },
+        T: { a: 8, d: 96, b: 2.65, c: 3.18 }
+      },
+      free: {
+        S: { a: 7.5, d: 98, b: 3.1, c: 2.7 },
+        T: { a: 9.5, d: 94.5, b: 2.75, c: 3.18 }
+      }
+    };
+
+    [0.8, 1.5, 2.2, 2.9, 3.6, 4.3, 5.0].forEach((x, i) => {
+      ["S", "T"].forEach(g => {
+        const lack = (i === 2 ? 1.5 : 0) + (i === 4 ? -1.4 : 0) + (g === "T" && i === 5 ? 1.2 : 0);
+        [-1.8, 0, 1.8].forEach(err => {
+          datasets.fourpl.push({ x, lack, err, g });
+        });
+      });
+    });
+
+    const statCache = {};
+    const errorScales = { linear: 1, sra: 1, pla: 1, fourpl: 1 };
+    const randomProfiles = {};
+    const moduleAdjustments = {
+      sra: { interceptS: 0, interceptT: 0, slopeS: 0, slopeT: 0 },
+      pla: { interceptS: 0, interceptT: 0, slopeS: 0, slopeT: 0 },
+      fourpl: { aS: 0, bS: 0, cS: 0, dS: 0, aT: 0, bT: 0, cT: 0, dT: 0 }
+    };
+
+    function isAdjustableKind(kind) {
+      return ["linear", "sra", "pla", "fourpl"].includes(kind);
+    }
+
+    function boundedRandom() {
+      return Math.random() * 2 - 1;
+    }
+
+    function ensureRandomProfile(kind) {
+      if (!randomProfiles[kind]) resetRandomProfile(kind);
+      return randomProfiles[kind];
+    }
+
+    function resetRandomProfile(kind) {
+      randomProfiles[kind] = { point: {}, mean: {} };
+    }
+
+    function randomizeProfile(kind) {
+      const profile = { point: {}, mean: {} };
+
+      datasets[kind].forEach((d, index) => {
+        const group = d.g || "all";
+        const meanKey = `${group}:${d.x}`;
+
+        if (profile.mean[meanKey] === undefined) profile.mean[meanKey] = boundedRandom();
+        profile.point[index] = boundedRandom();
+      });
+
+      randomProfiles[kind] = profile;
+    }
+
+    function meanDriftAmplitude(kind) {
+      if (kind === "linear") return 1.3;
+      if (kind === "fourpl") return 1.1;
+      return 1.5;
+    }
+
+    function pointJitterAmplitude(kind) {
+      if (kind === "linear") return 0.8;
+      if (kind === "fourpl") return 0.7;
+      return 0.9;
+    }
+
+    function randomMeanDrift(kind, d, scale) {
+      const driftScale = Math.max(0, scale - 1);
+      if (driftScale === 0) return 0;
+      const group = d.g || "all";
+      const profile = ensureRandomProfile(kind);
+      const noise = profile.mean[`${group}:${d.x}`] || 0;
+
+      return noise * meanDriftAmplitude(kind) * driftScale;
+    }
+
+    function randomPointJitter(kind, index, scale) {
+      const jitterScale = Math.max(0, scale - 1);
+      if (jitterScale === 0) return 0;
+      const profile = ensureRandomProfile(kind);
+      const noise = profile.point[index] || 0;
+
+      return noise * pointJitterAmplitude(kind) * jitterScale;
+    }
+
+    function getDataset(kind) {
+      if (!isAdjustableKind(kind)) return datasets[kind];
+      const scale = errorScales[kind];
+
+      return datasets[kind].map((d, index) => ({
+        x: d.x,
+        y: adjustedMean(kind, d) + randomMeanDrift(kind, d, scale) + d.err * scale + randomPointJitter(kind, index, scale),
+        g: d.g
+      }));
+    }
+
+    function adjustedFourplParams(model, group) {
+      const suffix = group === "S" ? "S" : "T";
+      if (model === "constrained") {
+        const other = group === "S" ? "T" : "S";
+        return {
+          ...fourplParams.constrained[group],
+          a: fourplParams.constrained[group].a + (moduleAdjustments.fourpl[`a${suffix}`] + moduleAdjustments.fourpl[`a${other}`]) / 2,
+          b: fourplParams.constrained[group].b + (moduleAdjustments.fourpl[`b${suffix}`] + moduleAdjustments.fourpl[`b${other}`]) / 2,
+          c: fourplParams.constrained[group].c + moduleAdjustments.fourpl[`c${suffix}`],
+          d: fourplParams.constrained[group].d + (moduleAdjustments.fourpl[`d${suffix}`] + moduleAdjustments.fourpl[`d${other}`]) / 2
+        };
+      }
+
+      return {
+        ...fourplParams[model][group],
+        a: fourplParams[model][group].a + moduleAdjustments.fourpl[`a${suffix}`],
+        b: fourplParams[model][group].b + moduleAdjustments.fourpl[`b${suffix}`],
+        c: fourplParams[model][group].c + moduleAdjustments.fourpl[`c${suffix}`],
+        d: fourplParams[model][group].d + moduleAdjustments.fourpl[`d${suffix}`]
+      };
+    }
+
+    function adjustedMean(kind, d) {
+      if (kind === "sra") {
+        const suffix = d.g === "S" ? "S" : "T";
+        return d.yMean + moduleAdjustments.sra[`intercept${suffix}`] + moduleAdjustments.sra[`slope${suffix}`] * (d.x - 3);
+      }
+
+      if (kind === "pla") {
+        const suffix = d.g === "S" ? "S" : "T";
+        return d.yMean + moduleAdjustments.pla[`intercept${suffix}`] + moduleAdjustments.pla[`slope${suffix}`] * (d.x - 3);
+      }
+
+      if (kind === "fourpl") return fourplValue(d.x, adjustedFourplParams("free", d.g)) + d.lack;
+      return d.yMean;
+    }
+
+    function mean(values) {
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    function linearStats() {
+      if (statCache.linear) return statCache.linear;
+
+      const ds = getDataset("linear");
+      const xMean = mean(ds.map(d => d.x));
+      const yMean = mean(ds.map(d => d.y));
+      const sxx = ds.reduce((sum, d) => sum + Math.pow(d.x - xMean, 2), 0);
+      const sxy = ds.reduce((sum, d) => sum + (d.x - xMean) * (d.y - yMean), 0);
+      const slope = sxy / sxx;
+      const intercept = yMean - slope * xMean;
+      const doseMeans = {};
+
+      [...new Set(ds.map(d => d.x))].forEach(x => {
+        doseMeans[x] = mean(ds.filter(d => d.x === x).map(d => d.y));
+      });
+
+      const ssMean = ds.reduce((sum, d) => sum + Math.pow(d.y - yMean, 2), 0);
+      const ssLinear = ds.reduce((sum, d) => sum + Math.pow(d.y - (intercept + slope * d.x), 2), 0);
+      const ssPure = ds.reduce((sum, d) => sum + Math.pow(d.y - doseMeans[d.x], 2), 0);
+      const ssLof = Math.max(0, ssLinear - ssPure);
+
+      statCache.linear = { yMean, slope, intercept, doseMeans, ssMean, ssLinear, ssPure, ssLof, ssRegression: ssMean - ssLinear };
+      return statCache.linear;
+    }
+
+    function groupMean(kind, matcher) {
+      const ds = getDataset(kind).filter(matcher);
+      return mean(ds.map(d => d.y));
+    }
+
+    function pureErrorSS(kind) {
+      const ds = getDataset(kind);
+      const means = {};
+
+      ds.forEach(d => {
+        const key = `${d.g}-${d.x}`;
+        if (!means[key]) means[key] = [];
+        means[key].push(d.y);
+      });
+
+      Object.keys(means).forEach(key => {
+        means[key] = mean(means[key]);
+      });
+
+      return ds.reduce((sum, d) => sum + Math.pow(d.y - means[`${d.g}-${d.x}`], 2), 0);
+    }
+
+    function solveLinearSystem(matrix, vector) {
+      const n = vector.length;
+      const a = matrix.map((row, i) => [...row, vector[i]]);
+
+      for (let i = 0; i < n; i += 1) {
+        let pivot = i;
+        for (let r = i + 1; r < n; r += 1) {
+          if (Math.abs(a[r][i]) > Math.abs(a[pivot][i])) pivot = r;
+        }
+
+        [a[i], a[pivot]] = [a[pivot], a[i]];
+        const divisor = a[i][i] || 1;
+        for (let c = i; c <= n; c += 1) a[i][c] /= divisor;
+
+        for (let r = 0; r < n; r += 1) {
+          if (r === i) continue;
+          const factor = a[r][i];
+          for (let c = i; c <= n; c += 1) a[r][c] -= factor * a[i][c];
+        }
+      }
+
+      return a.map(row => row[n]);
+    }
+
+    function fitLinearModel(ds, design) {
+      const p = design(ds[0]).length;
+      const xtx = Array.from({ length: p }, () => Array(p).fill(0));
+      const xty = Array(p).fill(0);
+
+      ds.forEach(d => {
+        const row = design(d);
+        for (let i = 0; i < p; i += 1) {
+          xty[i] += row[i] * d.y;
+          for (let j = 0; j < p; j += 1) xtx[i][j] += row[i] * row[j];
+        }
+      });
+
+      return solveLinearSystem(xtx, xty);
+    }
+
+    function fourplSSE(ds, paramsByGroup) {
+      return ds.reduce((sum, d) => sum + Math.pow(d.y - fourplValue(d.x, paramsByGroup[d.g]), 2), 0);
+    }
+
+    function clampFourplVector(vector, model) {
+      const bounds = model === "constrained"
+        ? [[0, 30], [70, 110], [0.4, 7], [0.4, 5.4], [0.4, 5.4]]
+        : [[0, 30], [70, 110], [0.4, 7], [0.4, 5.4], [0, 30], [70, 110], [0.4, 7], [0.4, 5.4]];
+
+      return vector.map((value, i) => clamp(value, bounds[i][0], bounds[i][1]));
+    }
+
+    function fourplVectorToParams(vector, model) {
+      if (model === "constrained") {
+        const [a, d, b, cS, cT] = vector;
+        return {
+          S: { a, d, b, c: cS },
+          T: { a, d, b, c: cT }
+        };
+      }
+
+      return {
+        S: { a: vector[0], d: vector[1], b: vector[2], c: vector[3] },
+        T: { a: vector[4], d: vector[5], b: vector[6], c: vector[7] }
+      };
+    }
+
+    function optimizeFourplVector(initial, model, ds) {
+      let vector = clampFourplVector(initial, model);
+      let steps = model === "constrained"
+        ? [3, 3, 0.35, 0.22, 0.22]
+        : [3, 3, 0.35, 0.22, 3, 3, 0.35, 0.22];
+      let best = fourplSSE(ds, fourplVectorToParams(vector, model));
+
+      for (let iter = 0; iter < 80; iter += 1) {
+        let improved = false;
+
+        for (let i = 0; i < vector.length; i += 1) {
+          for (const direction of [1, -1]) {
+            const candidate = [...vector];
+            candidate[i] += steps[i] * direction;
+            const clamped = clampFourplVector(candidate, model);
+            const score = fourplSSE(ds, fourplVectorToParams(clamped, model));
+
+            if (score < best) {
+              vector = clamped;
+              best = score;
+              improved = true;
+            }
+          }
+        }
+
+        if (!improved) steps = steps.map(step => step * 0.72);
+        if (Math.max(...steps) < 0.002) break;
+      }
+
+      return fourplVectorToParams(vector, model);
+    }
+
+    function fourplFitStats() {
+      if (statCache.fourpl) return statCache.fourpl;
+
+      const ds = getDataset("fourpl");
+      const constrainedS = adjustedFourplParams("constrained", "S");
+      const constrainedT = adjustedFourplParams("constrained", "T");
+      const freeS = adjustedFourplParams("free", "S");
+      const freeT = adjustedFourplParams("free", "T");
+      const constrainedInitial = [
+        (constrainedS.a + constrainedT.a) / 2,
+        (constrainedS.d + constrainedT.d) / 2,
+        (constrainedS.b + constrainedT.b) / 2,
+        constrainedS.c,
+        constrainedT.c
+      ];
+      const freeInitial = [freeS.a, freeS.d, freeS.b, freeS.c, freeT.a, freeT.d, freeT.b, freeT.c];
+
+      statCache.fourpl = {
+        constrained: optimizeFourplVector(constrainedInitial, "constrained", ds),
+        unconstrained: optimizeFourplVector(freeInitial, "unconstrained", ds)
+      };
+
+      return statCache.fourpl;
+    }
+
+    function groupDoseMeans(kind) {
+      const ds = getDataset(kind);
+      const buckets = {};
+
+      ds.forEach(d => {
+        const key = `${d.g}-${d.x}`;
+        if (!buckets[key]) buckets[key] = [];
+        buckets[key].push(d.y);
+      });
+
+      Object.keys(buckets).forEach(key => {
+        buckets[key] = mean(buckets[key]);
+      });
+
+      return buckets;
+    }
+
+    function modelComparisonStats(kind) {
+      if (statCache[kind]) return statCache[kind];
+
+      const ds = getDataset(kind);
+      const doseMeans = groupDoseMeans(kind);
+      const stats = {
+        overallMean: mean(ds.map(d => d.y)),
+        groupMeans: {
+          S: groupMean(kind, d => d.g === "S"),
+          T: groupMean(kind, d => d.g === "T")
+        },
+        doseMeans
+      };
+
+      if (kind === "sra") {
+        stats.core = fitLinearModel(ds, d => [1, d.g === "S" ? d.x : 0, d.g === "T" ? d.x : 0]);
+        stats.intersection = fitLinearModel(ds, d => [d.g === "S" ? 1 : 0, d.g === "S" ? d.x : 0, d.g === "T" ? 1 : 0, d.g === "T" ? d.x : 0]);
+        stats.curve = fitLinearModel(ds, d => [d.g === "S" ? 1 : 0, d.g === "S" ? d.x : 0, d.g === "T" ? 1 : 0, d.g === "T" ? d.x : 0, d.g === "S" ? d.x * d.x : 0, d.g === "T" ? d.x * d.x : 0]);
+      }
+
+      if (kind === "pla") {
+        stats.core = fitLinearModel(ds, d => [d.g === "S" ? 1 : 0, d.g === "T" ? 1 : 0, d.x]);
+        stats.slope = fitLinearModel(ds, d => [d.g === "S" ? 1 : 0, d.g === "S" ? d.x : 0, d.g === "T" ? 1 : 0, d.g === "T" ? d.x : 0]);
+        stats.curve = fitLinearModel(ds, d => [d.g === "S" ? 1 : 0, d.g === "S" ? d.x : 0, d.g === "T" ? 1 : 0, d.g === "T" ? d.x : 0, d.g === "S" ? d.x * d.x : 0, d.g === "T" ? d.x * d.x : 0]);
+      }
+
+      statCache[kind] = stats;
+      return stats;
+    }
+
+    function modelY(kind, step, d) {
+      const x = d.x;
+      const g = d.g;
+
+      if (kind === "linear") {
+        const stats = linearStats();
+        if (step === "mean") return stats.yMean;
+        if (step === "linear") return stats.intercept + stats.slope * x;
+        if (step === "lof") return stats.doseMeans[Math.round(x)] ?? (stats.intercept + stats.slope * x);
+      }
+
+      if (kind === "sra") {
+        const stats = modelComparisonStats("sra");
+        if (step === "mean") return stats.overallMean;
+        if (step === "treatment") return stats.groupMeans[g];
+        if (step === "core") return stats.core[0] + (g === "S" ? stats.core[1] : stats.core[2]) * x;
+        if (step === "intersection") return g === "S" ? stats.intersection[0] + stats.intersection[1] * x : stats.intersection[2] + stats.intersection[3] * x;
+        if (step === "curve") return g === "S" ? stats.curve[0] + stats.curve[1] * x + stats.curve[4] * x * x : stats.curve[2] + stats.curve[3] * x + stats.curve[5] * x * x;
+      }
+
+      if (kind === "pla") {
+        const stats = modelComparisonStats("pla");
+        if (step === "mean") return stats.overallMean;
+        if (step === "treatment") return stats.groupMeans[g];
+        if (step === "core") return (g === "S" ? stats.core[0] : stats.core[1]) + stats.core[2] * x;
+        if (step === "slope") return g === "S" ? stats.slope[0] + stats.slope[1] * x : stats.slope[2] + stats.slope[3] * x;
+        if (step === "curve") return g === "S" ? stats.curve[0] + stats.curve[1] * x + stats.curve[4] * x * x : stats.curve[2] + stats.curve[3] * x + stats.curve[5] * x * x;
+      }
+
+      if (kind === "fourpl") {
+        const stats = fourplFitStats();
+        if (step === "constrained") return fourplValue(x, stats.constrained[g]);
+        if (step === "unconstrained") return fourplValue(x, stats.unconstrained[g]);
+        if (step === "pure") return d.y;
+      }
+
+      return d.y;
+    }
+
+    function residualSS(kind, step) {
+      if (kind === "linear") {
+        const stats = linearStats();
+        if (step === "mean") return Math.round(stats.ssMean);
+        if (step === "linear") return Math.round(stats.ssLinear);
+        if (step === "lof") return Math.round(stats.ssPure);
+        if (step === "lack") return Math.round(stats.ssLof);
+        if (step === "pure") return Math.round(stats.ssPure);
+      }
+
+      if (kind === "fourpl" && step === "pure") return Math.round(pureErrorSS(kind));
+      if (["sra", "pla"].includes(kind) && step === "pure") return Math.round(pureErrorSS(kind));
+      if (step === "pure") return 90;
+      const ds = getDataset(kind);
+      return Math.round(ds.reduce((sum, d) => sum + Math.pow(d.y - modelY(kind, step, d), 2), 0));
+    }
+
+    function residualSSRaw(kind, step) {
+      if (kind === "linear") {
+        const stats = linearStats();
+        if (step === "mean") return stats.ssMean;
+        if (step === "linear") return stats.ssLinear;
+        if (step === "lof") return stats.ssPure;
+        if (step === "lack") return stats.ssLof;
+        if (step === "pure") return stats.ssPure;
+      }
+
+      if (["sra", "pla", "fourpl"].includes(kind) && step === "pure") return pureErrorSS(kind);
+      if (step === "pure") return 90;
+
+      const ds = getDataset(kind);
+      return ds.reduce((sum, d) => sum + Math.pow(d.y - modelY(kind, step, d), 2), 0);
+    }
+
+    function xAxisLabel(kind) {
+      return ["pla", "fourpl"].includes(kind) ? "ln(dose)" : "Dose";
+    }
+
+    function curvePoints(kind, step, group) {
+      const xs = kind === "fourpl"
+        ? Array.from({ length: 130 }, (_, i) => 0.8 + i * (5.0 - 0.8) / 129)
+        : Array.from({ length: 90 }, (_, i) => 1 + i * (5 - 1) / 89);
+
+      return xs.map(x => {
+        const d = { x, y: 0, g: group };
+        const plotX = x;
+        return `${xScale(plotX)},${yScale(modelY(kind, step, d))}`;
+      }).join(" ");
+    }
+
+    function drawSvg(kind, step) {
+      const ds = getDataset(kind);
+      const xAdj = d => d.x;
+
+      let svg = `
+        <svg viewBox="0 0 ${W} ${H}" aria-label="model visualization">
+          <line class="axis" x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}"></line>
+          <line class="axis" x1="${pad}" y1="${pad}" x2="${pad}" y2="${H - pad}"></line>
+          <text class="axis-label" x="${W / 2 - 26}" y="${H - 14}">${xAxisLabel(kind)}</text>
+          <text class="axis-label" x="16" y="34">Response</text>
+      `;
+
+      ds.forEach(d => {
+        if (step !== "pure") {
+          const py = modelY(kind, step, d);
+          svg += `<line class="residual" x1="${xScale(xAdj(d))}" y1="${yScale(d.y)}" x2="${xScale(xAdj(d))}" y2="${yScale(py)}"></line>`;
+        }
+      });
+
+      if (["linear", "sra", "pla"].includes(kind)) {
+        if (step === "mean") {
+          const y = modelY(kind, step, ds[0]);
+          svg += `<line class="mean-line" x1="${xScale(1)}" y1="${yScale(y)}" x2="${xScale(5)}" y2="${yScale(y)}"></line>`;
+        } else if (step === "treatment") {
+          ["S", "T"].forEach((g, i) => {
+            const y = modelY(kind, step, { x: 1, g });
+            svg += `<line class="fit ${i ? "green" : "blue"}" x1="${xScale(1)}" y1="${yScale(y)}" x2="${xScale(5)}" y2="${yScale(y)}"></line>`;
+          });
+        } else {
+          const groups = kind === "linear" ? ["all"] : ["S", "T"];
+          groups.forEach((g, i) => {
+            svg += `<polyline class="fit ${i ? "green" : "blue"}" points="${curvePoints(kind, step, g)}"></polyline>`;
+          });
+
+          if (step === "curve") {
+            groups.forEach(g => {
+              svg += `<polyline class="fit orange" points="${curvePoints(kind, step, g)}"></polyline>`;
+            });
+          }
+        }
+      }
+
+      if (kind === "fourpl" && step !== "pure") {
+        ["S", "T"].forEach((g, i) => {
+          svg += `<polyline class="fit ${i ? "green" : "blue"}" points="${curvePoints(kind, step, g)}"></polyline>`;
+        });
+      }
+
+      ds.forEach(d => {
+        const cls = d.g === "T" ? "test" : (d.g === "S" ? "ref" : "");
+        svg += `<circle class="point ${cls}" cx="${xScale(xAdj(d))}" cy="${yScale(d.y)}" r="5"></circle>`;
+      });
+
+      svg += `</svg>`;
+      return svg;
+    }
+
+    function eqNumber(value, digits = 2) {
+      if (!Number.isFinite(value)) return "-";
+      return value.toFixed(digits);
+    }
+
+    function linearEquation(intercept, slope) {
+      const sign = slope >= 0 ? "+" : "-";
+      return `y = ${eqNumber(intercept)} ${sign} ${eqNumber(Math.abs(slope))}x`;
+    }
+
+    function fourplEquation(params) {
+      return `y = ${eqNumber(params.a)} + (${eqNumber(params.d)} - ${eqNumber(params.a)}) / [1 + exp(-${eqNumber(params.b)}(x - ${eqNumber(params.c)}))]`;
+    }
+
+    function equationLines(kind, step) {
+      if (kind === "linear") {
+        const stats = linearStats();
+        if (step === "mean") return [`均值模型：y = ${eqNumber(stats.yMean)}`];
+        if (step === "linear") return [`线性回归：${linearEquation(stats.intercept, stats.slope)}`];
+      }
+
+      if (kind === "sra") {
+        const stats = modelComparisonStats("sra");
+        if (step === "mean") return [`均值模型：y = ${eqNumber(stats.overallMean)}`];
+        if (step === "core") {
+          return [
+            `参比品：${linearEquation(stats.core[0], stats.core[1])}`,
+            `供试品：${linearEquation(stats.core[0], stats.core[2])}`
+          ];
+        }
+        if (step === "intersection") {
+          return [
+            `参比品：${linearEquation(stats.intersection[0], stats.intersection[1])}`,
+            `供试品：${linearEquation(stats.intersection[2], stats.intersection[3])}`
+          ];
+        }
+        if (step === "curve") {
+          return [
+            `参比品：${linearEquation(stats.curve[0], stats.curve[1])} + ${eqNumber(stats.curve[4])}x²`,
+            `供试品：${linearEquation(stats.curve[2], stats.curve[3])} + ${eqNumber(stats.curve[5])}x²`
+          ];
+        }
+      }
+
+      if (kind === "pla") {
+        const stats = modelComparisonStats("pla");
+        if (step === "mean") return [`均值模型：y = ${eqNumber(stats.overallMean)}`];
+        if (step === "treatment") return [`参比品：y = ${eqNumber(stats.groupMeans.S)}`, `供试品：y = ${eqNumber(stats.groupMeans.T)}`];
+        if (step === "core") {
+          return [
+            `参比品：${linearEquation(stats.core[0], stats.core[2])}`,
+            `供试品：${linearEquation(stats.core[1], stats.core[2])}`
+          ];
+        }
+        if (step === "slope") {
+          return [
+            `参比品：${linearEquation(stats.slope[0], stats.slope[1])}`,
+            `供试品：${linearEquation(stats.slope[2], stats.slope[3])}`
+          ];
+        }
+        if (step === "curve") {
+          return [
+            `参比品：${linearEquation(stats.curve[0], stats.curve[1])} + ${eqNumber(stats.curve[4])}x²`,
+            `供试品：${linearEquation(stats.curve[2], stats.curve[3])} + ${eqNumber(stats.curve[5])}x²`
+          ];
+        }
+      }
+
+      if (kind === "fourpl") {
+        const stats = fourplFitStats();
+        const model = step === "constrained" ? "constrained" : "unconstrained";
+        return [
+          `参比品：${fourplEquation(stats[model].S)}`,
+          `供试品：${fourplEquation(stats[model].T)}`
+        ];
+      }
+
+      return [];
+    }
+
+    function renderFourplParamTable(step) {
+      const stats = fourplFitStats();
+      const model = step === "constrained" ? "constrained" : "unconstrained";
+      const rows = [
+        ["参比品", stats[model].S],
+        ["供试品", stats[model].T]
+      ];
+
+      return `
+        <table class="fourpl-param-table">
+          <tr><th>样品</th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+          ${rows.map(([name, params]) => `
+            <tr>
+              <td>${name}</td>
+              <td>${eqNumber(params.a)}</td>
+              <td>${eqNumber(params.b)}</td>
+              <td>${eqNumber(params.c)}</td>
+              <td>${eqNumber(params.d)}</td>
+            </tr>
+          `).join("")}
+        </table>
+      `;
+    }
+
+    function renderFitEquation(kind, step) {
+      const lines = equationLines(kind, step);
+      if (!lines.length) return "";
+      const extra = kind === "fourpl" ? renderFourplParamTable(step) : "";
+
+      return `
+        <div class="equation-panel">
+          <b>当前拟合方程</b>
+          ${lines.map(line => `<div class="equation-line">${line}</div>`).join("")}
+          ${extra}
+        </div>
+      `;
+    }
+
+    function renderVisual(kind, step) {
+      return `${drawSvg(kind, step)}${renderFitEquation(kind, step)}`;
+    }
+
+    function ssBarClass(name, type = "") {
+      if (/纯误差|SS误差|误差$|Pure error/i.test(name)) return "pure";
+      if (/SS总|总变异/.test(name) || type === "active") return "total";
+      if (/SS回归|回归项|Treatment|样品差异|试品间/.test(name) || type === "regression") return "regression";
+      if (/残差/.test(name)) return "residual";
+      if (/模型失拟|非线性|非平行|偏离平行|截距差异|斜率|曲率|Intersection/i.test(name) || type === "extra") return "extra";
+      if (type) return type;
+      return "residual";
+    }
+
+    function renderBarRows(kind, step, bars, max) {
+      return bars.map(bar => {
+        const value = bar.value === "calc" ? residualSS(kind, bar.step) : bar.value;
+        const pct = clamp(value / max * 100, 3, 100);
+        const current = bar.step === step || (step === "lof" && ["lack", "pure"].includes(bar.step)) ? "current" : "";
+        const cls = ssBarClass(bar.name, bar.type);
+        return `
+          <div class="bar-row ${cls}">
+            <div class="bar-label">${bar.name}</div>
+            <div class="track"><div class="fill ${current} ${cls}" style="width:${pct}%"></div></div>
+            <div>${value}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function ssValue(value) {
+      return Math.round(value);
+    }
+
+    function renderLinearAnova(step) {
+      const stats = linearStats();
+      const rows = step === "mean"
+        ? [
+            { name: "SS总", value: stats.ssMean, type: "active", note: "相对整体均值的总变异" },
+            { name: "SS残差", value: stats.ssMean, type: "extra", note: "均值模型未解释的全部变异" }
+          ]
+        : [
+            { name: "SS总", value: stats.ssMean, type: "active", note: "相对整体均值的总变异" },
+            { name: "SS回归", value: stats.ssRegression, type: "regression", note: "线性模型解释的剂量效应" },
+            { name: "SS残差", value: stats.ssLinear, type: "extra", note: "线性拟合后剩余误差" },
+            { name: "SS模型失拟", value: stats.ssLof, type: "extra", note: "曲率 / 模型失拟" },
+            { name: "SS纯误差", value: stats.ssPure, type: "pure", note: "同剂量重复孔随机误差" }
+          ];
+      const max = Math.max(stats.ssMean, 1);
+      const barRows = rows.map(row => {
+        const pct = clamp(row.value / max * 100, 3, 100);
+        const cls = ssBarClass(row.name, row.type);
+        return `
+          <div class="bar-row ${cls}" title="${row.note}">
+            <div class="bar-label">${row.name}</div>
+            <div class="track"><div class="fill ${cls}" style="width:${pct}%"></div></div>
+            <div>${ssValue(row.value)}</div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="bar-panel">
+          <h3>当前模型的差方和</h3>
+          <div class="bars">${barRows}</div>
+        </div>
+      `;
+    }
+
+    function renderModelComparisonAnova(kind, step) {
+      const config = {
+        sra: {
+          order: ["mean", "core", "intersection", "curve"],
+          labels: {
+            core: "SS回归",
+            intersection: "SS截距差异",
+            curve: "SS非线性"
+          }
+        },
+        pla: {
+          order: ["mean", "treatment", "core", "slope", "curve"],
+          labels: {
+            treatment: "SS样品差异",
+            core: "SS回归",
+            slope: "SS非平行",
+            curve: "SS非线性"
+          }
+        }
+      }[kind];
+
+      const activeIndex = config.order.indexOf(step);
+      const ssTotal = residualSSRaw(kind, "mean");
+      const currentResidual = residualSSRaw(kind, step);
+      const rows = [
+        { name: "SS总", value: ssTotal, type: "active", note: "相对整体均值的总变异" }
+      ];
+
+      for (let i = 1; i <= activeIndex; i += 1) {
+        const prev = config.order[i - 1];
+        const current = config.order[i];
+        rows.push({
+          name: config.labels[current],
+          value: Math.max(0, residualSSRaw(kind, prev) - residualSSRaw(kind, current)),
+          type: current === "treatment" ? "regression" : "extra",
+          note: "当前模型相对上一步模型减少的残差"
+        });
+      }
+
+      rows.push({ name: "SS残差", value: currentResidual, type: "extra", note: "当前模型仍未解释的误差" });
+
+      const showModelErrorSplit = kind === "sra" ? activeIndex >= 1 : activeIndex >= 2;
+      if (showModelErrorSplit) {
+        const ssPure = pureErrorSS(kind);
+        rows.push({ name: "SS模型失拟", value: Math.max(0, currentResidual - ssPure), type: "extra", note: "当前模型残差中超过纯误差的部分" });
+        rows.push({ name: "SS纯误差", value: ssPure, type: "pure", note: "同一样品、同一剂量重复孔的随机误差" });
+      }
+
+      const max = Math.max(ssTotal, 1);
+      const barRows = rows.map(row => {
+        const pct = clamp(row.value / max * 100, 3, 100);
+        const cls = ssBarClass(row.name, row.type);
+        return `
+          <div class="bar-row ${cls}" title="${row.note}">
+            <div class="bar-label">${row.name}</div>
+            <div class="track"><div class="fill ${cls}" style="width:${pct}%"></div></div>
+            <div>${ssValue(row.value)}</div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="bar-panel">
+          <h3>当前模型的差方和</h3>
+          <div class="bars">${barRows}</div>
+        </div>
+      `;
+    }
+
+    function ssByGroupMean(kind) {
+      const ds = getDataset(kind);
+      const groupMeans = {
+        S: mean(ds.filter(d => d.g === "S").map(d => d.y)),
+        T: mean(ds.filter(d => d.g === "T").map(d => d.y))
+      };
+
+      return ds.reduce((sum, d) => sum + Math.pow(d.y - groupMeans[d.g], 2), 0);
+    }
+
+    function groupResidualSS(kind, step, group) {
+      return getDataset(kind)
+        .filter(d => d.g === group)
+        .reduce((sum, d) => sum + Math.pow(d.y - modelY(kind, step, d), 2), 0);
+    }
+
+    function groupPureErrorSS(kind, group) {
+      const ds = getDataset(kind).filter(d => d.g === group);
+      const means = {};
+
+      ds.forEach(d => {
+        if (!means[d.x]) means[d.x] = [];
+        means[d.x].push(d.y);
+      });
+
+      Object.keys(means).forEach(x => {
+        means[x] = mean(means[x]);
+      });
+
+      return ds.reduce((sum, d) => sum + Math.pow(d.y - means[d.x], 2), 0);
+    }
+
+    function fourplAnovaStats() {
+      const ds = getDataset("fourpl");
+      const overallMean = mean(ds.map(d => d.y));
+      const ssTotal = ds.reduce((sum, d) => sum + Math.pow(d.y - overallMean, 2), 0);
+      const ssAfterSpecimen = ssByGroupMean("fourpl");
+      const ssResidualI = residualSSRaw("fourpl", "constrained");
+      const ssResidualII = residualSSRaw("fourpl", "unconstrained");
+      const ssError = pureErrorSS("fourpl");
+      const ssStdError = groupPureErrorSS("fourpl", "S");
+      const ssTestError = groupPureErrorSS("fourpl", "T");
+      const ssStdLof = Math.max(0, groupResidualSS("fourpl", "unconstrained", "S") - ssStdError);
+      const ssTestLof = Math.max(0, groupResidualSS("fourpl", "unconstrained", "T") - ssTestError);
+
+      return {
+        ssTotal,
+        ssSpecimen: Math.max(0, ssTotal - ssAfterSpecimen),
+        ssRegression: Math.max(0, ssAfterSpecimen - ssResidualI),
+        ssResidualI,
+        ssResidualII,
+        ssDeviationParallel: Math.max(0, ssResidualI - ssResidualII),
+        ssModelLof: Math.max(0, ssResidualII - ssError),
+        ssStdLof,
+        ssTestLof,
+        ssError
+      };
+    }
+
+    function renderFourplAnova(step) {
+      const stats = fourplAnovaStats();
+      const rows = [
+        { name: "SS总", value: stats.ssTotal, type: "active", note: "相对整体均值的总变异" },
+        { name: "SS试品间", value: stats.ssSpecimen, type: "regression", note: "参比品与供试品整体均值差异" },
+        { name: "SS回归", value: stats.ssRegression, type: "regression", note: "约束 4PL 模型解释的剂量反应关系" },
+        { name: "SS残差I", value: stats.ssResidualI, type: "extra", note: "约束模型残差" }
+      ];
+
+      if (step !== "constrained") {
+        rows.push(
+          { name: "SS残差II", value: stats.ssResidualII, type: "extra", note: "自由模型残差；SS残差II = SS模型失拟 + SS误差" },
+          { name: "SS偏离平行", value: stats.ssDeviationParallel, type: "extra", note: "释放 4PL 参数后相对约束模型减少的残差" },
+          { name: "SS模型失拟", value: stats.ssModelLof, type: "extra", note: "自由模型残差中超过纯误差的部分" },
+          { name: "SS误差", value: stats.ssError, type: "pure", note: "同一样品、同一浓度重复孔的纯误差" }
+        );
+      }
+
+      const max = Math.max(stats.ssTotal, 1);
+      const barRows = rows.map(row => {
+        const pct = clamp(row.value / max * 100, 3, 100);
+        const cls = ssBarClass(row.name, row.type);
+        return `
+          <div class="bar-row ${cls}" title="${row.note}">
+            <div class="bar-label">${row.name}</div>
+            <div class="track"><div class="fill ${cls}" style="width:${pct}%"></div></div>
+            <div>${ssValue(row.value)}</div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="bar-panel">
+          <h3>中国药典 1431 四参数回归法分解</h3>
+          <div class="bars">${barRows}</div>
+        </div>
+      `;
+    }
+
+    function errorControl(kind, step) {
+      return `
+        <div class="control-panel">
+          <label for="${kind}-error-scale">
+            <span>原始数据变异大小</span>
+            <span id="${kind}-error-value">${errorScales[kind].toFixed(1)}×</span>
+          </label>
+          <div class="error-control-row">
+            <input id="${kind}-error-scale" type="range" min="0" max="10" step="0.1" value="${errorScales[kind]}" data-step="${step}" />
+            <button class="reset-button" type="button" id="${kind}-error-reset">重置</button>
+          </div>
+          <p>滑动时重新随机生成受限扰动，同时改变重复孔散布和剂量水平均值，用来观察 SS残差、SS模型失拟和 SS纯误差如何变化。</p>
+        </div>
+      `;
+    }
+
+    function fitSeparateLineParams(kind, ds) {
+      const fit = fitLinearModel(ds, d => [d.g === "S" ? 1 : 0, d.g === "S" ? d.x : 0, d.g === "T" ? 1 : 0, d.g === "T" ? d.x : 0]);
+      return {
+        interceptS: fit[0],
+        slopeS: fit[1],
+        interceptT: fit[2],
+        slopeT: fit[3]
+      };
+    }
+
+    function baselineDataset(kind) {
+      return datasets[kind].map(d => ({
+        x: d.x,
+        y: kind === "fourpl" ? fourplValue(d.x, fourplParams.free[d.g]) + d.lack : d.yMean,
+        g: d.g
+      }));
+    }
+
+    function parameterBaselineRatio(kind, key) {
+      const current = fitSeparateLineParams(kind, getDataset(kind))[key];
+      const baseline = fitSeparateLineParams(kind, baselineDataset(kind))[key];
+      if (Math.abs(baseline) < 0.001) return "相对基线 --";
+      return `相对基线 ${(current / baseline).toFixed(2)}×`;
+    }
+
+    function parameterReadout(kind, key, step) {
+      if (kind === "sra") {
+        const stats = modelComparisonStats("sra");
+        if (step === "core") {
+          if (key === "interceptS" || key === "interceptT") return `拟合 ${stats.core[0].toFixed(2)}`;
+          if (key === "slopeS") return `拟合 ${stats.core[1].toFixed(2)}`;
+          if (key === "slopeT") return `拟合 ${stats.core[2].toFixed(2)}`;
+        }
+        if (step === "intersection") {
+          if (key === "interceptS") return `拟合 ${stats.intersection[0].toFixed(2)}`;
+          if (key === "slopeS") return `拟合 ${stats.intersection[1].toFixed(2)}`;
+          if (key === "interceptT") return `拟合 ${stats.intersection[2].toFixed(2)}`;
+          if (key === "slopeT") return `拟合 ${stats.intersection[3].toFixed(2)}`;
+        }
+        if (step === "curve") {
+          if (key === "interceptS") return `拟合 ${stats.curve[0].toFixed(2)}`;
+          if (key === "slopeS") return `拟合 ${stats.curve[1].toFixed(2)}`;
+          if (key === "interceptT") return `拟合 ${stats.curve[2].toFixed(2)}`;
+          if (key === "slopeT") return `拟合 ${stats.curve[3].toFixed(2)}`;
+        }
+        return parameterBaselineRatio(kind, key);
+      }
+
+      if (kind === "pla") {
+        const stats = modelComparisonStats("pla");
+        if (step === "core") {
+          if (key === "interceptS") return `拟合 ${stats.core[0].toFixed(2)}`;
+          if (key === "interceptT") return `拟合 ${stats.core[1].toFixed(2)}`;
+          if (key === "slopeS" || key === "slopeT") return `拟合 ${stats.core[2].toFixed(2)}`;
+        }
+        if (step === "slope") {
+          if (key === "interceptS") return `拟合 ${stats.slope[0].toFixed(2)}`;
+          if (key === "slopeS") return `拟合 ${stats.slope[1].toFixed(2)}`;
+          if (key === "interceptT") return `拟合 ${stats.slope[2].toFixed(2)}`;
+          if (key === "slopeT") return `拟合 ${stats.slope[3].toFixed(2)}`;
+        }
+        if (step === "curve") {
+          if (key === "interceptS") return `拟合 ${stats.curve[0].toFixed(2)}`;
+          if (key === "slopeS") return `拟合 ${stats.curve[1].toFixed(2)}`;
+          if (key === "interceptT") return `拟合 ${stats.curve[2].toFixed(2)}`;
+          if (key === "slopeT") return `拟合 ${stats.curve[3].toFixed(2)}`;
+        }
+        return parameterBaselineRatio(kind, key);
+      }
+
+      if (kind === "fourpl") {
+        const fit = fourplFitStats();
+        const model = step === "constrained" ? "constrained" : "unconstrained";
+        const group = key.endsWith("S") ? "S" : "T";
+        const param = key[0];
+        return `${param.toUpperCase()} ${fit[model][group][param].toFixed(2)}`;
+      }
+
+      return "";
+    }
+
+    function adjustmentControl(kind, group, label, min, max, stepSize, currentStep, suffix = "") {
+      const value = moduleAdjustments[kind][group];
+      const display = parameterReadout(kind, group, currentStep);
+
+      return `
+        <div class="control-panel">
+          <label for="${kind}-${group}-adjust">
+            <span>${label}</span>
+            <span id="${kind}-${group}-adjust-value">${display}${suffix}</span>
+          </label>
+          <input id="${kind}-${group}-adjust" type="range" min="${min}" max="${max}" step="${stepSize}" value="${value}" data-adjust-kind="${kind}" data-adjust-group="${group}" data-suffix="${suffix}" />
+        </div>
+      `;
+    }
+
+    function controlColumns(refControls, testControls) {
+      return `
+        <div class="control-grid">
+          <div class="control-column">
+            <p class="control-column-title">参比品</p>
+            ${refControls}
+          </div>
+          <div class="control-column">
+            <p class="control-column-title">供试品</p>
+            ${testControls}
+          </div>
+        </div>
+      `;
+    }
+
+    function parameterControls(kind, step) {
+      if (kind === "sra") {
+        return controlColumns(
+          `
+            ${adjustmentControl("sra", "interceptS", "截距", -10, 10, 0.5, step)}
+            ${adjustmentControl("sra", "slopeS", "斜率", -5, 5, 0.25, step)}
+          `,
+          `
+            ${adjustmentControl("sra", "interceptT", "截距", -10, 10, 0.5, step)}
+            ${adjustmentControl("sra", "slopeT", "斜率", -5, 5, 0.25, step)}
+          `
+        );
+      }
+
+      if (kind === "pla") {
+        return controlColumns(
+          `
+            ${adjustmentControl("pla", "interceptS", "截距", -10, 10, 0.5, step)}
+            ${adjustmentControl("pla", "slopeS", "斜率", -5, 5, 0.25, step)}
+          `,
+          `
+            ${adjustmentControl("pla", "interceptT", "截距", -10, 10, 0.5, step)}
+            ${adjustmentControl("pla", "slopeT", "斜率", -5, 5, 0.25, step)}
+          `
+        );
+      }
+
+      if (kind === "fourpl") {
+        return controlColumns(
+          `
+            ${adjustmentControl("fourpl", "aS", "A 值", -15, 15, 0.5, step)}
+            ${adjustmentControl("fourpl", "bS", "B 值", -1.5, 1.5, 0.05, step)}
+            ${adjustmentControl("fourpl", "cS", "C 值", -0.8, 0.8, 0.05, step)}
+            ${adjustmentControl("fourpl", "dS", "D 值", -15, 15, 0.5, step)}
+          `,
+          `
+            ${adjustmentControl("fourpl", "aT", "A 值", -15, 15, 0.5, step)}
+            ${adjustmentControl("fourpl", "bT", "B 值", -1.5, 1.5, 0.05, step)}
+            ${adjustmentControl("fourpl", "cT", "C 值", -0.8, 0.8, 0.05, step)}
+            ${adjustmentControl("fourpl", "dT", "D 值", -15, 15, 0.5, step)}
+          `
+        );
+      }
+
+      return "";
+    }
+
+    function moduleControls(kind, step) {
+      return `${errorControl(kind, step)}${parameterControls(kind, step)}`;
+    }
+
+    function renderBars(kind, step, module) {
+      if (kind === "linear") return renderLinearAnova(step);
+      if (["sra", "pla"].includes(kind)) return renderModelComparisonAnova(kind, step);
+      if (kind === "fourpl") return renderFourplAnova(step);
+
+      if (module.barGroups) {
+        const groups = module.barGroups.map(group => `
+          <div class="bar-group">
+            <h4>${group.title}</h4>
+            <div class="bars">${renderBarRows(kind, step, group.bars, group.max)}</div>
+          </div>
+        `).join("");
+
+        return `
+          <div class="bar-panel">
+            <h3>残差平方和变化</h3>
+            ${groups}
+          </div>
+        `;
+      }
+
+      const max = module.maxResidual || 10000;
+      const rows = renderBarRows(kind, step, module.bars, max);
+
+      return `
+        <div class="bar-panel">
+          <h3>残差平方和变化</h3>
+          <div class="bars">${rows}</div>
+        </div>
+      `;
+    }
+
+    function anovaNumber(value) {
+      return Math.round(Math.max(0, value));
+    }
+
+    function anovaDecimal(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "-";
+      return Math.max(0, value).toFixed(2);
+    }
+
+    function logGamma(z) {
+      const p = [
+        676.5203681218851, -1259.1392167224028, 771.3234287776531,
+        -176.6150291621406, 12.507343278686905, -0.13857109526572012,
+        9.984369578019572e-6, 1.5056327351493116e-7
+      ];
+
+      if (z < 0.5) return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * z)) - logGamma(1 - z);
+
+      z -= 1;
+      let x = 0.9999999999998099;
+      for (let i = 0; i < p.length; i += 1) x += p[i] / (z + i + 1);
+      const t = z + p.length - 0.5;
+      return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+    }
+
+    function betaContinuedFraction(a, b, x) {
+      const maxIter = 120;
+      const eps = 3e-8;
+      const fpmin = 1e-30;
+      let qab = a + b;
+      let qap = a + 1;
+      let qam = a - 1;
+      let c = 1;
+      let d = 1 - qab * x / qap;
+
+      if (Math.abs(d) < fpmin) d = fpmin;
+      d = 1 / d;
+      let h = d;
+
+      for (let m = 1; m <= maxIter; m += 1) {
+        const m2 = 2 * m;
+        let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+        d = 1 + aa * d;
+        if (Math.abs(d) < fpmin) d = fpmin;
+        c = 1 + aa / c;
+        if (Math.abs(c) < fpmin) c = fpmin;
+        d = 1 / d;
+        h *= d * c;
+
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+        d = 1 + aa * d;
+        if (Math.abs(d) < fpmin) d = fpmin;
+        c = 1 + aa / c;
+        if (Math.abs(c) < fpmin) c = fpmin;
+        d = 1 / d;
+        const del = d * c;
+        h *= del;
+        if (Math.abs(del - 1) < eps) break;
+      }
+
+      return h;
+    }
+
+    function regularizedBeta(x, a, b) {
+      if (x <= 0) return 0;
+      if (x >= 1) return 1;
+      const bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+
+      if (x < (a + 1) / (a + b + 2)) {
+        return bt * betaContinuedFraction(a, b, x) / a;
+      }
+
+      return 1 - bt * betaContinuedFraction(b, a, 1 - x) / b;
+    }
+
+    function fPValue(f, df1, df2) {
+      if (!Number.isFinite(f) || f < 0 || df1 <= 0 || df2 <= 0) return null;
+      const x = (df1 * f) / (df1 * f + df2);
+      return clamp(1 - regularizedBeta(x, df1 / 2, df2 / 2), 0, 1);
+    }
+
+    function pText(p) {
+      if (p === null || p === undefined || Number.isNaN(p)) return "-";
+      if (p < 0.001) return "<0.001";
+      return p.toFixed(3);
+    }
+
+    function conclusionText(p, expectation) {
+      if (p === null || p === undefined || Number.isNaN(p)) return "描述项";
+      const significant = p < 0.05;
+      if (expectation === "significant") return significant ? "显著，符合预期" : "不显著，需关注";
+      if (expectation === "nonsignificant") return significant ? "显著，假设可能不成立" : "不显著，可接受";
+      return significant ? "显著" : "不显著";
+    }
+
+    function anovaRowsHtml(rows) {
+      return rows.map(row => {
+        const classes = [
+          row.key ? "key-model-row" : "",
+          row.errorDenominator ? "error-denominator-row" : ""
+        ].filter(Boolean).join(" ");
+
+        return `
+        <tr class="${classes}">
+          <td data-label="方差来源">${row.source}</td>
+          <td data-label="SS">${anovaNumber(row.ss)}</td>
+          <td data-label="df">${row.df ?? "-"}</td>
+          <td data-label="MS">${anovaDecimal(row.ms)}</td>
+          <td data-label="F">${anovaDecimal(row.f)}</td>
+          <td data-label="p">${pText(row.p)}</td>
+          <td data-label="结论">${row.conclusion}</td>
+        </tr>
+      `;
+      }).join("");
+    }
+
+    function anovaRow(source, ss, df, options = {}) {
+      const ms = df ? Math.max(0, ss) / df : null;
+      const f = options.denomMs ? ms / options.denomMs : null;
+      const p = f !== null ? fPValue(f, df, options.denomDf) : null;
+
+      return {
+        source,
+        ss,
+        df,
+        ms,
+        f,
+        p,
+        key: options.key,
+        errorDenominator: options.errorDenominator,
+        conclusion: options.conclusion || conclusionText(p, options.expectation)
+      };
+    }
+
+    function renderLinearAnovaTable() {
+      const stats = linearStats();
+      const ds = getDataset("linear");
+      const doseCount = new Set(ds.map(d => d.x)).size;
+      const dfTotal = ds.length - 1;
+      const dfRegression = 1;
+      const dfResidual = ds.length - 2;
+      const dfLof = doseCount - 2;
+      const dfPure = ds.length - doseCount;
+      const msResidual = stats.ssLinear / dfResidual;
+      const msPure = stats.ssPure / dfPure;
+      const rows = [
+        anovaRow("SS总", stats.ssMean, dfTotal, { conclusion: "总变异" }),
+        anovaRow("SS回归", stats.ssRegression, dfRegression, { denomMs: msResidual, denomDf: dfResidual, expectation: "significant", key: true }),
+        anovaRow("SS残差", stats.ssLinear, dfResidual, { conclusion: "线性模型误差项", errorDenominator: true }),
+        anovaRow("SS模型失拟", stats.ssLof, dfLof, { denomMs: msPure, denomDf: dfPure, expectation: "nonsignificant" }),
+        anovaRow("SS纯误差", stats.ssPure, dfPure, { conclusion: "纯误差项", errorDenominator: true })
+      ];
+
+      return anovaTableShell("关键模型：线性模型", rows);
+    }
+
+    function renderModelComparisonAnovaTable(kind) {
+      const ds = getDataset(kind);
+      const n = ds.length;
+      const cellCount = new Set(ds.map(d => `${d.g}-${d.x}`)).size;
+      const dfTotal = n - 1;
+      const dfPure = n - cellCount;
+      const ssPure = pureErrorSS(kind);
+      const msPure = ssPure / dfPure;
+      let rows = [];
+      let key = "";
+
+      if (kind === "sra") {
+        const dfCoreResidual = n - 3;
+        const dfIntersectionResidual = n - 4;
+        const dfCurveResidual = n - 6;
+        const msCoreResidual = residualSSRaw("sra", "core") / dfCoreResidual;
+        const msIntersectionResidual = residualSSRaw("sra", "intersection") / dfIntersectionResidual;
+        const msCurveResidual = residualSSRaw("sra", "curve") / dfCurveResidual;
+        const ssModelLof = residualSSRaw("sra", "core") - ssPure;
+        const dfModelLof = dfCoreResidual - dfPure;
+
+        key = "SRA 核心模型（截距相同、斜率可不同）";
+        rows = [
+          anovaRow("SS总", residualSSRaw("sra", "mean"), dfTotal, { conclusion: "总变异" }),
+          anovaRow("SS回归", residualSSRaw("sra", "mean") - residualSSRaw("sra", "core"), 2, { denomMs: msCoreResidual, denomDf: dfCoreResidual, expectation: "significant", key: true }),
+          anovaRow("SS截距差异", residualSSRaw("sra", "core") - residualSSRaw("sra", "intersection"), 1, { denomMs: msIntersectionResidual, denomDf: dfIntersectionResidual, expectation: "nonsignificant" }),
+          anovaRow("SS非线性", residualSSRaw("sra", "intersection") - residualSSRaw("sra", "curve"), 2, { denomMs: msCurveResidual, denomDf: dfCurveResidual, expectation: "nonsignificant" }),
+          anovaRow("SS模型失拟", ssModelLof, dfModelLof, { denomMs: msPure, denomDf: dfPure, expectation: "nonsignificant" }),
+          anovaRow("SS纯误差", ssPure, dfPure, { conclusion: "纯误差项", errorDenominator: true })
+        ];
+      }
+
+      if (kind === "pla") {
+        const dfTreatmentResidual = n - 2;
+        const dfCoreResidual = n - 3;
+        const dfSlopeResidual = n - 4;
+        const dfCurveResidual = n - 6;
+        const msTreatmentResidual = residualSSRaw("pla", "treatment") / dfTreatmentResidual;
+        const msCoreResidual = residualSSRaw("pla", "core") / dfCoreResidual;
+        const msSlopeResidual = residualSSRaw("pla", "slope") / dfSlopeResidual;
+        const msCurveResidual = residualSSRaw("pla", "curve") / dfCurveResidual;
+        const ssModelLof = residualSSRaw("pla", "core") - ssPure;
+        const dfModelLof = dfCoreResidual - dfPure;
+
+        key = "PLA 核心模型（斜率相同、截距不同）";
+        rows = [
+          anovaRow("SS总", residualSSRaw("pla", "mean"), dfTotal, { conclusion: "总变异" }),
+          anovaRow("SS样品差异", residualSSRaw("pla", "mean") - residualSSRaw("pla", "treatment"), 1, { denomMs: msTreatmentResidual, denomDf: dfTreatmentResidual, expectation: "significant" }),
+          anovaRow("SS回归", residualSSRaw("pla", "treatment") - residualSSRaw("pla", "core"), 1, { denomMs: msCoreResidual, denomDf: dfCoreResidual, expectation: "significant", key: true }),
+          anovaRow("SS非平行", residualSSRaw("pla", "core") - residualSSRaw("pla", "slope"), 1, { denomMs: msSlopeResidual, denomDf: dfSlopeResidual, expectation: "nonsignificant" }),
+          anovaRow("SS非线性", residualSSRaw("pla", "slope") - residualSSRaw("pla", "curve"), 2, { denomMs: msCurveResidual, denomDf: dfCurveResidual, expectation: "nonsignificant" }),
+          anovaRow("SS模型失拟", ssModelLof, dfModelLof, { denomMs: msPure, denomDf: dfPure, expectation: "nonsignificant" }),
+          anovaRow("SS纯误差", ssPure, dfPure, { conclusion: "纯误差项", errorDenominator: true })
+        ];
+      }
+
+      return anovaTableShell(`关键模型：${key}`, rows);
+    }
+
+    function renderFourplAnovaTable() {
+      const stats = fourplAnovaStats();
+      const ds = getDataset("fourpl");
+      const n = ds.length;
+      const cellCount = new Set(ds.map(d => `${d.g}-${d.x}`)).size;
+      const dfTotal = n - 1;
+      const dfSpecimen = 1;
+      const dfRegression = 3;
+      const dfResidualI = n - 5;
+      const dfResidualII = n - 8;
+      const dfParallel = 3;
+      const dfError = n - cellCount;
+      const dfModelLof = dfResidualII - dfError;
+      const dfGroupLof = dfModelLof / 2;
+      const msResidualI = stats.ssResidualI / dfResidualI;
+      const msResidualII = stats.ssResidualII / dfResidualII;
+      const msError = stats.ssError / dfError;
+
+      const rows = [
+        anovaRow("试品间", stats.ssSpecimen, dfSpecimen, { denomMs: msResidualII, denomDf: dfResidualII, expectation: "significant" }),
+        anovaRow("回归项", stats.ssRegression, dfRegression, { denomMs: msResidualII, denomDf: dfResidualII, expectation: "significant", key: true }),
+        anovaRow("偏离平行", stats.ssDeviationParallel, dfParallel, { denomMs: msResidualII, denomDf: dfResidualII, expectation: "nonsignificant" }),
+        anovaRow("残差II", stats.ssResidualII, dfResidualII, { conclusion: "非约束模型误差项", errorDenominator: true }),
+        anovaRow("模型失拟", stats.ssModelLof, dfModelLof, { denomMs: msError, denomDf: dfError, expectation: "nonsignificant" }),
+        anovaRow("标准品", stats.ssStdLof, dfGroupLof, { denomMs: msError, denomDf: dfError, expectation: "nonsignificant" }),
+        anovaRow("供试品", stats.ssTestLof, dfGroupLof, { denomMs: msError, denomDf: dfError, expectation: "nonsignificant" }),
+        anovaRow("误差", stats.ssError, dfError, { conclusion: "纯误差项", errorDenominator: true }),
+        anovaRow("总变异", stats.ssTotal, dfTotal, { conclusion: "总变异" })
+      ];
+
+      return anovaTableShell("关键模型：约束 4PL", rows);
+    }
+
+    function anovaTableShell(keyMessage, rows) {
+      return `
+        <div class="anova-table-panel">
+          <h3>ANOVA 表</h3>
+          <table>
+            <colgroup>
+              <col style="width:15%">
+              <col style="width:9%">
+              <col style="width:8%">
+              <col style="width:14%">
+              <col style="width:11%">
+              <col style="width:10%">
+              <col style="width:33%">
+            </colgroup>
+            <thead>
+              <tr><th>方差来源</th><th>SS</th><th>df</th><th>MS</th><th>F</th><th>p</th><th>结论</th></tr>
+            </thead>
+            <tbody>
+              ${anovaRowsHtml(rows)}
+            </tbody>
+          </table>
+          <div class="key-message good"><b>${keyMessage}</b></div>
+        </div>
+      `;
+    }
+
+    function renderAnovaTable(kind) {
+      if (kind === "linear") return renderLinearAnovaTable();
+      if (["sra", "pla"].includes(kind)) return renderModelComparisonAnovaTable(kind);
+      if (kind === "fourpl") return renderFourplAnovaTable();
+      return "";
+    }
+
+    function quizHtml() {
+      return `
+        <div class="quiz">
+          <div class="quiz-title">交互问题：回归显著，是否等于线性模型成立？</div>
+          <button data-answer="wrong">A. 是</button>
+          <button data-answer="right">B. 否</button>
+          <div class="quiz-result" id="quiz-result"></div>
+        </div>
+      `;
+    }
+
+    const modules = {
+      map: {
+        title: "0. Bioassay 评价地图",
+        badge: "定位问题",
+        desc: "先明确 ANOVA 在活性方法中的位置：它属于统计分析和模型评价层，连接模型选择、相似性判断、效价计算和质量决策。",
+        steps: [
+          {
+            id: "map",
+            name: "评价地图",
+            html: `
+              <div class="cards">
+                <div class="mini-card"><h3>生物学与分析目标</h3><p>靶点、MOA、生物学功能、活性方法反映什么，以及 ATP 的设定。</p></div>
+                <div class="mini-card"><h3>方法策略与实验系统</h3><p>技术选择、试剂耗材、实验流程、DOE、位置效应、耐用性。</p></div>
+                <div class="mini-card"><h3>数学模型与效价计算</h3><p>SRA、PLA、4PL、数据转换、权重因子、相对活性计算。</p></div>
+                <div class="mini-card"><h3>统计分析与模型评价</h3><p><b>模型是否成立</b>、<b>similarity</b>、异常值、误差和不确定度。</p></div>
+                <div class="mini-card"><h3>质量控制与生命周期</h3><p>系统适用性、方法验证、放行、稳定性、可比性和持续监控。</p></div>
+              </div>
+            `
+          }
+        ]
+      },
+
+      linear: {
+        title: "1. 一条直线",
+        badge: "建立直觉",
+        desc: "一条直线的 ANOVA 要区分两个问题：是否存在剂量效应，以及线性模型是否充分。",
+        kind: "linear",
+        steps: [
+          {
+            id: "mean",
+            name: "均值模型",
+            explain: "所有响应值由整体均值解释，剂量信息没有进入模型。",
+            delta: "SSTotal：数据相对整体均值的残差平方和。"
+          },
+          {
+            id: "linear",
+            name: "线性回归",
+            explain: "线性模型用最小二乘法拟合全部剂量点。它明显减少了总误差，但因为演示数据带有轻微弯曲，线性残差仍然可见。",
+            delta: "Regression 检验：线性模型是否比均值模型显著更好。应显著。"
+          },
+          {
+            id: "anova",
+            name: "ANOVA 表",
+            explain: "汇总线性模型的 df、SS、MS、F、p 和结论。",
+            delta: "ANOVA 表用于同时查看回归显著性、模型失拟和纯误差。"
+          }
+        ]
+      },
+
+      sra: {
+        title: "2. SRA：截距相同假设",
+        badge: "线性 Bioassay",
+        desc: "斜率比模型的核心模型是截距相同、斜率不同；效价来自斜率比。相似性评估重点是截距相同假设和线性假设是否可接受。",
+        kind: "sra",
+        maxResidual: 12000,
+        steps: [
+          {
+            id: "mean",
+            name: "均值模型",
+            explain: "不区分样品，也不考虑剂量。所有点用整体均值描述，残差最大。",
+            delta: "基线问题：不使用任何剂量或样品信息时，残差有多大？"
+          },
+          {
+            id: "core",
+            name: "SRA 核心模型",
+            explain: "假设参比品和供试品截距相同，但斜率可以不同。",
+            delta: "Regression 应显著：说明线性量效关系确实解释了数据。"
+          },
+          {
+            id: "intersection",
+            name: "释放截距",
+            explain: "允许参比品和供试品截距不同，残差通常会继续下降。",
+            delta: "释放截距带来的残差减少 = SSIntersection。若显著，说明截距相同假设不成立。"
+          },
+          {
+            id: "curve",
+            name: "加入曲率",
+            explain: "分别允许参比品和供试品拥有各自的二次曲率项，残差还可能下降。",
+            delta: "加入曲率带来的残差减少 = SSNon-linearity。若显著，说明所选剂量范围线性不足。"
+          },
+          {
+            id: "anova",
+            name: "ANOVA 表",
+            explain: "汇总 SRA 关键检验的 df、SS、MS、F、p 和结论。",
+            delta: "ANOVA 表集中查看 SRA 核心模型、截距相同假设和线性假设。"
+          }
+        ],
+        bars: [
+          { name: "均值模型残差", step: "mean", value: "calc" },
+          { name: "SRA 核心残差", step: "core", value: "calc" },
+          { name: "释放截距残差", step: "intersection", value: "calc", type: "extra" },
+          { name: "加入曲率残差", step: "curve", value: "calc", type: "extra" },
+          { name: "Pure error", step: "pure", value: 130, type: "pure" }
+        ]
+      },
+
+      pla: {
+        title: "3. PLA：斜率相同假设",
+        badge: "线性 Bioassay",
+        desc: "平行线模型的核心模型是斜率相同、截距不同；效价来自水平位移。相似性评估重点是斜率相同假设和线性假设是否可接受。",
+        kind: "pla",
+        maxResidual: 13000,
+        steps: [
+          {
+            id: "mean",
+            name: "均值模型",
+            explain: "所有响应值用整体均值描述。",
+            delta: "最简单模型，残差最大。"
+          },
+          {
+            id: "treatment",
+            name: "Treatment 均值",
+            explain: "允许不同处理组有不同均值，残差下降。",
+            delta: "先解释组间差异，但还没有进入平行线核心假设。"
+          },
+          {
+            id: "core",
+            name: "PLA 核心模型",
+            explain: "参比品和供试品斜率相同，但截距不同。",
+            delta: "Regression 应显著：说明存在可用于效价计算的线性量效关系。"
+          },
+          {
+            id: "slope",
+            name: "释放斜率",
+            explain: "允许两条线斜率不同，残差继续下降。",
+            delta: "释放斜率带来的残差减少 = SSNon-parallelism。若显著，说明平行性假设不成立。"
+          },
+          {
+            id: "curve",
+            name: "加入曲率",
+            explain: "分别允许参比品和供试品拥有各自的二次曲率项，残差继续下降。",
+            delta: "加入曲率带来的残差减少 = SSNon-linearity。若显著，说明剂量区间内线性不足。"
+          },
+          {
+            id: "anova",
+            name: "ANOVA 表",
+            explain: "汇总 PLA 关键检验的 df、SS、MS、F、p 和结论。",
+            delta: "ANOVA 表集中查看样品差异、PLA 核心模型、平行性假设和线性假设。"
+          }
+        ],
+        bars: [
+          { name: "均值模型残差", step: "mean", value: "calc" },
+          { name: "Treatment 残差", step: "treatment", value: "calc" },
+          { name: "PLA 核心残差", step: "core", value: "calc" },
+          { name: "释放斜率残差", step: "slope", value: "calc", type: "extra" },
+          { name: "加入曲率残差", step: "curve", value: "calc", type: "extra" },
+          { name: "Pure error", step: "pure", value: 145, type: "pure" }
+        ]
+      },
+
+      fourpl: {
+        title: "4. 4PL：约束模型与自由模型",
+        badge: "非线性模型",
+        desc: "按照中国药典 1431 四参数回归法的思路，先看约束模型的回归与残差，再比较自由模型以判断偏离平行和模型失拟。",
+        kind: "fourpl",
+        maxResidual: 1600,
+        steps: [
+          {
+            id: "constrained",
+            name: "约束 4PL",
+            explain: "约束模型通常共享 A/B/D，仅允许 C 不同。它表达“曲线形状一致，仅水平位置不同”的相似性假设。",
+            delta: "SS回归来自约束 4PL 模型；SS残差I 是约束模型尚未解释的残差。"
+          },
+          {
+            id: "unconstrained",
+            name: "非约束 4PL",
+            explain: "释放 A/B/C/D 后，模型更灵活，残差通常会下降。",
+            delta: "SS残差I = SS残差II + SS偏离平行；SS偏离平行反映释放参数后额外减少的残差。SS残差II = SS模型失拟 + SS误差；SS误差来自同一样品、同一浓度重复孔之间的纯误差。"
+          },
+          {
+            id: "anova",
+            name: "ANOVA 表",
+            explain: "按照中国药典 1431 四参数回归法的分解顺序，汇总约束模型、非约束模型和误差项的统计检验。",
+            delta: "ANOVA 表集中查看 SS试品间、SS回归、SS偏离平行、SS模型失拟和 SS误差。"
+          }
+        ]
+      }
+    };
+
+    function effectiveModelStep(kind, step) {
+      if (step !== "anova") return step;
+      if (kind === "linear") return "linear";
+      if (kind === "sra" || kind === "pla") return "core";
+      if (kind === "fourpl") return "constrained";
+      return step;
+    }
+
+    function renderModule(moduleName, stepId) {
+      const module = modules[moduleName];
+      const step = stepId || module.steps[0].id;
+      const activeStep = module.steps.find(s => s.id === step) || module.steps[0];
+
+      const showTabs = module.kind || module.steps.length > 1;
+      const tabs = showTabs ? module.steps.map(s => `
+        <button class="step-button ${s.id === step ? "active" : ""}" data-step="${s.id}">${s.name}</button>
+      `).join("") : "";
+
+      let body = "";
+
+      if (module.kind) {
+        const adjustable = isAdjustableKind(module.kind);
+        const isAnovaStep = step === "anova";
+        const modelStep = effectiveModelStep(module.kind, step);
+        const visualHtml = isAnovaStep ? renderAnovaTable(module.kind) : renderVisual(module.kind, modelStep);
+        body = isAnovaStep ? `
+          <div class="workspace anova-workspace">
+            <section class="region">
+              <span class="section-label">ANOVA table</span>
+              <div ${adjustable ? `id="${module.kind}-visual"` : ""}>${visualHtml}</div>
+            </section>
+            <section class="region explain">
+              <span class="section-label">Interpretation</span>
+              <p>${activeStep.explain}</p>
+              <div class="delta"><b>Current step:</b> ${activeStep.delta}</div>
+              ${activeStep.quiz ? quizHtml() : ""}
+            </section>
+          </div>
+        ` : `
+          <div class="workspace">
+            <section class="region visual-panel">
+              <span class="section-label">Visualization</span>
+              <div ${adjustable ? `id="${module.kind}-visual"` : ""}>${visualHtml}</div>
+              <div class="legend">
+                <span><i class="dot blue"></i>参比品</span>
+                <span><i class="dot green"></i>供试品</span>
+                <span><i class="dot red"></i>残差</span>
+              </div>
+            </section>
+            <div class="side-stack">
+              ${adjustable ? `
+                <section class="region">
+                  <span class="section-label">Controls</span>
+                  ${moduleControls(module.kind, modelStep)}
+                </section>
+              ` : ""}
+              <section class="region">
+                <span class="section-label">Live statistics</span>
+                <div ${adjustable ? `id="${module.kind}-ss"` : ""}>${renderBars(module.kind, modelStep, module)}</div>
+              </section>
+              <section class="region explain">
+                <span class="section-label">Interpretation</span>
+                <p>${activeStep.explain}</p>
+                <div class="delta"><b>Current step:</b> ${activeStep.delta}</div>
+                ${activeStep.quiz ? quizHtml() : ""}
+              </section>
+            </div>
+          </div>
+        `;
+      } else {
+        body = `<div class="workspace anova-workspace"><section class="region explain">${activeStep.html}</section></div>`;
+      }
+
+      document.getElementById("module-container").innerHTML = `
+        <div class="module-header">
+          <div>
+            <h2>${module.title}</h2>
+            <p>${module.desc}</p>
+          </div>
+          <div class="badge">${module.badge}</div>
+        </div>
+        ${showTabs ? `<div class="step-tabs">${tabs}</div>` : ""}
+        ${body}
+      `;
+
+      document.querySelectorAll(".step-button").forEach(button => {
+        button.addEventListener("click", () => renderModule(moduleName, button.dataset.step));
+      });
+
+      attachModuleControls(moduleName, step);
+      attachQuiz();
+    }
+
+    function refreshAdjustableModule(kind, step, module) {
+      delete statCache[kind];
+      const visual = document.getElementById(`${kind}-visual`);
+      const ss = document.getElementById(`${kind}-ss`);
+      const modelStep = effectiveModelStep(kind, step);
+
+      if (visual) visual.innerHTML = step === "anova" ? renderAnovaTable(kind) : renderVisual(kind, modelStep);
+      if (ss) ss.innerHTML = renderBars(kind, modelStep, module);
+    }
+
+    function updateParameterReadouts(kind, step) {
+      document.querySelectorAll(`[data-adjust-kind="${kind}"]`).forEach(control => {
+        const key = control.dataset.adjustGroup;
+        const suffix = control.dataset.suffix || "";
+        const value = document.getElementById(`${kind}-${key}-adjust-value`);
+
+        if (value) value.textContent = `${parameterReadout(kind, key, step)}${suffix}`;
+      });
+    }
+
+    function attachModuleControls(moduleName, step) {
+      const module = modules[moduleName];
+      const kind = module.kind;
+      if (!isAdjustableKind(kind)) return;
+      const modelStep = effectiveModelStep(kind, step);
+
+      const slider = document.getElementById(`${kind}-error-scale`);
+      if (slider) {
+        slider.addEventListener("input", () => {
+          errorScales[kind] = Number(slider.value);
+          randomizeProfile(kind);
+          const value = document.getElementById(`${kind}-error-value`);
+
+          if (value) value.textContent = `${errorScales[kind].toFixed(1)}×`;
+          refreshAdjustableModule(kind, step, module);
+          updateParameterReadouts(kind, modelStep);
+        });
+      }
+
+      const reset = document.getElementById(`${kind}-error-reset`);
+      if (reset) {
+        reset.addEventListener("click", () => {
+          errorScales[kind] = 1;
+          resetRandomProfile(kind);
+          if (slider) slider.value = "1";
+
+          const value = document.getElementById(`${kind}-error-value`);
+          if (value) value.textContent = "1.0×";
+
+          refreshAdjustableModule(kind, step, module);
+          updateParameterReadouts(kind, modelStep);
+        });
+      }
+
+      document.querySelectorAll(`[data-adjust-kind="${kind}"]`).forEach(control => {
+        control.addEventListener("input", () => {
+          const group = control.dataset.adjustGroup;
+          moduleAdjustments[kind][group] = Number(control.value);
+
+          refreshAdjustableModule(kind, step, module);
+          updateParameterReadouts(kind, modelStep);
+        });
+      });
+    }
+
+    function attachQuiz() {
+      document.querySelectorAll("[data-answer]").forEach(button => {
+        button.addEventListener("click", () => {
+          const result = document.getElementById("quiz-result");
+          if (!result) return;
+
+          if (button.dataset.answer === "right") {
+            result.innerHTML = "<b>正确。</b>回归显著只说明剂量对响应值有影响；线性模型是否成立，还要看 lack-of-fit 是否显著大于 pure error。";
+            result.style.color = "var(--status-green-text)";
+          } else {
+            result.innerHTML = "<b>不完全正确。</b>回归显著只能说明模型比均值模型好，不能排除系统性曲率或模型失拟。";
+            result.style.color = "var(--status-orange-text)";
+          }
+        });
+      });
+    }
+
+    document.querySelectorAll(".nav-button").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".nav-button").forEach(b => b.classList.remove("active"));
+        button.classList.add("active");
+        renderModule(button.dataset.module);
+      });
+    });
+
+    renderModule("map");
+  </script>
+</body>
+</html>

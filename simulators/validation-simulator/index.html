@@ -128,6 +128,22 @@
       transform: translateY(-1px);
     }
 
+    .site-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 18px;
+      margin-top: 28px;
+      padding: 20px 0 28px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0;
+      line-height: 1.6;
+      text-align: right;
+      text-transform: none;
+    }
+
     .brand-link:focus-visible,
     .back-link:focus-visible {
       outline: 3px solid var(--focus-ring);
@@ -744,7 +760,7 @@
     <section class="hero" aria-labelledby="page-title">
       <div>
         <div class="eyebrow">Interactive simulation</div>
-        <h1 id="page-title">Validation Simulator</h1>
+        <h1 id="page-title">Method Validation Simulator</h1>
         <p class="subtitle">Procedure-based validation, method-based validation, and reportable-result risk — inspired by USP &lt;1033&gt;.</p>
         <p class="hero-copy">A data-driven workspace for connecting analytical target profile assumptions, validation design, editable observed RP data, procedure-based analysis, method-based variance modeling, and Prob(OOS) risk.</p>
       </div>
@@ -1294,6 +1310,10 @@
         </div>
       </div>
     </section>
+
+    <footer class="site-footer">
+      <span>bioassaycraft.com</span>
+    </footer>
   </main>
 
   <script>

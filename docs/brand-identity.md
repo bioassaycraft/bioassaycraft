@@ -1,6 +1,8 @@
 # BioassayCraft Brand Identity
 
-BioassayCraft is an interactive platform for scientific thinking, quantitative reasoning, bioassay modelling, statistics, assay development, engineering craftsmanship, and practical learning.
+BioassayCraft is an interactive learning platform for bioassay thinking, quantitative reasoning, simulation, scientific statistics, assay development, engineering craftsmanship, and practical calculation.
+
+It should not feel like a conventional product website or a loose collection of tools. The brand should feel like a growing scientific learning platform made of focused artifacts: explorers, simulators, converters, tutorials, case studies, and articles.
 
 The visual identity should communicate constructed knowledge rather than biotechnology. The mark is inspired by coordinate systems, fitted models, observed data, calibration, drafting, and engineering notebooks.
 
@@ -26,7 +28,7 @@ Crafting interactive learning for bioassay development.
 Homepage supporting tagline:
 
 ```text
-Interactive tutorials, simulations, practical tools, and real-world bioassay insights.
+Interactive tutorials, simulations, practical tools, and bioassay insights.
 ```
 
 Homepage status text:

@@ -7,7 +7,20 @@ Use it together with:
 - [Brand Identity](brand-identity.md)
 - [Project Structure](project-structure.md)
 
-## Design Intent
+## Design Philosophy
+
+BioassayCraft is not a product marketing site and not a collection of isolated utilities. It is an interactive learning platform around bioassay thinking, quantitative reasoning, simulation, and practical calculation.
+
+Every page should help users build understanding first, then offer interaction.
+
+Principles:
+
+- Clarity first.
+- Understanding before interaction.
+- Less is more.
+- Calm and professional.
+- Scientific instead of commercial.
+- Learning before feature density.
 
 BioassayCraft should feel like a precise educational platform for scientific thinking and engineering craft.
 
@@ -22,7 +35,7 @@ The site should communicate:
 - Interactive learning
 - Long-term trust
 
-The design language is closer to an engineering notebook than a biotech brochure.
+The design language is closer to an engineering notebook than a biotech brochure. It should feel more like a thoughtful scientific platform than a commercial SaaS landing page.
 
 References:
 
@@ -43,6 +56,31 @@ References:
 5. Let scientific ideas become visible through models, controls, plots, and explanation.
 6. Use motion only when it clarifies state or interaction.
 7. Design every page so it can sit comfortably beside future lessons, tools, and simulations.
+8. Do not add content simply to fill space.
+9. Prefer a quiet artifact or learning object over a feature pitch.
+
+## Information Architecture
+
+Keep information density low across the site.
+
+Rules:
+
+- Avoid explaining too much at once.
+- Use pages to establish a clear hierarchy of understanding.
+- Prefer an additional click over a crowded page.
+- Put detailed explanation on the relevant tool, simulator, lesson, article, or case-study page, not on the homepage.
+- Let the homepage establish brand impression, show content direction, and provide a small number of entry points.
+- Treat lower homepage links as a content library or directory, not as product feature cards.
+
+Future content areas may include:
+
+- Simulators
+- Practical tools
+- Interactive tutorials
+- Case studies
+- Articles
+
+Design the homepage and subpage patterns so these areas can grow without changing the visual language.
 
 ## Visual Tone
 
@@ -138,7 +176,11 @@ Rules:
 Homepage rules:
 
 - The homepage should remain concise and first-screen readable.
-- The brand mark, title, slogan, explanation, status, and primary actions are the hierarchy.
+- The homepage is a coming-soon landing page, not a product introduction page.
+- The brand mark, title, slogan, explanation, status, and compact content-directory links are the hierarchy.
+- Do not add long explanations of individual tools on the homepage.
+- Do not make homepage entries feel like large feature cards.
+- Use short artifact-style names and very short descriptors.
 - Decorative elements must never intersect text or buttons on mobile.
 - Mobile may remove decorative linework entirely.
 
@@ -164,6 +206,118 @@ Simulations rules:
 - Keep plots and visualizations legible at mobile sizes.
 - Always provide a fallback explanation for what the simulation demonstrates.
 
+## Shared Page Chrome
+
+Use these patterns consistently so new pages feel like part of BioassayCraft instead of isolated prototypes.
+
+### Subpage Header
+
+Every non-homepage page should start with the shared subpage header:
+
+- Left side: favicon mark plus the lowercase wordmark `bioassaycraft`.
+- Right side: outlined `Back to home` link.
+- Both links return to the homepage.
+- Keep the header sparse; do not add a full navigation bar yet.
+- Use the same spacing, typography, border radius, and hover behavior as existing tool and simulator pages.
+
+Reference structure:
+
+```html
+<header class="site-header">
+  <a class="brand-link" href="../../" aria-label="BioassayCraft home">
+    <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+    <span class="brand-name">bioassaycraft</span>
+  </a>
+  <a class="back-link" href="../../">Back to home</a>
+</header>
+```
+
+Adjust relative paths by page depth. For pages that are served from root-level routes, absolute `/assets/...` paths are also acceptable for deployed pages.
+
+Reference CSS values:
+
+```css
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 0 42px;
+}
+
+.brand-link,
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--bc-text);
+  text-decoration: none;
+}
+
+.brand-link {
+  gap: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.brand-mark {
+  display: block;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+
+.back-link {
+  min-height: 40px;
+  padding: 0 14px;
+  color: var(--bc-blue);
+  border: 1px solid var(--bc-blue-border);
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  border-color: var(--bc-blue);
+  background: var(--bc-blue-soft);
+  transform: translateY(-1px);
+}
+```
+
+### Homepage Footer
+
+The homepage footer should remain minimal and use only the domain text:
+
+```html
+<footer class="site-footer">
+  <span>bioassaycraft.com</span>
+</footer>
+```
+
+Footer rules:
+
+- Keep the text `bioassaycraft.com` in lowercase.
+- Align it to the right on desktop.
+- Place it below a quiet top rule.
+- Use secondary text color, small type, and medium weight.
+- Do not add social links, menus, copyright blocks, or extra metadata while the homepage is a one-screen coming-soon page.
+- On narrow screens, it may stack with normal document flow but should remain subtle and readable.
+
+Reference CSS values:
+
+```css
+.site-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+  padding: 20px 0 28px;
+  color: var(--bc-secondary);
+  border-top: 1px solid var(--bc-border);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-align: right;
+}
+```
+
 ## Components
 
 Buttons:
@@ -179,7 +333,17 @@ Links:
 
 - Links should be visibly interactive through color, underline, or context.
 - In dense educational text, prefer underlines for clarity.
+- In homepage or directory-style artifact links, prefer text plus arrow with no underline.
+- For artifact links, hover may shift the arrow `2px` to `4px` to the right.
+- Hover transitions should be smooth and subtle.
 - Do not rely only on hover states.
+
+Hover and interaction:
+
+- Keep hover effects restrained and consistent.
+- Prefer slight color changes, quiet background changes, and small arrow movement.
+- Avoid hover shadows, glow, bounce, scale, rotate, large movement, or complex animation.
+- Buttons and links should not resize or shift surrounding layout on hover.
 
 Forms:
 
@@ -223,22 +387,44 @@ Rules:
 - Do not add biology imagery around the mark.
 - Keep clear space around the mark.
 
-## Motion
+## Motion Design
 
-Motion should be rare.
+Motion is only for reading clarity, state change, and a sense of finish. Do not add animation for spectacle.
 
-Allowed:
+### Landing Page
 
-- Subtle state transitions for buttons, focus, hover, and panel reveal.
-- Interaction feedback that helps users understand cause and effect.
+The homepage may use a subtle entrance animation.
+
+Recommended:
+
+- `opacity`
+- `translateY` around `6px` to `10px`
+- Duration around `300ms` to `500ms`
+- Natural easing
+
+The animation should be quiet enough that users do not actively notice it.
+
+### Explorer, Simulator, Tool, And Lesson Pages
+
+Subpages should be immediately usable. Do not apply whole-page entrance fades or whole-page upward motion.
+
+Keep motion local:
+
+- Button hover
+- Link hover
+- Tooltip reveal
+- Tab switching
+- Chart updates
+- Numeric updates
+- Expand/collapse
 
 Avoid:
 
-- Decorative entrance animations.
-- Parallax.
-- Continuous ambient animation.
-- Springy or playful motion.
-- Motion that delays access to content.
+- Page-wide entrance animations on tools and simulators
+- Parallax
+- Continuous ambient animation
+- Springy, bouncing, rotating, or playful motion
+- Motion that delays access to content
 
 Always support `prefers-reduced-motion`.
 
@@ -304,7 +490,7 @@ Good pattern:
 
 ### Homepage
 
-Purpose: Establish identity and route users to the first interactive experience.
+Purpose: Establish brand impression, show the content direction, and provide a few quiet entry points while the site remains a coming-soon landing page.
 
 Should include:
 
@@ -313,15 +499,18 @@ Should include:
 - One concise slogan
 - One short explanatory line
 - Coming soon or platform status
-- Primary tool/action
-- Secondary roadmap/exploration action
+- A compact content-library or directory area when useful
+- A minimal domain footer
 
 Should not include:
 
 - Long marketing sections
 - Stock imagery
 - Decorative illustrations
-- Repeated feature cards unless they become real navigation
+- Detailed explanations of each tool
+- Full navigation menus before they are needed
+- Repeated feature cards
+- Copy that makes the page feel like a finished product portal
 
 ### Tool Page
 
@@ -362,9 +551,52 @@ Should include:
 - Reset/default state
 - Explanation of what changes mean
 
+### Explorer Page
+
+Purpose: Help users understand a scientific or statistical concept through controlled interaction.
+
+Should include:
+
+- Clear concept name
+- Minimal setup explanation
+- Visualization or model view
+- Controls that reveal the concept
+- Interpretation that helps users connect interaction to understanding
+
+## Naming Convention
+
+Use a consistent product language across the site.
+
+`Explorer`
+
+- Use for pages that help users understand a concept.
+- Example: `ANOVA Explorer`.
+
+`Simulator`
+
+- Use for pages that simulate an experiment, validation process, design decision, or workflow.
+- Example: `Method Validation Simulator`.
+
+`Converter`
+
+- Use for pages that transform data, units, formats, or quantities.
+- Example: `Concentration Converter`.
+
+Future pages should follow this naming system unless the design system is updated first.
+
 ## File And CSS Conventions
 
 Follow [Project Structure](project-structure.md).
+
+Route and folder rules:
+
+- Use one top-level area per product type.
+- Put practical tools under `tools/<tool-name>/index.html`.
+- Put interactive simulations and simulator-style learning modules under `simulators/<simulator-name>/index.html`.
+- Use `simulators/` as the canonical route directory; do not create a parallel `simulations/` directory for simulator pages.
+- Do not use root-level module files such as `tools/example.html` or `simulators/example.html` for new pages.
+- Prefer stable directory URLs such as `/tools/concentration-converter/` and `/simulators/anova-model-comparison/`.
+- Add a legacy redirect only after a URL has been published or externally shared.
 
 CSS:
 
@@ -387,11 +619,28 @@ HTML:
 - Avoid large inline style or script blocks.
 - Use shared favicon/head references from `assets/icons/`.
 
+## Design Consistency
+
+New pages should not introduce a new visual language.
+
+Before designing a new page:
+
+- Reuse existing typography, colors, spacing, borders, radius, panels, hover states, and page chrome.
+- Prefer existing layouts and component behavior before adding new patterns.
+- Update this design system first if a new pattern is genuinely needed.
+- Avoid letting one-off pages become visually isolated demos.
+- Let the site grow through consistent artifacts, not through repeated redesigns.
+
 ## Design Review Checklist
 
 Before shipping a new page or tool:
 
+- Does the page support BioassayCraft as an interactive learning platform rather than a marketing site or loose tool collection?
+- Is the information density low enough?
+- Is understanding prioritized before interaction?
 - Does it use the shared color variables?
+- Does every subpage use the shared logo plus `Back to home` header?
+- Does the homepage keep the minimal `bioassaycraft.com` footer pattern?
 - Does it avoid new decorative colors?
 - Does it use clear semantic HTML?
 - Are CSS and JS placed in responsibility-based files?
@@ -403,6 +652,7 @@ Before shipping a new page or tool:
 - Are decorative elements removed or simplified on mobile?
 - Does it avoid biotech clichés?
 - Does it feel like BioassayCraft rather than a generic SaaS page?
+- Does it reuse the design system instead of inventing a page-specific style?
 
 ## Things To Avoid
 
