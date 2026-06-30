@@ -28,7 +28,7 @@ Crafting interactive learning for bioassay development.
 Homepage supporting tagline:
 
 ```text
-Interactive tutorials, simulations, practical tools, and bioassay insights.
+Interactive tutorials, simulations, practical tools, and real-world bioassay insights.
 ```
 
 Homepage status text:

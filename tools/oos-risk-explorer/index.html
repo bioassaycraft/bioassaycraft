@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Explore how bias, precision, specification limits, and replication strategy shape OOS probability for bioassay validation design.">
+  <title>BioassayCraft</title>
+  <meta property="og:title" content="BioassayCraft">
+  <meta name="twitter:title" content="BioassayCraft">
+  <meta name="apple-mobile-web-app-title" content="BioassayCraft">
+  <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/icons/favicon-32x32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/icons/favicon-16x16.png" type="image/png" sizes="16x16">
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="/assets/icons/site.webmanifest">
+  <meta name="theme-color" content="#F7F5F0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/tools/oos-risk-explorer.css">
+</head>
+<body>
+  <main class="page">
+    <header class="site-header">
+      <a class="brand-link" href="../../" aria-label="BioassayCraft home">
+        <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+        <span class="brand-name">bioassaycraft</span>
+      </a>
+      <a class="back-link" href="../../">Back to home</a>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <span class="eyebrow">Bioassay tool</span>
+        <h1 id="page-title">OOS Risk Explorer</h1>
+        <p class="subtitle">Explore relative accuracy and precision acceptance criteria from OOS probability.</p>
+      </div>
+      <div class="hero-note">
+        <p>Supports USP &lt;1033&gt; and ChP 9401 terminology. Results are for learning and validation design support, not a substitute for formal statistical review.</p>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="OOS risk workspace">
+      <aside class="panel controls-panel">
+        <div class="panel-head">
+          <h2>Inputs</h2>
+          <p>Report-value scale model with a reserved replication hook.</p>
+        </div>
+
+        <div class="control-block">
+          <label for="standardMode">Standard mode</label>
+          <select id="standardMode">
+            <option value="unified">Unified</option>
+            <option value="usp">USP &lt;1033&gt;</option>
+            <option value="chp">ChP 9401</option>
+          </select>
+        </div>
+
+        <div class="control-block">
+          <div class="control-label-row">
+            <label for="limitPreset">Specification limits</label>
+            <span id="limitReadout" class="numeric">80-125%</span>
+          </div>
+          <div class="segmented" role="group" aria-label="Specification limit presets">
+            <button type="button" class="segment" data-preset="70-143">70-143%</button>
+            <button type="button" class="segment active" data-preset="80-125">80-125%</button>
+            <button type="button" class="segment" data-preset="custom">Custom</button>
+          </div>
+          <div class="limit-grid">
+            <div>
+              <label for="lowerLimit">Lower limit</label>
+              <input id="lowerLimit" type="number" min="1" max="100" step="0.1" value="80" inputmode="decimal">
+            </div>
+            <div>
+              <label for="upperLimit">Upper limit</label>
+              <input id="upperLimit" type="number" min="100" max="300" step="0.1" value="125" inputmode="decimal">
+            </div>
+          </div>
+        </div>
+
+        <div class="control-block">
+          <div class="control-label-row">
+            <label for="biasSlider"><span data-term="bias">RB</span></label>
+            <span id="biasValue" class="numeric">5.0%</span>
+          </div>
+          <div class="slider-input-row">
+            <input id="biasSlider" type="range" min="0" max="25" step="0.1" value="5">
+            <input id="biasInput" class="numeric" type="number" min="0" max="25" step="0.1" value="5" inputmode="decimal" aria-label="Bias percent">
+          </div>
+        </div>
+
+        <div class="control-block">
+          <div class="control-label-row">
+            <label for="precisionSlider"><span data-term="precision">GCVRR</span></label>
+            <span id="precisionValue" class="numeric">10.0%</span>
+          </div>
+          <div class="slider-input-row">
+            <input id="precisionSlider" type="range" min="1" max="30" step="0.1" value="10">
+            <input id="precisionInput" class="numeric" type="number" min="1" max="30" step="0.1" value="10" inputmode="decimal" aria-label="Precision percent">
+          </div>
+        </div>
+
+        <div class="control-block">
+          <div class="control-label-row">
+            <label for="targetCustom">Target <span data-term="probability">Prob(OOS)</span></label>
+            <span id="targetValue" class="numeric">1.0%</span>
+          </div>
+          <div class="target-grid" role="group" aria-label="Target OOS probability">
+            <button type="button" class="target" data-target="0.001">0.1%</button>
+            <button type="button" class="target active" data-target="0.01">1%</button>
+            <button type="button" class="target" data-target="0.05">5%</button>
+            <button type="button" class="target" data-target="0.10">10%</button>
+          </div>
+          <label class="custom-target" for="targetCustom">
+            <span>Custom target (%)</span>
+            <input id="targetCustom" type="number" min="0.001" max="50" step="0.01" value="1" inputmode="decimal">
+          </label>
+        </div>
+
+        <div class="control-block">
+          <div class="control-label-row">
+            <label>Replication strategy</label>
+            <span id="replicationReadout" class="numeric">c1 x k1</span>
+          </div>
+          <div class="replication-grid">
+            <label for="runs">
+              <span>Independent runs c</span>
+              <input id="runs" type="number" min="1" max="12" step="1" value="1" inputmode="numeric">
+            </label>
+            <label for="replicates">
+              <span>Replicates per run k</span>
+              <input id="replicates" type="number" min="1" max="12" step="1" value="1" inputmode="numeric">
+            </label>
+          </div>
+          <p class="hint">Simplified implementation uses effective report-level GCV. Variance-component inputs can plug into the same calculation layer later.</p>
+        </div>
+      </aside>
+
+      <section class="main-stack">
+        <div class="result-grid">
+          <article class="metric-card">
+            <small data-term="probability">Prob(OOS)</small>
+            <strong id="riskValue" class="numeric">0.00%</strong>
+            <em id="targetStatus">Within target</em>
+          </article>
+          <article class="metric-card">
+            <small>Effective precision</small>
+            <strong id="effectivePrecision" class="numeric">10.00%</strong>
+            <em>Report-value GCV</em>
+          </article>
+          <article class="metric-card">
+            <small>Dominant pressure</small>
+            <strong id="pressureValue">Precision</strong>
+            <em id="tailValue">Upper tail</em>
+          </article>
+        </div>
+
+        <section class="concept-strip" aria-label="Core OOS risk concepts">
+          <article class="concept-card">
+            <svg id="conceptAccuracy" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
+            <h2>Accuracy shifts center</h2>
+            <p>Bias moves the reportable-result distribution toward one specification limit.</p>
+          </article>
+          <article class="concept-card">
+            <svg id="conceptPrecision" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
+            <h2>Precision widens spread</h2>
+            <p>Higher GCV makes the distribution wider and increases both tails.</p>
+          </article>
+          <article class="concept-card">
+            <svg id="conceptTails" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
+            <h2>OOS is tail area</h2>
+            <p>OOS probability is the area outside the lower and upper specification limits.</p>
+          </article>
+        </section>
+
+        <section class="panel chart-panel distribution-panel">
+          <div class="panel-head">
+            <h2>Distribution view</h2>
+            <p>Bias shifts the center; precision changes the spread; OOS risk is the shaded tail area.</p>
+          </div>
+          <svg id="distributionSvg" class="chart distribution-chart" viewBox="0 0 720 360" role="img" aria-labelledby="distributionTitle">
+            <title id="distributionTitle">Log scale report value distribution</title>
+          </svg>
+          <p id="distributionCaption" class="chart-caption">Bias mainly shifts the center. Precision mainly changes the spread. OOS risk is the shaded tail area.</p>
+        </section>
+
+        <section class="panel tail-panel">
+          <div class="panel-head compact">
+            <h2>Tail contribution</h2>
+            <p>Lower and upper specification tails add up to total OOS risk.</p>
+          </div>
+          <div class="tail-stacked-bar" aria-label="Lower and upper OOS tail contribution">
+            <span id="lowerTailFill" class="tail-fill lower"></span>
+            <span id="upperTailFill" class="tail-fill upper"></span>
+          </div>
+          <div class="tail-grid">
+            <div><small>Lower tail</small><strong id="lowerTailValue" class="numeric">0.00%</strong></div>
+            <div><small>Upper tail</small><strong id="upperTailValue" class="numeric">0.00%</strong></div>
+            <div><small>Total OOS</small><strong id="totalTailValue" class="numeric">0.00%</strong></div>
+            <div><small>Dominant tail</small><strong id="dominantTailValue">Balanced</strong></div>
+          </div>
+          <p id="tailStatusLine" class="chart-tooltip">Current risk is within target.</p>
+        </section>
+
+        <section class="panel baseline-panel">
+          <div class="panel-head compact">
+            <h2>Current vs baseline</h2>
+            <p>Shows the risk added by bias while holding current precision fixed.</p>
+          </div>
+          <div class="baseline-grid">
+            <div><small>Baseline</small><strong id="baselineRisk" class="numeric">0.00%</strong><em>Bias 0%, current GCV</em></div>
+            <div><small>Current</small><strong id="currentRisk" class="numeric">0.00%</strong><em>Current bias and GCV</em></div>
+            <div><small>Delta</small><strong id="deltaRisk" class="numeric">+0.00 pp</strong><em>Percentage points</em></div>
+          </div>
+        </section>
+
+        <section class="panel chart-panel">
+          <div class="panel-head">
+            <h2>Bias-precision map</h2>
+            <p>Low-risk regions show acceptable bias-precision combinations under the selected OOS target.</p>
+          </div>
+          <svg id="heatmapSvg" class="chart heatmap" viewBox="0 0 720 420" role="img" aria-labelledby="heatmapTitle">
+            <title id="heatmapTitle">Bias precision heatmap for OOS probability</title>
+          </svg>
+          <div class="heatmap-legend" aria-label="OOS risk color scale">
+            <span>Lower OOS risk</span>
+            <span class="legend-ramp" aria-hidden="true"></span>
+            <span>Higher OOS risk</span>
+          </div>
+          <div id="heatmapTooltip" class="chart-tooltip" hidden></div>
+        </section>
+
+        <section class="panel chart-panel">
+          <div class="panel-head compact">
+            <h2>Acceptable precision boundary</h2>
+            <p>Maximum GCV allowed at the selected target OOS probability.</p>
+          </div>
+          <svg id="boundarySvg" class="chart" viewBox="0 0 640 320" role="img" aria-labelledby="boundaryTitle">
+            <title id="boundaryTitle">Precision boundary by relative bias</title>
+          </svg>
+          <div id="boundaryTooltip" class="chart-tooltip" hidden></div>
+        </section>
+
+        <section class="panel explanation-panel">
+          <div class="panel-head compact">
+            <h2>Interpretation</h2>
+          </div>
+          <p id="interpretationText"></p>
+        </section>
+
+        <details class="panel formula-panel">
+          <summary>Formula details</summary>
+          <div class="formula-grid">
+            <div class="formula-card">
+              <h3>USP &lt;1033&gt;</h3>
+              <p><span data-term="probability">Prob(OOS)</span> = Phi(Z<sub>L</sub>) + 1 - Phi(Z<sub>U</sub>)</p>
+              <p>Z<sub>L</sub> = [ln(LSL) - RB<sub>log</sub>] / sigma</p>
+              <p>Z<sub>U</sub> = [ln(USL) - RB<sub>log</sub>] / sigma</p>
+            </div>
+            <div class="formula-card">
+              <h3>ChP 9401</h3>
+              <p>P(OOS) is evaluated from ACRB and ACRVV on log scale.</p>
+              <p>ACRB<sub>log</sub> = ln(1 + ACRB / 100)</p>
+              <p>sigma = ln(1 + ACRVV / 100)</p>
+            </div>
+            <div class="formula-card">
+              <h3>Unified log-scale</h3>
+              <p id="formulaValues" class="numeric"></p>
+            </div>
+          </div>
+        </details>
+      </section>
+    </section>
+
+    <footer class="site-footer">
+      <span>bioassaycraft.com</span>
+    </footer>
+  </main>
+
+  <script type="module" src="../../assets/js/tools/oos-risk-explorer.js"></script>
+</body>
+</html>
