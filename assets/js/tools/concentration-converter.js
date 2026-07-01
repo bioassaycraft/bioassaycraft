@@ -1,10 +1,10 @@
 const units = [
-  { key: "ngml", label: "ng/mL", name: "纳克/毫升", kind: "mass", gPerL: 1e-6 },
-  { key: "ugml", label: "μg/mL", name: "微克/毫升", kind: "mass", gPerL: 1e-3 },
-  { key: "mgml", label: "mg/mL", name: "毫克/毫升", kind: "mass", gPerL: 1 },
-  { key: "nm", label: "nM", name: "纳摩尔浓度", kind: "molar", molPerL: 1e-9 },
-  { key: "um", label: "μM", name: "微摩尔浓度", kind: "molar", molPerL: 1e-6 },
-  { key: "m", label: "M", name: "摩尔浓度", kind: "molar", molPerL: 1 }
+  { key: "ngml", label: "ng/mL", name: "mass concentration", kind: "mass", gPerL: 1e-6 },
+  { key: "ugml", label: "μg/mL", name: "mass concentration", kind: "mass", gPerL: 1e-3 },
+  { key: "mgml", label: "mg/mL", name: "mass concentration", kind: "mass", gPerL: 1 },
+  { key: "nm", label: "nM", name: "molar concentration", kind: "molar", molPerL: 1e-9 },
+  { key: "um", label: "μM", name: "molar concentration", kind: "molar", molPerL: 1e-6 },
+  { key: "m", label: "M", name: "molar concentration", kind: "molar", molPerL: 1 }
 ];
 
 const concentrationInput = document.querySelector("#concentration");
@@ -37,15 +37,15 @@ function getInputState() {
   const sourceUnit = units.find((unit) => unit.key === sourceUnitSelect.value);
 
   if (concentrationInput.value === "" || molecularWeightInput.value === "") {
-    return { ready: false, text: "请填写浓度和分子量。" };
+    return { ready: false, text: "Enter a concentration and molecular weight to see the shared molar basis." };
   }
 
   if (!Number.isFinite(concentration) || concentration < 0) {
-    return { ready: false, text: "浓度需要是大于或等于 0 的数字。" };
+    return { ready: false, text: "Concentration should be a number greater than or equal to 0." };
   }
 
   if (!Number.isFinite(molecularWeightValue) || molecularWeightValue <= 0) {
-    return { ready: false, text: "分子量需要是大于 0 的数字。" };
+    return { ready: false, text: "Molecular weight should be greater than 0." };
   }
 
   return { ready: true, concentration, molecularWeight, sourceUnit };
@@ -69,7 +69,7 @@ function fromMolPerL(molPerL, unit, molecularWeight) {
 
 function renderEmpty(text) {
   message.textContent = text;
-  baseValue.textContent = "等待输入";
+  baseValue.textContent = "Waiting for input";
   results.innerHTML = units.map((unit) => `
     <div class="result">
       <div class="unit">${unit.label}<small>${unit.name}</small></div>

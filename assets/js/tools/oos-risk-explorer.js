@@ -292,7 +292,7 @@ function renderDistribution(result) {
     [50, 80, 100, 125, 160].map((v) => ({ value: Math.log(v / 100), min: xMin, max: xMax, label: `${v}%` })),
     []
   );
-  $("distributionCaption").textContent = "Bias mainly shifts the center. Precision mainly changes the spread. OOS risk is the shaded tail area.";
+  $("distributionCaption").textContent = "Use this view first: the OOS number comes from the shaded tails, not from the controls themselves.";
 }
 
 function renderBoundary() {
@@ -337,7 +337,9 @@ function renderBoundary() {
       r: 5
     }));
     $("boundaryTooltip").hidden = false;
-    const status = state.gcvPercent <= selected.gcvPercent ? "Current point is inside the boundary." : "Current point is above the acceptable precision boundary.";
+    const status = state.gcvPercent <= selected.gcvPercent
+      ? "The current precision stays within this boundary."
+      : "The current spread is wider than the selected target allows at this bias level.";
     $("boundaryTooltip").textContent = `${terms[state.mode].bias} ${selected.biasPercent.toFixed(1)}% -> max ${terms[state.mode].precision} ${selected.gcvPercent.toFixed(2)}% at ${fmt(state.targetProbability, state.targetProbability < 0.01 ? 1 : 0)} target. ${status}`;
   } else {
     $("boundaryTooltip").hidden = true;
@@ -393,8 +395,8 @@ function renderTailContribution(result) {
   $("lowerTailFill").style.width = `${Math.max(1, tails.lowerTailProbability / total * 100).toFixed(1)}%`;
   $("upperTailFill").style.width = `${Math.max(1, tails.upperTailProbability / total * 100).toFixed(1)}%`;
   $("tailStatusLine").textContent = tails.totalOosProbability <= state.targetProbability
-    ? `Current total OOS is below the target ${formatPercent(state.targetProbability, 1)}.`
-    : `Current total OOS is above the target ${formatPercent(state.targetProbability, 1)}.`;
+    ? `The combined tail area stays below the selected target of ${formatPercent(state.targetProbability, 1)}.`
+    : `The combined tail area is above the selected target of ${formatPercent(state.targetProbability, 1)}.`;
   $("targetStatus").textContent = result.probability <= state.targetProbability ? "Within target" : "Above target";
   $("tailValue").textContent = `Dominant tail: ${tails.dominantTail}`;
 }
@@ -430,20 +432,23 @@ function renderReadouts(result) {
   $("riskValue").textContent = fmt(result.probability, result.probability < 0.001 ? 3 : 2);
   $("effectivePrecision").textContent = pct(result.effectiveGcvPercent, 2);
   $("targetStatus").textContent = result.probability <= state.targetProbability ? "Within target" : "Above target";
-  $("pressureValue").textContent = contributionText(result).includes("bias") ? term.bias : term.precision;
+  const pressureText = contributionText(result);
+  $("pressureValue").textContent = pressureText.includes("similarly")
+    ? "Balanced"
+    : pressureText.includes("bias") ? term.bias : term.precision;
   $("tailValue").textContent = `Dominant tail: ${getDominantTail(result.lowerTail, result.upperTail)}`;
 
-  const status = result.probability <= state.targetProbability ? "below" : "above";
-  const improvement = result.probability <= state.targetProbability
-    ? "The current combination is compatible with the selected target in this simplified model."
-    : `Risk can be improved by reducing ${term.bias}, reducing ${term.precision}, or increasing the report-value replication strategy.`;
-  $("interpretationText").textContent = `At ${term.bias} ${pct(state.relativeBiasPercent)} and ${term.precision} ${pct(state.gcvPercent)}, ${term.probability} is ${fmt(result.probability, 2)}, which is ${status} the target ${fmt(state.targetProbability, 1)}. ${contributionText(result)} under the current limits. ${improvement}`;
+  const relation = result.probability <= state.targetProbability ? "stays below" : "is above";
+  const implication = result.probability <= state.targetProbability
+    ? "This combination is compatible with the selected target in this simplified reportable-result model."
+    : `A useful next question is whether the design should reduce ${term.bias}, reduce ${term.precision}, or change the report-value replication strategy.`;
+  $("interpretationText").textContent = `The shaded tail area is ${fmt(result.probability, 2)}, so it ${relation} the selected target of ${fmt(state.targetProbability, 1)}. Under the current limits, ${pressureText}. ${implication}`;
   $("formulaValues").innerHTML = `
-    RB_log = ln(1 + ${terms[state.mode].bias}/100) = ${result.rbLog.toFixed(4)}<br>
-    sigma = ln(1 + ${terms[state.mode].precision}/100) = ${result.sigma.toFixed(4)}<br>
+    ${term.bias}<sub>log</sub> = ln(1 + ${term.bias}/100) = ${result.rbLog.toFixed(4)}<br>
+    sigma = ln(1 + ${term.precision}/100) = ${result.sigma.toFixed(4)}<br>
     Z_L = ${result.zLower.toFixed(3)}<br>
     Z_U = ${result.zUpper.toFixed(3)}<br>
-    ${terms[state.mode].probability} = lower tail + upper tail = ${formatPercent(result.lowerTail, 2)} + ${formatPercent(result.upperTail, 2)} = ${formatPercent(result.probability, 2)}
+    ${term.probability} = lower tail + upper tail = ${formatPercent(result.lowerTail, 2)} + ${formatPercent(result.upperTail, 2)} = ${formatPercent(result.probability, 2)}
   `;
 }
 

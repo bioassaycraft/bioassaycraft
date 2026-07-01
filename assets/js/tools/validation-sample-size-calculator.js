@@ -221,7 +221,7 @@ function renderIterationTable(result) {
 function renderFirstPassLadder(result) {
   const ladder = generateFirstPassLadder(result);
   $("firstPassNote").textContent = ladder.firstAcceptableN
-    ? `First acceptable n = ${ladder.firstAcceptableN}.`
+    ? `The first supportable point is n=${ladder.firstAcceptableN}; smaller designs do not yet have enough statistical margin.`
     : "No acceptable n was found in the configured search range.";
   $("firstPassLadder").innerHTML = ladder.steps.map((step) => `
     <span class="ladder-step ${step.pass ? "is-pass" : "is-fail"} ${step.firstPass ? "is-first" : ""}">
@@ -358,7 +358,7 @@ function renderCapabilityEnvelope(evaluation) {
     });
     rect.addEventListener("pointermove", () => {
       $("capabilityTooltip").textContent =
-        `Accuracy ${pct(point.accuracyPercent)}, precision ${pct(point.precisionPercent)}, required n ${point.requiredN ?? ">300"}: ${point.supported ? "supported" : "not supported"}.`;
+        `Accuracy ${pct(point.accuracyPercent)}, precision ${pct(point.precisionPercent)}, required n ${point.requiredN ?? ">300"}: ${point.supported ? "within the completed study envelope" : "outside the completed study envelope"}.`;
     });
     svg.appendChild(rect);
   });
@@ -399,7 +399,7 @@ function renderPowerCards(perLevelPower) {
       </article>
     </div>
     <div class="power-dots">${dots}</div>
-    <p class="hint">${probPct(perLevelPower, 2)}^${levels} = ${probPct(overall, 1)} under an independent-level approximation.</p>
+    <p class="hint">${probPct(perLevelPower, 2)}^${levels} = ${probPct(overall, 1)} under an independent-level approximation. This is a reminder that validation risk is carried across all potency levels, not only one level.</p>
   `;
 }
 
@@ -418,7 +418,7 @@ function renderDriverDiagnosis() {
   $("driverDiagnosis").innerHTML = `
     <p class="diagnosis-kicker">Main driver</p>
     <strong>${sensitivity.mainDriver.label}</strong>
-    <p>${sensitivity.mainDriver.detail}</p>
+    <p>${sensitivity.mainDriver.detail} Read this as the assumption currently closest to the design margin.</p>
     <div class="driver-list">
       ${sensitivity.drivers.map((driver) => `
         <span><b>${driver.label}</b><em class="numeric">${driver.score.toFixed(0)} n</em></span>
@@ -444,7 +444,7 @@ function renderModeComparison() {
   $("modeComparison").innerHTML = `
     <div><span>ChP 9401</span><strong class="numeric">n=${chp.n}</strong><small>ACRB 12%, ACOV 12%, RB*=0 assumption</small></div>
     <div><span>USP &lt;1033&gt; accuracy</span><strong class="numeric">n=${usp.n}</strong><small>RB 12%, RB* 1%, GCV* 7%</small></div>
-    <p>The difference is mainly driven by assumptions about variability and true bias, not by a fundamentally different statistical idea.</p>
+    <p>The useful comparison is not which reference is stricter in isolation, but which assumptions each formula makes about variability and true bias.</p>
   `;
 }
 
@@ -474,7 +474,7 @@ function evaluateBoundaries() {
 
 function renderDesign(result) {
   const [family, note] = modeLabel();
-  $("primaryMetricLabel").textContent = "Minimum n";
+  $("primaryMetricLabel").textContent = "Scientific result";
   $("requiredN").textContent = result.n ?? ">";
   $("primaryMetricNote").textContent = "Independent measurements per potency level";
   $("secondaryMetricLabel").textContent = "Formula family";
@@ -496,7 +496,7 @@ function renderDesign(result) {
   const driver = state.mode === "uspPrecision"
     ? "precision criterion and assumed true GCV"
     : (state.acovPercent >= state.acrbPercent ? "precision / ACOV" : "accuracy acceptance criterion");
-  $("interpretationText").textContent = `This mode uses ${state.mode === "chp9401" ? "ChP 9401 Formula 25" : note}. Under the current assumptions, the first acceptable sample size is n=${result.n}. The main practical driver is ${driver}. Reducing n generally requires a wider acceptance criterion, lower expected variability, or lower target power; each choice changes validation risk.`;
+  $("interpretationText").textContent = `The first supportable sample size is n=${result.n} because the current ${state.mode === "chp9401" ? "ChP 9401 Formula 25" : note} assumptions leave enough margin at that point. The main practical pressure is ${driver}. Lowering n usually means changing the scientific risk position: wider criteria, lower expected variability, or lower target power.`;
 
   renderCurve("precisionCurve", "precision", state.mode === "uspPrecision" ? state.trueGcvPrecisionPercent : state.acovPercent);
   renderCurve("accuracyCurve", "accuracy", state.mode === "uspPrecision" ? state.gcvAcceptancePercent : state.acrbPercent);
@@ -508,7 +508,7 @@ function renderEvaluate() {
   const accuracyText = evaluation.accuracy.value === null ? "not supported" : pct(evaluation.accuracy.value);
   const precisionText = evaluation.precision.value === null ? "not supported" : pct(evaluation.precision.value);
 
-  $("primaryMetricLabel").textContent = "Current study";
+  $("primaryMetricLabel").textContent = "Completed design";
   $("requiredN").textContent = state.completedN;
   $("primaryMetricNote").textContent = "Completed independent measurements";
   $("secondaryMetricLabel").textContent = state.fixedAssumption === "fixPrecision" ? "Supported accuracy" : "Supported precision";
@@ -525,14 +525,14 @@ function renderEvaluate() {
 
   if (state.fixedAssumption === "fixPrecision") {
     $("interpretationText").textContent = evaluation.accuracy.value === null
-      ? `With ${state.completedN} completed measurements and ${pct(state.fixedPrecisionPercent)} precision, this design does not support an accuracy criterion within the 1-50% search range.`
-      : `With ${state.completedN} completed measurements and ${pct(state.fixedPrecisionPercent)} precision fixed, this design supports an accuracy criterion as tight as about ${accuracyText}. Wider criteria are easier to support.`;
+      ? `With ${state.completedN} completed measurements and ${pct(state.fixedPrecisionPercent)} precision, the design does not leave enough margin to support an accuracy criterion within the 1-50% search range.`
+      : `With ${state.completedN} completed measurements and ${pct(state.fixedPrecisionPercent)} precision fixed, the design can support an accuracy criterion as tight as about ${accuracyText}. Wider criteria require less evidence.`;
   } else if (state.fixedAssumption === "fixAccuracy") {
     $("interpretationText").textContent = evaluation.precision.value === null
-      ? `With ${state.completedN} completed measurements and ${pct(state.fixedAccuracyPercent)} accuracy criterion, this design does not support precision within the 1-50% search range.`
-      : `With ${state.completedN} completed measurements and ${pct(state.fixedAccuracyPercent)} accuracy fixed, this design supports precision up to about ${precisionText}. Higher variability would require more measurements.`;
+      ? `With ${state.completedN} completed measurements and ${pct(state.fixedAccuracyPercent)} accuracy criterion, the design does not leave enough margin to support precision within the 1-50% search range.`
+      : `With ${state.completedN} completed measurements and ${pct(state.fixedAccuracyPercent)} accuracy fixed, the design can support precision up to about ${precisionText}. Higher variability would ask for more measurements.`;
   } else {
-    $("interpretationText").textContent = `The envelope shows the accuracy-precision combinations whose forward required n is less than or equal to the completed n=${state.completedN}. It is a supported region, not a single universal acceptance criterion.`;
+    $("interpretationText").textContent = `The envelope shows the accuracy-precision combinations whose forward required n is less than or equal to the completed n=${state.completedN}. Treat it as a supported region for reasoning, not as a single universal acceptance criterion.`;
   }
 
   renderCapabilityEnvelope(evaluation);

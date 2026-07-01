@@ -33,20 +33,32 @@
 
     <section class="hero" aria-labelledby="page-title">
       <div>
-        <span class="eyebrow">Bioassay tool</span>
+        <span class="eyebrow">Calculator</span>
         <h1 id="page-title">Validation Sample Size Calculator</h1>
-        <p class="subtitle">Estimate the minimum independent measurements per potency level for relative potency method validation.</p>
+        <p class="subtitle">This page helps you understand why validation sample size depends on the distance between expected variability and the acceptance criterion.</p>
       </div>
       <div class="hero-note">
-        <p>Supports USP &lt;1033&gt; and ChP 9401 terminology. USP &lt;1033&gt; separates accuracy-driven and precision-driven sample size; ChP 9401 Formula 25 is closer to an accuracy-driven simplified expression. Results support learning and study design, not formal statistical review.</p>
+        <span class="note-label">Scientific question</span>
+        <p>How many independent measurements are needed before a validation study has enough chance to demonstrate the planned accuracy or precision criterion?</p>
+      </div>
+    </section>
+
+    <section class="reasoning-lead" aria-label="Scientific idea">
+      <div class="lead-block">
+        <span class="section-kicker">Scientific idea</span>
+        <p>Sample size grows when the expected method behavior sits close to the acceptance margin. The calculator makes that pressure visible before reducing it to a single n.</p>
+      </div>
+      <div class="mentor-note">
+        <span>Mentor note</span>
+        <p>Minimum n is not just a planning number. It is a statement about confidence, power, expected variability, and how much scientific margin the validation design has left.</p>
       </div>
     </section>
 
     <section class="workspace" aria-label="Validation sample size workspace">
       <aside class="panel controls-panel">
         <div class="panel-head">
-          <h2>Inputs</h2>
-          <p>Switch between planning a study and evaluating an existing validation design.</p>
+          <h2>Interaction</h2>
+          <p>Use the controls to test whether the design is driven by accuracy pressure, precision pressure, confidence, or power.</p>
         </div>
 
         <div class="study-switch" role="group" aria-label="Study workflow">
@@ -204,7 +216,7 @@
       <section class="main-stack">
         <div class="result-grid">
           <article class="metric-card primary">
-            <small id="primaryMetricLabel">Minimum n</small>
+            <small id="primaryMetricLabel">Scientific result</small>
             <strong id="requiredN" class="numeric">16</strong>
             <em id="primaryMetricNote">Independent measurements per potency level</em>
           </article>
@@ -222,16 +234,18 @@
 
         <section id="firstPassPanel" class="panel ladder-panel" data-study="design">
           <div class="panel-head compact">
-            <h2>First-pass ladder</h2>
-            <p id="firstPassNote">Required n is the first n where the inequality passes.</p>
+            <span class="section-kicker">Reasoning step</span>
+            <h2>First acceptable n</h2>
+            <p id="firstPassNote">Required n is the first point where the design has enough statistical margin.</p>
           </div>
           <div id="firstPassLadder" class="ladder"></div>
         </section>
 
         <section id="capabilityPanel" class="panel chart-panel" data-study="evaluate" hidden>
           <div class="panel-head compact">
+            <span class="section-kicker">Exploration space</span>
             <h2>Capability envelope</h2>
-            <p>Combinations of accuracy and precision that can be supported by the completed validation sample size.</p>
+            <p>Shows which accuracy-precision combinations the completed study can still support.</p>
           </div>
           <svg id="capabilitySvg" class="chart heatmap" viewBox="0 0 640 360" role="img" aria-label="Capability envelope"></svg>
           <p id="capabilityTooltip" class="chart-tooltip">Hover or tap the map to inspect supported combinations.</p>
@@ -239,6 +253,7 @@
 
         <section class="panel explanation-panel">
           <div class="panel-head compact">
+            <span class="section-kicker">Reflection</span>
             <h2>Interpretation</h2>
           </div>
           <p id="interpretationText"></p>
@@ -248,7 +263,7 @@
           <section class="panel chart-panel">
             <div class="panel-head compact">
               <h2>Sensitivity curve</h2>
-              <p>x-axis: assumed GCV / ACOV, y-axis: required n.</p>
+              <p>Shows how expected variability changes the required number of independent measurements.</p>
             </div>
             <svg id="precisionCurve" class="chart" viewBox="0 0 640 320" role="img" aria-label="Precision sensitivity curve"></svg>
           </section>
@@ -256,7 +271,7 @@
           <section class="panel chart-panel">
             <div class="panel-head compact">
               <h2>Accuracy AC sensitivity</h2>
-              <p>x-axis: ACRB / RB acceptance criterion, y-axis: required n.</p>
+              <p>Shows how a tighter accuracy criterion increases sample size pressure.</p>
             </div>
             <svg id="accuracyCurve" class="chart" viewBox="0 0 640 320" role="img" aria-label="Accuracy acceptance criterion sensitivity curve"></svg>
           </section>
@@ -266,7 +281,7 @@
           <section class="panel diagnosis-panel">
             <div class="panel-head compact">
               <h2>Driver diagnosis</h2>
-              <p>Local sensitivity around the current assumptions.</p>
+              <p>Identifies which assumption is currently putting the most pressure on n.</p>
             </div>
             <div id="driverDiagnosis" class="diagnosis-card"></div>
           </section>
@@ -274,7 +289,7 @@
           <section class="panel comparison-panel">
             <div class="panel-head compact">
               <h2>Mode comparison</h2>
-              <p>Educational reference values using common defaults.</p>
+              <p>Compares familiar defaults so the formulas can be read as assumptions, not black boxes.</p>
             </div>
             <div id="modeComparison" class="comparison-list"></div>
           </section>
@@ -283,7 +298,7 @@
         <section class="panel power-panel">
           <div class="panel-head compact">
             <h2>One level vs whole study</h2>
-            <p>Multiplicity can reduce the chance that all levels pass, even when each level has high power.</p>
+            <p>Even strong per-level power can become a weaker whole-study probability when several levels must all pass.</p>
           </div>
           <div id="levelPowerBars" class="level-bars"></div>
         </section>
@@ -291,7 +306,7 @@
         <section id="iterationPanel" class="panel table-panel" data-study="design">
           <div class="panel-head compact">
             <h2>Iteration table</h2>
-            <p>Rows near the crossing point are shown.</p>
+            <p>Rows near the crossing point show where the inequality first becomes supportable.</p>
           </div>
           <div class="table-wrap">
             <table>
@@ -309,9 +324,17 @@
         </section>
 
         <details class="panel formula-panel">
-          <summary>Formula details</summary>
+          <summary>Formula audit</summary>
           <div id="formulaText" class="formula-text"></div>
         </details>
+
+        <section class="panel reference-panel">
+          <div class="panel-head compact">
+            <span class="section-kicker">Scientific reference</span>
+            <h2>Scope of use</h2>
+          </div>
+          <p>This calculator is organized around USP &lt;1033&gt; and ChP 9401 terminology for learning and validation design support. It keeps accuracy-driven and precision-driven reasoning visible, but it does not replace formal statistical review.</p>
+        </section>
       </section>
     </section>
 

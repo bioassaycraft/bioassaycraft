@@ -33,20 +33,50 @@
 
     <section class="hero" aria-labelledby="page-title">
       <div>
-        <span class="eyebrow">Bioassay tool</span>
+        <span class="eyebrow">Explorer</span>
         <h1 id="page-title">OOS Risk Explorer</h1>
-        <p class="subtitle">Explore relative accuracy and precision acceptance criteria from OOS probability.</p>
+        <p class="subtitle">This page helps you understand how bias and precision turn a reportable-result distribution into OOS tail risk.</p>
       </div>
       <div class="hero-note">
-        <p>Supports USP &lt;1033&gt; and ChP 9401 terminology. Results are for learning and validation design support, not a substitute for formal statistical review.</p>
+        <span class="note-label">Scientific question</span>
+        <p>When a reportable result has bias and variation, how much of its distribution falls outside the specification limits, and which bias-precision combinations still respect the selected OOS target?</p>
       </div>
+    </section>
+
+    <section class="reasoning-lead" aria-label="Scientific idea">
+      <div class="lead-block">
+        <span class="section-kicker">Scientific idea</span>
+        <p>OOS risk is a tail-area problem. Bias moves the distribution center; precision changes its width; specification limits decide how much probability sits outside.</p>
+      </div>
+      <div class="mentor-note">
+        <span>Mentor note</span>
+        <p>Acceptance criteria are not just isolated cutoffs. They define a boundary: a method can tolerate some bias and some imprecision only while the reportable-result tail area remains small enough for the intended decision.</p>
+      </div>
+    </section>
+
+    <section class="concept-strip" aria-label="Core OOS risk concepts">
+      <article class="concept-card">
+        <svg id="conceptAccuracy" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
+        <h2>Accuracy shifts center</h2>
+        <p>A biased method can look precise while sitting closer to one specification limit.</p>
+      </article>
+      <article class="concept-card">
+        <svg id="conceptPrecision" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
+        <h2>Precision widens spread</h2>
+        <p>A centered method can still create OOS risk when the reportable-result spread is too wide.</p>
+      </article>
+      <article class="concept-card">
+        <svg id="conceptTails" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
+        <h2>OOS is tail area</h2>
+        <p>The shaded tails are the probability that reportable results fall outside the limits.</p>
+      </article>
     </section>
 
     <section class="workspace" aria-label="OOS risk workspace">
       <aside class="panel controls-panel">
         <div class="panel-head">
-          <h2>Inputs</h2>
-          <p>Report-value scale model with a reserved replication hook.</p>
+          <h2>Interaction</h2>
+          <p>Change one assumption at a time and watch how the distribution, tail area, and acceptance boundary respond.</p>
         </div>
 
         <div class="control-block">
@@ -134,51 +164,16 @@
               <input id="replicates" type="number" min="1" max="12" step="1" value="1" inputmode="numeric">
             </label>
           </div>
-          <p class="hint">Simplified implementation uses effective report-level GCV. Variance-component inputs can plug into the same calculation layer later.</p>
+          <p class="hint">For now, replication reduces the effective report-level spread. Future variance-component controls can connect to the same calculation layer.</p>
         </div>
       </aside>
 
       <section class="main-stack">
-        <div class="result-grid">
-          <article class="metric-card">
-            <small data-term="probability">Prob(OOS)</small>
-            <strong id="riskValue" class="numeric">0.00%</strong>
-            <em id="targetStatus">Within target</em>
-          </article>
-          <article class="metric-card">
-            <small>Effective precision</small>
-            <strong id="effectivePrecision" class="numeric">10.00%</strong>
-            <em>Report-value GCV</em>
-          </article>
-          <article class="metric-card">
-            <small>Dominant pressure</small>
-            <strong id="pressureValue">Precision</strong>
-            <em id="tailValue">Upper tail</em>
-          </article>
-        </div>
-
-        <section class="concept-strip" aria-label="Core OOS risk concepts">
-          <article class="concept-card">
-            <svg id="conceptAccuracy" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
-            <h2>Accuracy shifts center</h2>
-            <p>Bias moves the reportable-result distribution toward one specification limit.</p>
-          </article>
-          <article class="concept-card">
-            <svg id="conceptPrecision" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
-            <h2>Precision widens spread</h2>
-            <p>Higher GCV makes the distribution wider and increases both tails.</p>
-          </article>
-          <article class="concept-card">
-            <svg id="conceptTails" class="concept-svg" viewBox="0 0 160 70" aria-hidden="true"></svg>
-            <h2>OOS is tail area</h2>
-            <p>OOS probability is the area outside the lower and upper specification limits.</p>
-          </article>
-        </section>
-
         <section class="panel chart-panel distribution-panel">
           <div class="panel-head">
-            <h2>Distribution view</h2>
-            <p>Bias shifts the center; precision changes the spread; OOS risk is the shaded tail area.</p>
+            <span class="section-kicker">Visualization</span>
+            <h2>Reportable-result distribution</h2>
+            <p>Start with one distribution. The center line shows bias, the width shows precision, and the shaded tails show where reportable results fall outside limits.</p>
           </div>
           <svg id="distributionSvg" class="chart distribution-chart" viewBox="0 0 720 360" role="img" aria-labelledby="distributionTitle">
             <title id="distributionTitle">Log scale report value distribution</title>
@@ -188,8 +183,9 @@
 
         <section class="panel tail-panel">
           <div class="panel-head compact">
-            <h2>Tail contribution</h2>
-            <p>Lower and upper specification tails add up to total OOS risk.</p>
+            <span class="section-kicker">Scientific result</span>
+            <h2>Tail area result</h2>
+            <p>Lower and upper tails add up to total OOS risk. Bias usually makes one side carry more of the risk.</p>
           </div>
           <div class="tail-stacked-bar" aria-label="Lower and upper OOS tail contribution">
             <span id="lowerTailFill" class="tail-fill lower"></span>
@@ -204,10 +200,28 @@
           <p id="tailStatusLine" class="chart-tooltip">Current risk is within target.</p>
         </section>
 
+        <div class="result-grid" aria-label="Current OOS result summary">
+          <article class="metric-card">
+            <small>Tail area outside limits</small>
+            <strong id="riskValue" class="numeric">0.00%</strong>
+            <em id="targetStatus">Within target</em>
+          </article>
+          <article class="metric-card">
+            <small>Report-value spread</small>
+            <strong id="effectivePrecision" class="numeric">10.00%</strong>
+            <em>Effective GCV after c x k</em>
+          </article>
+          <article class="metric-card">
+            <small>Dominant pressure</small>
+            <strong id="pressureValue">Precision</strong>
+            <em id="tailValue">Upper tail</em>
+          </article>
+        </div>
+
         <section class="panel baseline-panel">
           <div class="panel-head compact">
-            <h2>Current vs baseline</h2>
-            <p>Shows the risk added by bias while holding current precision fixed.</p>
+            <h2>What bias adds</h2>
+            <p>Compare the current setting with a centered method while keeping the same report-value spread.</p>
           </div>
           <div class="baseline-grid">
             <div><small>Baseline</small><strong id="baselineRisk" class="numeric">0.00%</strong><em>Bias 0%, current GCV</em></div>
@@ -218,8 +232,9 @@
 
         <section class="panel chart-panel">
           <div class="panel-head">
+            <span class="section-kicker">Exploration space</span>
             <h2>Bias-precision map</h2>
-            <p>Low-risk regions show acceptable bias-precision combinations under the selected OOS target.</p>
+            <p>Each point is a possible method behavior. Low-risk regions show bias-precision combinations that keep tail area within the selected target.</p>
           </div>
           <svg id="heatmapSvg" class="chart heatmap" viewBox="0 0 720 420" role="img" aria-labelledby="heatmapTitle">
             <title id="heatmapTitle">Bias precision heatmap for OOS probability</title>
@@ -235,7 +250,7 @@
         <section class="panel chart-panel">
           <div class="panel-head compact">
             <h2>Acceptable precision boundary</h2>
-            <p>Maximum GCV allowed at the selected target OOS probability.</p>
+            <p>For each bias level, the curve shows the maximum GCV that can stay within the selected OOS target.</p>
           </div>
           <svg id="boundarySvg" class="chart" viewBox="0 0 640 320" role="img" aria-labelledby="boundaryTitle">
             <title id="boundaryTitle">Precision boundary by relative bias</title>
@@ -245,13 +260,14 @@
 
         <section class="panel explanation-panel">
           <div class="panel-head compact">
+            <span class="section-kicker">Reflection</span>
             <h2>Interpretation</h2>
           </div>
           <p id="interpretationText"></p>
         </section>
 
         <details class="panel formula-panel">
-          <summary>Formula details</summary>
+          <summary>Formula audit</summary>
           <div class="formula-grid">
             <div class="formula-card">
               <h3>USP &lt;1033&gt;</h3>
@@ -261,7 +277,7 @@
             </div>
             <div class="formula-card">
               <h3>ChP 9401</h3>
-              <p>P(OOS) is evaluated from ACRB and ACRVV on log scale.</p>
+              <p>ChP terminology maps the same tail-area reasoning to ACRB and ACRVV on log scale.</p>
               <p>ACRB<sub>log</sub> = ln(1 + ACRB / 100)</p>
               <p>sigma = ln(1 + ACRVV / 100)</p>
             </div>
@@ -271,6 +287,14 @@
             </div>
           </div>
         </details>
+
+        <section class="panel reference-panel">
+          <div class="panel-head compact">
+            <span class="section-kicker">Scientific reference</span>
+            <h2>Scope of use</h2>
+          </div>
+          <p>This explorer uses USP &lt;1033&gt; and ChP 9401 terminology to teach a unified log-scale view of reportable-result OOS probability. It is intended for learning and validation design support, not as a substitute for formal statistical review.</p>
+        </section>
       </section>
     </section>
 
