@@ -1,0 +1,459 @@
+# BioassayCraft Design System
+
+This document turns the broader visual philosophy into reusable interface rules for current static pages and future Astro components.
+
+Use it together with:
+
+- [Brand Identity](brand-identity.md)
+- [Coding Guidelines](coding-guidelines.md)
+- [Manifesto](manifesto.md)
+- [Product Philosophy](product-philosophy.md)
+- [Project Structure](project-structure.md)
+- [Website Design Guidelines](website-design-guidelines.md)
+
+## Design System Goal
+
+BioassayCraft should feel like one coherent scientific learning platform as the number of tools, simulators, explorers, tutorials, case studies, and articles grows.
+
+The design system must preserve:
+
+- Minimal visual language.
+- Calm scientific tone.
+- Low information density.
+- Strong typography and spacing hierarchy.
+- Quiet panels and controls.
+- BioassayCraft brand colors, logo, favicon, and typography.
+
+Do not redesign the site for each new page.
+
+## Visual Temperament
+
+BioassayCraft should feel like a carefully edited scientific notebook: calm, restrained, warm, precise, and quietly cared for.
+
+Design keywords:
+
+- Calm
+- Restrained
+- Warm precision
+- Scientific notebook
+- Gentle guidance
+- Intellectual care
+- Crafted, not manufactured
+
+Rules:
+
+- Prefer paper-like warmth over screen-like coldness.
+- Use whitespace as structure, not empty decoration.
+- Avoid visual pressure: no dense panels, aggressive contrast, oversized cards, loud colors, or excessive motion.
+- Let users slow down and think.
+- Important explanations should feel like mentor notes, not system alerts.
+- Complexity should unfold progressively through details, steps, tabs, guided panels, or small focused sections.
+- Do not use cuteness, playfulness, biotech clichés, or startup-style visual excitement to create warmth.
+- Do not use decorative East Asian motifs such as ink wash, bamboo, landscapes, seals, or ornamental cultural references.
+- Warmth should come from spacing, wording, hierarchy, and careful interaction.
+- Warmth must not reduce scientific seriousness or professional clarity.
+
+Before shipping a page, ask:
+
+```text
+Does this page make the user feel guided, respected,
+and less alone in understanding a difficult bioassay concept?
+```
+
+If the answer is no, review the information hierarchy, explanation style, and interaction rhythm even when the feature works correctly.
+
+## Scientific Consistency
+
+BioassayCraft's design goal is not visual novelty. The design goal is to make scientific thinking consistent, predictable, auditable, and explainable.
+
+Priorities:
+
+- Scientific consistency.
+- Predictability.
+- Auditability.
+- Explainability.
+- Calm interaction.
+- Long-term maintainability.
+
+When adding a new page, prefer consistency with existing tools over a new visual idea.
+
+Rules:
+
+- Users should not need to relearn the interaction model for every tool.
+- Similar tools should share similar layout logic.
+- Similar results should appear in similar places.
+- Similar formulas should be exposed with similar disclosure patterns.
+- Regulatory notes should support the calculation, not dominate the page.
+- A page should feel like another BioassayCraft artifact, not a standalone demo.
+
+## Core Tokens
+
+The source of truth is `assets/css/base.css`.
+
+Current tokens:
+
+```css
+--bc-black: #171717;
+--bc-blue: #2457B3;
+--bc-blue-hover: #1E4B9C;
+--bc-bg: #F7F5F0;
+--bc-text: #171717;
+--bc-secondary: #6E7278;
+--bc-border: #D6D9DE;
+--bc-blue-soft: rgba(36, 86, 179, 0.08);
+--bc-blue-border: rgba(36, 86, 179, 0.32);
+--bc-focus-ring: rgba(36, 86, 179, 0.16);
+```
+
+Rules:
+
+- Use `--bc-bg` for the page background.
+- Use `--bc-text` for primary text.
+- Use `--bc-secondary` for helper text, labels, captions, and metadata.
+- Use `--bc-border` for structural lines.
+- Use `--bc-blue` for links, active states, primary values, and scientific highlight.
+- Use `--bc-blue-soft` for selected backgrounds.
+- Use `--bc-focus-ring` for focus outlines.
+- Do not add a new brand color without updating this document and `base.css`.
+
+Tool and simulator pages may define local aliases for readability, but those aliases must point back to `--bc-*` tokens.
+
+## Typography
+
+Fonts:
+
+- Sans: `Inter`
+- Mono: `IBM Plex Mono`
+
+Rules:
+
+- Use `Inter` for headings, body copy, labels, and interface text.
+- Use `IBM Plex Mono` for numbers, formulas, code-like values, units, and tabular scientific output.
+- Keep letter spacing at `0` except for small uppercase metadata labels.
+- Use tabular numerals for aligned values.
+- Do not use viewport-width-only font scaling.
+- Keep section headings compact inside tools and panels.
+
+Recommended hierarchy:
+
+- Homepage title: brand-scale, restrained.
+- Tool or simulator title: clear page title, no marketing phrasing.
+- Section heading: functional, short, usually `0.9rem` to `1rem`.
+- Body/help text: secondary color, readable line height.
+- Numeric result: mono, larger than labels, aligned with related values.
+
+## Layout
+
+Global page rules:
+
+- Use explicit content width, usually `width: min(var(--max-width), calc(100% - 48px))`.
+- Keep page background consistent.
+- Avoid horizontal overflow.
+- Use grids for tool and simulator workspaces.
+- Use compact but readable spacing.
+- Avoid decorative layout elements that do not explain or structure content.
+
+Homepage rules:
+
+- Remain a coming-soon landing page.
+- Do not become a portal, dashboard, or product marketing page.
+- Keep visible `Coming Soon.` text.
+- Keep compact content-directory links.
+- Do not add long tool descriptions.
+- Do not add a full navigation bar until content volume requires it.
+
+Subpage rules:
+
+- Start with the shared subpage header.
+- Use a concise hero or page heading.
+- Put controls near the outputs they affect.
+- Keep formulas and details available but not visually dominant.
+- Prefer panels for actual tool regions, not decoration.
+
+## Scientific User Experience
+
+Scientific tools should use a consistent learning flow whenever possible:
+
+```text
+Input
+  -> Calculation
+  -> Visualization
+  -> Interpretation
+  -> Scientific Reference
+```
+
+This flow helps users understand what changed, what was calculated, why the result matters, and where the scientific basis comes from.
+
+Rules:
+
+- Inputs should make assumptions visible.
+- Calculation results should update predictably.
+- Visualizations should explain the model rather than decorate the page.
+- Interpretation should be short, objective, and tied to the current inputs.
+- Scientific references should be available without overwhelming the primary workflow.
+- Different tools may vary in layout, but they should not use completely different information logic without a reason.
+
+## Result Hierarchy
+
+Any scientific tool should prioritize information in this order:
+
+1. Scientific Result
+2. Visualization
+3. Interpretation
+4. Formula
+5. Regulatory Notes
+
+Rules:
+
+- The main scientific result should be the first clear visual answer.
+- Visualization should help users understand the result, not compete with it.
+- Interpretation should explain the current state in plain scientific language.
+- Formula details should usually be collapsed by default with `details`/`summary`.
+- Regulatory notes should remain concise and supporting.
+- Do not let regulatory exposition cover or precede the result unless the page is specifically a reference page.
+
+## Shared Page Chrome
+
+Every non-homepage page should use the shared subpage header:
+
+```html
+<header class="site-header">
+  <a class="brand-link" href="../../" aria-label="BioassayCraft home">
+    <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+    <span class="brand-name">bioassaycraft</span>
+  </a>
+  <a class="back-link" href="../../">Back to home</a>
+</header>
+```
+
+Rules:
+
+- The brand link and the back link both return home.
+- Keep the wordmark lowercase: `bioassaycraft`.
+- Do not add a full nav bar yet.
+- Use the same spacing, radius, border, and hover behavior across all subpages.
+- Adjust relative paths only as needed by route depth.
+
+Site footer:
+
+```html
+<footer class="site-footer">
+  <span class="footer-belief">BioassayCraft is the craft of understanding.</span>
+  <span class="footer-domain">bioassaycraft.com</span>
+</footer>
+```
+
+Rules:
+
+- Keep `BioassayCraft is the craft of understanding.` exactly as the left-side footer belief statement.
+- Keep `bioassaycraft.com` lowercase.
+- Keep both footer texts subtle and below a quiet rule.
+- On desktop, align the belief statement left and the domain right.
+- On narrow screens, stack them in normal reading order.
+- Do not add social links, legal menus, or navigation while the site is in its minimal early form.
+
+## Core Components
+
+These are conceptual components today and should become reusable Astro components during migration.
+
+### Page Shell
+
+Purpose: outer width, page padding, background, and top-level flow.
+
+Rules:
+
+- Keep page width explicit.
+- Keep background `--bc-bg`.
+- Do not add full-page gradients or decorative color washes.
+
+### Subpage Header
+
+Purpose: consistent brand return and home navigation.
+
+Rules:
+
+- Use favicon mark plus lowercase wordmark.
+- Use outlined blue `Back to home`.
+- No extra nav items unless approved.
+
+### Panel
+
+Purpose: group a meaningful tool, chart, table, formula, or explanation region.
+
+Rules:
+
+- Border: `1px solid var(--bc-border)` or a quiet derived border.
+- Radius: `8px` or less.
+- Background: subtly different from page background, often `rgba(255, 255, 255, 0.44)`.
+- No heavy shadows.
+- Do not nest cards inside cards unless the inner elements are repeated data items.
+
+### Metric Card
+
+Purpose: show live result values.
+
+Rules:
+
+- Small label.
+- Mono numeric value where possible.
+- Short explanatory note.
+- Use blue sparingly for primary results.
+- Do not make every value a primary result.
+
+### Control Block
+
+Purpose: labeled input group.
+
+Rules:
+
+- Label is required.
+- Unit must be visible when relevant.
+- Slider controls should have a paired numeric input when direct entry matters.
+- Selects are acceptable for modes and option sets.
+- Segmented controls are acceptable for small mutually exclusive choices.
+- Focus states must be visible.
+
+### Chart Panel
+
+Purpose: explain a model, distribution, sensitivity curve, map, or simulation.
+
+Rules:
+
+- Use SVG or canvas generated from data.
+- Label axes and units.
+- Keep chart labels readable on mobile.
+- Do not use high-saturation red/green status palettes.
+- Prefer low-saturation scientific color scales.
+- Add legends when color encodes magnitude.
+- Do not communicate pass/fail only through color.
+
+### Formula Details
+
+Purpose: provide auditability without overwhelming the main workflow.
+
+Rules:
+
+- Use `details`/`summary` by default for dense formulas.
+- Keep formulas concise.
+- Show live substitution values when helpful.
+- Avoid long regulatory exposition inside tool pages.
+
+## Interaction
+
+Allowed motion:
+
+- Subtle link color changes.
+- Arrow movement of `2px` to `4px`.
+- Quiet button hover.
+- Tooltip reveal.
+- Local chart update.
+- Expand/collapse.
+
+Avoid:
+
+- Hover shadows.
+- Glow effects.
+- Bounce.
+- Rotation.
+- Large scale changes.
+- Whole-page entrance animations on tools and simulators.
+
+Every interactive state should remain calm and professional.
+
+## Color For Scientific Visualizations
+
+Scientific plots may use additional colors only when the meaning requires them.
+
+Rules:
+
+- Use BioassayCraft blue as the primary model or current-selection color.
+- Use muted gray/slate for axes, references, helper lines, and secondary models.
+- Use low-opacity warm rose or muted slate for risk/tail areas.
+- Avoid large orange/brown areas unless scientifically necessary.
+- Avoid saturated red/green pass/fail systems.
+- Add legends for continuous heatmaps.
+- Ensure current-point markers have enough contrast, often dark fill plus white stroke.
+
+Acceptable low-saturation risk ramp:
+
+```text
+low:      #EEF4F3
+moderate: #F3E5C4
+high:     #C98274
+```
+
+## Mobile Rules
+
+Mobile pages must be readable and usable, not merely squeezed.
+
+Rules:
+
+- No horizontal overflow.
+- Stack workspaces into a single column.
+- Stack form rows when cramped.
+- Keep touch targets at least `44px`.
+- Use single-column concept cards on phones.
+- Keep heatmaps and charts tall enough to read; avoid chart panels below roughly `320px` when dense labels are present.
+- Keep the back link full-width only when header space is constrained.
+- Do not let decorative SVGs or diagrams cross text.
+
+## Accessibility
+
+Minimum requirements:
+
+- Logical heading order.
+- Form labels for every input.
+- Visible focus states.
+- Sufficient contrast.
+- No information encoded only by color.
+- Meaningful SVGs include `title`, `aria-label`, or equivalent context.
+- Decorative images use `alt=""`.
+- Motion respects `prefers-reduced-motion`.
+
+## Naming System
+
+Use consistent product language:
+
+- `Explorer`: helps understand a concept through interaction.
+- `Simulator`: simulates a validation, model, or experimental design scenario.
+- `Converter`: transforms units or values.
+- `Calculator`: estimates a design quantity from assumptions.
+
+Examples:
+
+- `ANOVA Explorer`
+- `Method Validation Simulator`
+- `OOS Risk Explorer`
+- `Concentration Converter`
+- `Validation Sample Size Calculator`
+
+Do not rename existing public-facing artifacts casually. Naming changes should improve conceptual clarity and route consistency.
+
+## Future Astro Component Map
+
+When Astro migration begins, extract components in this order:
+
+1. `BaseHead`
+2. `SubpageHeader`
+3. `SiteFooter`
+4. `PageShell`
+5. `Panel`
+6. `MetricCard`
+7. `ControlBlock`
+8. `FormulaDetails`
+9. `ChartPanel`
+10. Tool-specific interactive islands
+
+Do not extract components just to abstract. Extract when it reduces repeated code across at least two stable pages.
+
+## Non-Goals
+
+The design system should not become:
+
+- A generic UI kit.
+- A Bootstrap-like component catalog.
+- A marketing design language.
+- A reason to redesign current pages.
+- A dependency on a large external UI library.
+
+BioassayCraft should stay quiet, precise, and scientific as it becomes more maintainable.

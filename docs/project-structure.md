@@ -35,4 +35,12 @@ BioassayCraft is organized by product responsibility rather than by the current 
 
 Avoid ambiguous filenames such as `style.css`, `styles.css`, `script.js`, or `main.js` once a file has a clear responsibility.
 
-Design and interface decisions should follow [Website Design Guidelines](website-design-guidelines.md).
+Highest-level product, design, engineering, and content decisions should follow the [Manifesto](manifesto.md).
+
+Product and platform decisions should follow [Product Philosophy](product-philosophy.md).
+
+Engineering decisions should follow [Coding Guidelines](coding-guidelines.md).
+
+Design tokens, reusable interface patterns, and future component extraction should follow [Design System](design-system.md).
+
+Design philosophy and page-level decisions should follow [Website Design Guidelines](website-design-guidelines.md).

@@ -676,7 +676,7 @@ tr:last-child td {
 
 .site-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 18px;
   margin-top: 28px;
   padding: 20px 0 28px;
@@ -684,6 +684,14 @@ tr:last-child td {
   border-top: 1px solid var(--rule);
   font-size: 0.72rem;
   font-weight: 500;
+  text-align: right;
+}
+
+.footer-belief {
+  text-align: left;
+}
+
+.footer-domain {
   text-align: right;
 }
 
@@ -738,6 +746,16 @@ tr:last-child td {
 
   .chart {
     min-height: 240px;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+  }
+
+  .footer-domain {
+    text-align: left;
   }
 }
 

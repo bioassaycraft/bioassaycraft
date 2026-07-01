@@ -1,5 +1,10 @@
 # BioassayCraft Brand Identity
 
+Use it together with:
+
+- [Manifesto](manifesto.md)
+- [Product Philosophy](product-philosophy.md)
+
 BioassayCraft is an interactive learning platform for bioassay thinking, quantitative reasoning, simulation, scientific statistics, assay development, engineering craftsmanship, and practical calculation.
 
 It should not feel like a conventional product website or a loose collection of tools. The brand should feel like a growing scientific learning platform made of focused artifacts: explorers, simulators, converters, tutorials, case studies, and articles.
@@ -22,13 +27,13 @@ Metadata fields that should use exactly `BioassayCraft`:
 Homepage slogan:
 
 ```text
-Crafting interactive learning for bioassay development.
+From theory to practice.
 ```
 
 Homepage supporting tagline:
 
 ```text
-Interactive tutorials, simulations, practical tools, and real-world bioassay insights.
+Learn the reasoning behind bioassays.
 ```
 
 Homepage status text:
@@ -161,6 +166,33 @@ It avoids:
 - Biology clichés.
 - Generic SaaS symbolism.
 - Decorative startup-style illustration.
+
+## Broader Brand Imagery
+
+The BioassayCraft visual identity should not be limited to fitted curves, coordinate axes, and data points.
+
+Future brand extension may develop around abstract ideas such as:
+
+- Observation window.
+- Bridge between theory and practice.
+- Scientific notebook.
+- Fitted model with residual judgement.
+- Crafted reasoning.
+- Mentor's marginal notes.
+- Paper, ink, line, measurement, and annotation.
+
+Avoid direct use of:
+
+- DNA.
+- Antibody.
+- Molecule.
+- Flask.
+- Microscope.
+- Hexagon.
+- AI swirl.
+- Generic biotech symbols.
+
+The logo may remain simple, but the broader brand system should carry deeper meaning through typography, spacing, copy, diagrams, annotations, and interaction.
 
 ## Final Logo Files
 

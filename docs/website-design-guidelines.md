@@ -5,6 +5,9 @@ This document defines the design baseline for future BioassayCraft pages, tools,
 Use it together with:
 
 - [Brand Identity](brand-identity.md)
+- [Design System](design-system.md)
+- [Manifesto](manifesto.md)
+- [Product Philosophy](product-philosophy.md)
 - [Project Structure](project-structure.md)
 
 ## Design Philosophy
@@ -46,6 +49,11 @@ References:
 - Nature journal typography discipline
 - Swiss International Style
 - Seeing Theory-style conceptual clarity
+- East Asian editorial restraint
+- Japanese / Chinese scientific notebook feeling
+- Careful margin and spacing discipline
+- Quiet paper-like surfaces
+- Restrained but warm educational artifacts
 
 ## Core Principles
 
@@ -103,6 +111,24 @@ The interface should not be:
 - Biotech-themed
 - Illustration-heavy
 - Decorative for its own sake
+
+BioassayCraft should feel less like a dashboard and more like a thoughtfully annotated scientific notebook.
+
+It should not feel like:
+
+- A SaaS control panel.
+- A biotech marketing site.
+- A flashy AI product.
+- A generic calculator dashboard.
+
+It should feel like:
+
+- A scientific notebook.
+- A careful mentor's marginal notes.
+- A quiet interactive textbook.
+- A practical bridge from theory to laboratory reality.
+
+Warmth should come from margin, pacing, language, hierarchy, and careful interaction. Do not create warmth through decorative East Asian motifs, cuteness, biotech symbolism, or surface-level cultural styling.
 
 ## Color System
 
@@ -283,23 +309,25 @@ Reference CSS values:
 }
 ```
 
-### Homepage Footer
+### Site Footer
 
-The homepage footer should remain minimal and use only the domain text:
+The site footer should remain minimal and use a two-part footer line:
 
 ```html
 <footer class="site-footer">
-  <span>bioassaycraft.com</span>
+  <span class="footer-belief">BioassayCraft is the craft of understanding.</span>
+  <span class="footer-domain">bioassaycraft.com</span>
 </footer>
 ```
 
 Footer rules:
 
+- Keep the belief statement exactly: `BioassayCraft is the craft of understanding.`
 - Keep the text `bioassaycraft.com` in lowercase.
-- Align it to the right on desktop.
+- Align the belief statement to the left and the domain to the right on desktop.
 - Place it below a quiet top rule.
 - Use secondary text color, small type, and medium weight.
-- Do not add social links, menus, copyright blocks, or extra metadata while the homepage is a one-screen coming-soon page.
+- Do not add social links, menus, copyright blocks, or extra metadata while the site is in its minimal early form.
 - On narrow screens, it may stack with normal document flow but should remain subtle and readable.
 
 Reference CSS values:
@@ -307,13 +335,21 @@ Reference CSS values:
 ```css
 .site-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 18px;
   padding: 20px 0 28px;
   color: var(--bc-secondary);
   border-top: 1px solid var(--bc-border);
   font-size: 0.72rem;
   font-weight: 500;
+  text-align: right;
+}
+
+.footer-belief {
+  text-align: left;
+}
+
+.footer-domain {
   text-align: right;
 }
 ```
@@ -640,7 +676,7 @@ Before shipping a new page or tool:
 - Is understanding prioritized before interaction?
 - Does it use the shared color variables?
 - Does every subpage use the shared logo plus `Back to home` header?
-- Does the homepage keep the minimal `bioassaycraft.com` footer pattern?
+- Does the homepage keep the minimal two-part footer pattern?
 - Does it avoid new decorative colors?
 - Does it use clear semantic HTML?
 - Are CSS and JS placed in responsibility-based files?
@@ -653,6 +689,8 @@ Before shipping a new page or tool:
 - Does it avoid biotech clichés?
 - Does it feel like BioassayCraft rather than a generic SaaS page?
 - Does it reuse the design system instead of inventing a page-specific style?
+- Does the page make the user feel guided, respected, and less alone in understanding a difficult bioassay concept?
+- If the page functions correctly but feels rushed, noisy, indifferent, or hard to reason through, has the information hierarchy, explanation style, and interaction rhythm been reviewed?
 
 ## Things To Avoid
 
