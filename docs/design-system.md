@@ -6,6 +6,7 @@ Use it together with:
 
 - [Brand Identity](brand-identity.md)
 - [Coding Guidelines](coding-guidelines.md)
+- [Design DNA](design-dna.md)
 - [Manifesto](manifesto.md)
 - [Product Philosophy](product-philosophy.md)
 - [Project Structure](project-structure.md)
@@ -61,6 +62,28 @@ and less alone in understanding a difficult bioassay concept?
 ```
 
 If the answer is no, review the information hierarchy, explanation style, and interaction rhythm even when the feature works correctly.
+
+## Reading Rhythm
+
+BioassayCraft pages should be read comfortably rather than scanned quickly.
+
+Avoid building pages as uninterrupted sequences of panels or controls.
+
+Instead, create a natural reading rhythm through:
+
+- Whitespace.
+- Explanation.
+- Interaction.
+- Visualization.
+- Reflection.
+
+Scientific interfaces should give users moments to pause and think.
+
+Reading rhythm is as important as visual hierarchy.
+
+The interface should never feel rushed.
+
+A page should feel less like software and more like a carefully annotated notebook.
 
 ## Scientific Consistency
 

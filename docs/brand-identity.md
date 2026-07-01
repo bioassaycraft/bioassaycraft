@@ -11,6 +11,22 @@ It should not feel like a conventional product website or a loose collection of 
 
 The visual identity should communicate constructed knowledge rather than biotechnology. The mark is inspired by coordinate systems, fitted models, observed data, calibration, drafting, and engineering notebooks.
 
+## Brand Values
+
+BioassayCraft should consistently express the following values:
+
+- Curiosity
+- Observation
+- Reasoning
+- Craft
+- Practice
+
+These values should influence not only visual identity but also writing, interaction, diagrams, learning structure, and future product decisions.
+
+The logo is only one expression of the brand.
+
+The broader identity should emerge from the consistency of the entire experience.
+
 ## Brand Copy
 
 Use `BioassayCraft` as the canonical browser, app, and share title.

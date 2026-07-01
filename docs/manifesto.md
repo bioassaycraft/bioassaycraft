@@ -1,5 +1,9 @@
 # BioassayCraft Manifesto
 
+Use it together with:
+
+- [Design DNA](design-dna.md)
+
 BioassayCraft is an interactive scientific learning platform for bioassay practitioners.
 
 It is not only a bioassay version of Seeing Theory. It should go further by connecting theory, regulation, visualization, simulation, calculation, and real-world assay practice.
@@ -11,6 +15,16 @@ This manifesto is the highest-level guide for BioassayCraft product, design, eng
 BioassayCraft exists to bridge the gap between regulatory and scientific theory and practical bioassay work.
 
 Many pharmacopoeial chapters, regulatory guidelines, and statistical theories are scientifically sound but difficult to apply directly in real laboratory and CMC decision-making contexts. BioassayCraft should translate that gap into interactive learning journeys, practical tools, visual explanations, and carefully reasoned case-based guidance.
+
+## Why BioassayCraft Exists
+
+BioassayCraft exists because many scientific theories, pharmacopoeial chapters, and regulatory guidelines are scientifically correct but difficult to internalize.
+
+Practitioners often know the rule without fully understanding the reasoning behind it.
+
+BioassayCraft exists to help people move from memorizing guidance to reasoning scientifically, and from reasoning to confident laboratory practice.
+
+The goal is not simply better explanations, but better scientific judgement.
 
 ## Primary Audience
 
@@ -94,7 +108,7 @@ Examples of future journeys:
 - System Suitability Journey
 - OOS and Risk Reasoning Journey
 
-Individual tools may exist, but they should ideally belong to a larger scientific learning journey.
+Individual tools may exist, but they should ideally belong to a larger scientific learning journey. Learning is the outcome; scientific reasoning is the core capability the journey should build.
 
 ## AI Role
 

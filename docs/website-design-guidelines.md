@@ -5,6 +5,7 @@ This document defines the design baseline for future BioassayCraft pages, tools,
 Use it together with:
 
 - [Brand Identity](brand-identity.md)
+- [Design DNA](design-dna.md)
 - [Design System](design-system.md)
 - [Manifesto](manifesto.md)
 - [Product Philosophy](product-philosophy.md)
@@ -129,6 +130,26 @@ It should feel like:
 - A practical bridge from theory to laboratory reality.
 
 Warmth should come from margin, pacing, language, hierarchy, and careful interaction. Do not create warmth through decorative East Asian motifs, cuteness, biotech symbolism, or surface-level cultural styling.
+
+## Mentor Notes
+
+Every BioassayCraft page should feel like a carefully annotated notebook left by an experienced mentor.
+
+Explanations should anticipate common misunderstandings.
+
+Notes should explain:
+
+- Why.
+- When.
+- Assumptions.
+- Limitations.
+- Practical implications.
+
+Avoid sounding like regulatory text.
+
+Avoid sounding like software documentation.
+
+The tone should remain objective, calm, and scientifically careful.
 
 ## Color System
 

@@ -2,6 +2,7 @@
 
 Use it together with:
 
+- [Design DNA](design-dna.md)
 - [Manifesto](manifesto.md)
 
 BioassayCraft is an interactive scientific learning platform for bioassay.
@@ -33,6 +34,30 @@ BioassayCraft is not:
 - A single giant application that tries to solve every workflow.
 
 It may include calculators, references, simulations, tutorials, and case studies, but those are artifacts inside a learning platform, not the platform's identity.
+
+## Learning Journeys
+
+BioassayCraft should grow around learning journeys rather than isolated pages.
+
+A journey connects:
+
+```text
+Concept
+  -> Reasoning
+  -> Interactive exploration
+  -> Simulation
+  -> Practical calculation
+  -> Interpretation
+  -> Case study
+  -> Scientific references
+  -> Practical application
+```
+
+Individual calculators, explorers, and simulators should gradually become part of larger learning journeys.
+
+Journey is the product organization. A calculator is one node inside a journey.
+
+Users should leave with a way of thinking, not merely a numerical answer.
 
 ## Core Principles
 
