@@ -3,18 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "npm@11.18.0",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build && node scripts/copy-static-site.mjs",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "eslint src scripts tests vite.config.js eslint.config.js prettier.config.js",
+    "format": "prettier --check \"src/**/*.{js,vue,css}\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.{js,json,html}\""
   },
   "dependencies": {
     "d3": "^7.9.0",
     "vue": "^3.5.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.0",
-    "vite": "^5.4.0"
+    "@eslint/js": "^10.0.1",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "eslint": "^10.6.0",
+    "eslint-plugin-vue": "^10.9.2",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.4",
+    "vite": "^8.1.3"
   }
 }

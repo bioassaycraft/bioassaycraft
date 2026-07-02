@@ -15,15 +15,7 @@ const clearGroup = () => {
 </script>
 
 <template>
-  <PageShell
-    :active-group="activeGroup"
-    @activate-group="activateGroup"
-    @clear-group="clearGroup"
-  >
-    <Home
-      :active-group="activeGroup"
-      @activate-group="activateGroup"
-      @clear-group="clearGroup"
-    />
+  <PageShell :active-group="activeGroup" @activate-group="activateGroup" @clear-group="clearGroup">
+    <Home :active-group="activeGroup" @activate-group="activateGroup" @clear-group="clearGroup" />
   </PageShell>
 </template>

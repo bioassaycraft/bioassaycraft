@@ -149,7 +149,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="notebook-home" :class="{ 'has-scrolled': hasScrolled }" aria-labelledby="home-title">
+  <section
+    class="notebook-home"
+    :class="{ 'has-scrolled': hasScrolled }"
+    aria-labelledby="home-title"
+  >
     <section class="notebook-scene scene-identity" aria-label="BioassayCraft identity">
       <div class="notebook-paper" aria-hidden="true"></div>
       <div class="identity-copy">
@@ -164,7 +168,11 @@ onBeforeUnmount(() => {
       </a>
     </section>
 
-    <section id="learn" class="notebook-scene scene-question reading-scene" aria-labelledby="question-title">
+    <section
+      id="learn"
+      class="notebook-scene scene-question reading-scene"
+      aria-labelledby="question-title"
+    >
       <div class="scene-copy">
         <p class="eyebrow">Question</p>
         <h2 id="question-title">Every scientific decision begins with a question.</h2>
@@ -190,7 +198,11 @@ onBeforeUnmount(() => {
       </ol>
     </section>
 
-    <section id="journey" class="notebook-scene scene-paths reading-scene" aria-labelledby="paths-title">
+    <section
+      id="journey"
+      class="notebook-scene scene-paths reading-scene"
+      aria-labelledby="paths-title"
+    >
       <div class="scene-copy">
         <p class="eyebrow">Practice paths</p>
         <h2 id="paths-title">Follow the reasoning.</h2>
@@ -204,14 +216,23 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <section id="tools" class="notebook-scene scene-artifacts reading-scene" aria-labelledby="artifacts-title">
+    <section
+      id="tools"
+      class="notebook-scene scene-artifacts reading-scene"
+      aria-labelledby="artifacts-title"
+    >
       <div class="scene-copy">
         <p class="eyebrow">Artifacts</p>
         <h2 id="artifacts-title">Scientific objects for exploration.</h2>
       </div>
 
       <div class="artifact-list" aria-label="BioassayCraft artifacts">
-        <a v-for="artifact in artifacts" :key="artifact.href" class="artifact-link" :href="artifact.href">
+        <a
+          v-for="artifact in artifacts"
+          :key="artifact.href"
+          class="artifact-link"
+          :href="artifact.href"
+        >
           <span>{{ artifact.title }}</span>
           <small>{{ artifact.note }}</small>
         </a>

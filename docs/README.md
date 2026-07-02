@@ -31,6 +31,9 @@ Use these when a task specifically touches content, structure, technology, or pa
 - [technical-direction.md](technical-direction.md)  
   Vite + Vue + D3.js migration direction and Cloudflare Pages deployment principles.
 
+- [upgrade-report.md](upgrade-report.md)
+  Frontend infrastructure audit, dependency upgrade decisions, Cloudflare deployment check, and validation notes.
+
 - [artifact-patterns.md](artifact-patterns.md)  
   Product pattern library for Learning Artifacts, Explorers, Calculators, Simulators, Concept Leads, Mentor Notes, and Reading Rhythm.
 

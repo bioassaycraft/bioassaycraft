@@ -9,7 +9,7 @@ import {
   formatPercent,
   gcvToSigma,
   getDominantTail,
-  normalCdf
+  normalCdf,
 } from "../assets/js/lib/validation/oos-risk.js";
 
 assert.equal(biasToLog(0), 0);
@@ -21,7 +21,7 @@ const baseline = calculateOosRisk({
   upperLimitPercent: 125,
   relativeBiasPercent: 0,
   gcvPercent: 10,
-  useReplication: false
+  useReplication: false,
 });
 
 const biased = calculateOosRisk({
@@ -29,7 +29,7 @@ const biased = calculateOosRisk({
   upperLimitPercent: 125,
   relativeBiasPercent: 10,
   gcvPercent: 10,
-  useReplication: false
+  useReplication: false,
 });
 
 assert.ok(baseline.probability >= 0 && baseline.probability <= 1);
@@ -44,7 +44,7 @@ const tails = calculateTailProbabilities({
   lowerLimitPercent: 80,
   upperLimitPercent: 125,
   relativeBiasPercent: 5,
-  gcvPercent: 10
+  gcvPercent: 10,
 });
 assert.ok(Math.abs(tails.totalOosProbability - tails.result.probability) < 1e-12);
 
@@ -52,7 +52,7 @@ const comparison = calculateBaselineComparison({
   lowerLimitPercent: 80,
   upperLimitPercent: 125,
   relativeBiasPercent: 5,
-  gcvPercent: 10
+  gcvPercent: 10,
 });
 assert.ok(Number.isFinite(comparison.deltaPercentagePoints));
 
@@ -60,7 +60,7 @@ const boundary = findPrecisionBoundary({
   lowerLimitPercent: 80,
   upperLimitPercent: 125,
   targetProbability: 0.01,
-  biasSteps: 10
+  biasSteps: 10,
 });
 
 assert.equal(boundary.length, 11);

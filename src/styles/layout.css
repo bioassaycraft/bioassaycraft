@@ -78,7 +78,9 @@ a {
   font-size: 1rem;
   font-weight: 500;
   text-decoration: none;
-  transition: color 240ms ease, font-weight 240ms ease;
+  transition:
+    color 240ms ease,
+    font-weight 240ms ease;
 }
 
 .site-nav a::after {
@@ -91,7 +93,9 @@ a {
   opacity: 0;
   transform: scaleX(0.42);
   transform-origin: center;
-  transition: opacity 240ms ease, transform 240ms ease;
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease;
   content: "";
 }
 

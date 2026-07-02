@@ -6,6 +6,14 @@ The homepage is now served by the Vite + Vue implementation at `/`. Existing sci
 
 ## Local Development
 
+Recommended Node.js version:
+
+```bash
+nvm use
+```
+
+The project `.nvmrc` pins Node.js `24.18.0` for long-term maintenance.
+
 Install dependencies:
 
 ```bash
@@ -48,6 +56,8 @@ Recommended settings:
 ```text
 Build command: npm run build
 Output directory: dist
+Root directory: /
+Node.js version: 24.18.0
 ```
 
 The build runs Vite for the default homepage and then copies the existing static site directories into `dist/` so current tool and learning routes continue to deploy at their existing paths.

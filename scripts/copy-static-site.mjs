@@ -4,14 +4,7 @@ import { join } from "node:path";
 const root = process.cwd();
 const dist = join(root, "dist");
 
-const entries = [
-  "assets",
-  "learn",
-  "journeys",
-  "tools",
-  "simulators",
-  "lessons",
-];
+const entries = ["assets", "learn", "journeys", "tools", "simulators", "lessons"];
 
 await mkdir(dist, { recursive: true });
 
