@@ -1,20 +1,24 @@
 # BioassayCraft Design System
 
-This document turns the broader visual philosophy into reusable interface rules for current static pages and future Astro components.
+This document turns the broader visual philosophy into reusable interface rules for current static pages and future Vite + Vue components.
 
 Use it together with:
 
 - [Brand Identity](brand-identity.md)
+- [Content Principles](content-principles.md)
 - [Coding Guidelines](coding-guidelines.md)
 - [Design DNA](design-dna.md)
+- [Information Architecture](information-architecture.md)
 - [Manifesto](manifesto.md)
 - [Product Philosophy](product-philosophy.md)
 - [Project Structure](project-structure.md)
 - [Website Design Guidelines](website-design-guidelines.md)
 
+This document is the source of truth for visual style, interaction rhythm, page layout, reusable interface patterns, mobile behavior, and accessibility expectations.
+
 ## Design System Goal
 
-BioassayCraft should feel like one coherent scientific learning platform as the number of tools, simulators, explorers, tutorials, case studies, and articles grows.
+BioassayCraft should feel like one coherent scientific learning platform as the number of tools, simulators, explorers, tutorials, journeys, and case studies grows.
 
 The design system must preserve:
 
@@ -178,12 +182,13 @@ Global page rules:
 
 Homepage rules:
 
-- Remain a coming-soon landing page.
-- Do not become a portal, dashboard, or product marketing page.
-- Keep visible `Coming Soon.` text.
-- Keep compact content-directory links.
-- Do not add long tool descriptions.
-- Do not add a full navigation bar until content volume requires it.
+- The homepage is a scientific prologue, not a dashboard, marketing site, or tool catalog.
+- Let users enter through a scientific question before seeing practice paths or artifacts.
+- Use a small number of scroll scenes rather than feature grids or card stacks.
+- Keep the homepage quiet, compact, and editorial.
+- Keep artifacts visible only after the reasoning structure has been introduced.
+- Do not add long tool descriptions, large feature cards, marketing sections, or strong CTA buttons.
+- Homepage navigation may use `Learn`, `Journey`, and `Tools`, but it should feel like reading progress rather than a full product menu.
 
 Subpage rules:
 
@@ -195,13 +200,17 @@ Subpage rules:
 
 ## Scientific User Experience
 
-Scientific tools should use a consistent learning flow whenever possible:
+Scientific artifacts should use a consistent reasoning flow whenever possible:
 
 ```text
-Input
-  -> Calculation
+Scientific Question
+  -> Scientific Idea
+  -> Interaction
   -> Visualization
+  -> Scientific Result
   -> Interpretation
+  -> Reflection
+  -> Formula Audit
   -> Scientific Reference
 ```
 
@@ -235,6 +244,41 @@ Rules:
 - Regulatory notes should remain concise and supporting.
 - Do not let regulatory exposition cover or precede the result unless the page is specifically a reference page.
 
+## Homepage Artifact Entries
+
+Homepage artifact entries should be restrained and text-led.
+
+Use them to show scientific objects that support reasoning:
+
+- Explorers: help users examine a concept.
+- Calculators: answer a practical scientific question.
+- Converters: clarify unit or representation changes.
+- Simulators: make design assumptions visible.
+
+Rules:
+
+- Keep copy short.
+- Emphasize the reasoning each artifact supports.
+- Do not make cards feel like SaaS feature marketing.
+- Prefer text-led links over large cards.
+- Do not use icons unless they clarify meaning.
+- Do not use heavy shadows or saturated backgrounds.
+
+## Visualization Rules
+
+Visualizations must serve understanding.
+
+Rules:
+
+- Each visualization should answer one clear scientific question.
+- Put parameter controls and result interpretation near the chart they affect.
+- Use restrained colors.
+- Keep axes, labels, units, and annotations readable.
+- Ensure mobile views remain legible.
+- Prefer interactive parameters when interaction improves understanding.
+- Reuse chart, parameter, result, and explanation patterns when possible.
+- Do not add static decoration that does not explain a scientific idea.
+
 ## Shared Page Chrome
 
 Every non-homepage page should use the shared subpage header:
@@ -253,7 +297,9 @@ Rules:
 
 - The brand link and the back link both return home.
 - Keep the wordmark lowercase: `bioassaycraft`.
-- Do not add a full nav bar yet.
+- Do not add a full site-wide nav bar to subpages yet.
+- This does not conflict with the homepage using minimal anchors such as Learn, Journey, and Tools.
+- Revisit full subpage navigation only when Learn, Journeys, and Tools contain enough content to require it.
 - Use the same spacing, radius, border, and hover behavior across all subpages.
 - Adjust relative paths only as needed by route depth.
 
@@ -277,7 +323,7 @@ Rules:
 
 ## Core Components
 
-These are conceptual components today and should become reusable Astro components during migration.
+These are conceptual components today and should become reusable Vue components during migration.
 
 ### Page Shell
 
@@ -452,20 +498,21 @@ Examples:
 
 Do not rename existing public-facing artifacts casually. Naming changes should improve conceptual clarity and route consistency.
 
-## Future Astro Component Map
+## Future Vite + Vue Component Map
 
-When Astro migration begins, extract components in this order:
+When Vite + Vue migration begins, extract components in this order:
 
-1. `BaseHead`
+1. `SiteHead`
 2. `SubpageHeader`
 3. `SiteFooter`
 4. `PageShell`
-5. `Panel`
-6. `MetricCard`
-7. `ControlBlock`
-8. `FormulaDetails`
-9. `ChartPanel`
-10. Tool-specific interactive islands
+5. `ModuleCard`
+6. `Panel`
+7. `MetricCard`
+8. `ControlBlock`
+9. `FormulaDetails`
+10. `ChartPanel`
+11. Tool-specific Vue components
 
 Do not extract components just to abstract. Extract when it reduces repeated code across at least two stable pages.
 

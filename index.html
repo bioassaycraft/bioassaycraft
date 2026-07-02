@@ -3,10 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="BioassayCraft is a platform for bioassay, scientific reasoning, statistics, analytical development, and interactive learning.">
+  <meta name="description" content="BioassayCraft is an interactive scientific learning platform for bioassay practitioners, connecting scientific reasoning, simulations, practical tools, and bioassay insights.">
   <title>BioassayCraft</title>
   <meta property="og:title" content="BioassayCraft">
+  <meta property="og:description" content="From theory to practice. Interactive tutorials, simulations, practical tools, and bioassay insights.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bioassaycraft.com/">
+  <meta property="og:image" content="/assets/icons/android-chrome-512x512.png">
+  <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="BioassayCraft">
+  <meta name="twitter:description" content="From theory to practice. Interactive tutorials, simulations, practical tools, and bioassay insights.">
+  <meta name="twitter:image" content="/assets/icons/android-chrome-512x512.png">
   <meta name="apple-mobile-web-app-title" content="BioassayCraft">
   <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
   <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
@@ -18,59 +25,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/base.css">
-  <link rel="stylesheet" href="assets/css/home.css">
 </head>
 <body>
-  <main>
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-inner">
-        <h1 id="hero-title">
-          <img class="brand-mark" src="assets/icons/favicon.svg" alt="" aria-hidden="true">
-          <span>BioassayCraft</span>
-        </h1>
-        <p class="hero-subtitle">From theory to practice.</p>
-        <p class="hero-description">Learn the reasoning behind bioassays.</p>
-        <p class="hero-status">Coming Soon.</p>
-
-        <section class="prototype-section" aria-label="Starting points">
-          <div class="prototype-grid">
-            <div class="prototype-group">
-              <h3>Simulators</h3>
-              <div class="prototype-item">
-                <a href="simulators/anova-model-comparison/">ANOVA Explorer <span class="prototype-arrow" aria-hidden="true">&rarr;</span></a>
-                <p>Residuals, variance, model decisions</p>
-              </div>
-              <div class="prototype-item">
-                <a href="simulators/validation-simulator/">Method Validation Simulator <span class="prototype-arrow" aria-hidden="true">&rarr;</span></a>
-                <p>Validation design as risk reasoning</p>
-              </div>
-            </div>
-
-            <div class="prototype-group">
-              <h3>Practical Tools</h3>
-              <div class="prototype-item">
-                <a href="tools/oos-risk-explorer/">OOS Risk Explorer <span class="prototype-arrow" aria-hidden="true">&rarr;</span></a>
-                <p>Tail-area reasoning for acceptance criteria</p>
-              </div>
-              <div class="prototype-item">
-                <a href="tools/validation-sample-size-calculator/">Validation Sample Size Calculator <span class="prototype-arrow" aria-hidden="true">&rarr;</span></a>
-                <p>Design margin from accuracy and precision</p>
-              </div>
-              <div class="prototype-item">
-                <a href="tools/concentration-converter/">Concentration Converter <span class="prototype-arrow" aria-hidden="true">&rarr;</span></a>
-                <p>Molecular weight as the bridge</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <span class="footer-belief">BioassayCraft is the craft of understanding.</span>
-    <span class="footer-domain">bioassaycraft.com</span>
-  </footer>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

@@ -1,16 +1,59 @@
-## Hi there 👋
+# BioassayCraft
 
-<!--
-**bioassaycraft/bioassaycraft** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+BioassayCraft is an interactive scientific learning platform for bioassay practitioners.
 
-Here are some ideas to get you started:
+The homepage is now served by the Vite + Vue implementation at `/`. Existing scientific tools, simulators, learn pages, and journey pages remain deployable at their current static routes.
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the Vite development server:
+
+```bash
+npm run dev
+```
+
+Build static deployment output:
+
+```bash
+npm run build
+```
+
+Preview the built site:
+
+```bash
+npm run preview
+```
+
+## Current Entry Points
+
+- Homepage: `/`
+- Tools entry: `/tools/`
+- Learn entry: `/learn/`
+- Journeys entry: `/journeys/`
+
+Existing `tools/` and `simulators/` routes are preserved. Calculators, converters, explorers, and simulators are product-classified as Tools even when some physical routes still live under `simulators/`.
+
+The previous homepage is archived at `archive/legacy-homepage/` for historical reference only. It is not part of site navigation or the deployment build.
+
+## Cloudflare Pages
+
+Recommended settings:
+
+```text
+Build command: npm run build
+Output directory: dist
+```
+
+The build runs Vite for the default homepage and then copies the existing static site directories into `dist/` so current tool and learning routes continue to deploy at their existing paths.
+
+## Migration Boundary
+
+Do not perform full Vue migration, route consolidation, backend setup, database setup, account system, or scientific calculation changes unless explicitly requested.
+
+Scientific calculations should remain in pure modules and keep existing regression behavior.

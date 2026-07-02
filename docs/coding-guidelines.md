@@ -5,11 +5,17 @@ This document defines the engineering baseline for BioassayCraft as it grows fro
 Use it together with:
 
 - [Brand Identity](brand-identity.md)
+- [Content Principles](content-principles.md)
+- [Development Roadmap](development-roadmap.md)
 - [Design System](design-system.md)
+- [Information Architecture](information-architecture.md)
 - [Manifesto](manifesto.md)
 - [Product Philosophy](product-philosophy.md)
 - [Project Structure](project-structure.md)
+- [Technical Direction](technical-direction.md)
 - [Website Design Guidelines](website-design-guidelines.md)
+
+This document is the source of truth for engineering rules, Scientific Engine separation, code organization, tests, deployment expectations, and AI modification boundaries.
 
 ## Current Project Audit
 
@@ -33,7 +39,7 @@ Current problems:
 - There is no build tool, package metadata, lint command, formatting command, or standard local preview command.
 - Deployment expectations for Cloudflare Pages are implicit rather than documented in one engineering guide.
 - Mobile behavior is handled page by page, which creates a risk of inconsistent breakpoints and chart readability.
-- `learn/` and `lessons/` both exist as placeholders; future content should clarify whether `lessons/` is legacy or a content subtype.
+- `learn/` is the formal home for future interactive pharmacopoeia learning. `lessons/` exists only as a legacy placeholder and should not receive new content.
 - Existing files are not yet consistently tracked and reviewed as one coherent app surface.
 
 ## Engineering Direction
@@ -42,12 +48,14 @@ Recommended long-term route:
 
 ```text
 Static HTML/CSS/JS
-  -> static-first Astro
-  -> Astro + TypeScript islands for interactive artifacts
+  -> Vite + Vue
+  -> Vite + Vue + D3.js for complex interactive artifacts
   -> Cloudflare Pages deployment
 ```
 
-Astro is the preferred migration target because it preserves static output while allowing shared layouts, reusable components, TypeScript modules, and selective client-side scripts only where tools need them.
+Vite + Vue + D3.js is the preferred migration direction because it supports fast local iteration, componentized scientific interfaces, and custom statistical visualization while preserving static deployment.
+
+This is a future direction, not an instruction to migrate the current static site all at once.
 
 Do not introduce a backend until there is a concrete requirement that cannot be served by static generation and client-side computation.
 
@@ -58,13 +66,15 @@ Avoid:
 - Electron or desktop packaging.
 - Complex state management libraries.
 - Large UI frameworks or component libraries that override BioassayCraft's visual language.
-- React, Vue, Svelte, or Solid as the default page model before Astro migration decisions are confirmed.
+- Next.js, Nuxt, or other full-stack frameworks before a clear need exists.
 
 Acceptable future additions:
 
-- Astro for routing, layouts, and static generation.
+- Vite for local development and static builds.
+- Vue for componentized scientific artifact pages.
+- D3.js for complex custom scientific visualizations.
 - TypeScript for calculation modules, chart helpers, and page component contracts.
-- Plain CSS, CSS modules, or scoped Astro styles.
+- Plain CSS, CSS modules, or scoped Vue styles.
 - Small statistical or math utilities only when hand-written approximations become a maintenance risk.
 - Playwright or a small browser test layer when visual regressions become frequent.
 
@@ -172,10 +182,12 @@ Keep static:
 
 - Homepage.
 - Brand or simple directory pages.
-- Future short articles, case studies, and learning notes that do not need interaction.
+- Future case studies and learning notes that do not need interaction.
 - Pages whose only behavior is ordinary links, details/summary, or simple copy.
 
-Good candidates for Astro layouts first:
+Do not create a top-level Articles module. Text-led learning content should live under `learn/` or a more specific future content type such as `case-studies/`.
+
+Good candidates for shared layouts first:
 
 - Homepage.
 - Tool pages that share the same header, footer, hero, controls, panels, formulas, and chart regions.
@@ -210,6 +222,8 @@ assets/
     tools/
 docs/
 learn/
+journeys/
+lessons/   # legacy placeholder only
 simulators/
 tools/
 tests/
@@ -221,13 +235,17 @@ Rules while the site remains static:
 - Use directory routes with `index.html`.
 - Put tool pages under `tools/<tool-name>/index.html`.
 - Put simulator pages under `simulators/<simulator-name>/index.html`.
+- Treat calculators, converters, explorers, and simulators as Tools in product classification, even when a current route remains under `simulators/`.
+- Keep `learn/` as the formal directory for interactive pharmacopoeia learning.
+- Do not add new content to `lessons/`; keep it only for legacy compatibility if needed.
 - Keep reusable calculations under `assets/js/lib/<domain>/`.
 - Keep page orchestration scripts under `assets/js/tools/` or `assets/js/simulators/` when simulator scripts are extracted.
 - Keep page-specific CSS under `assets/css/tools/` or `assets/css/simulators/` until a shared component stylesheet exists.
 - Do not create vague files such as `script.js`, `main.js`, `style.css`, or `new.html`.
 - Do not duplicate legacy routes unless an existing deployed URL must remain valid.
+- Do not move `simulators/` pages into `tools/` only for naming purity. If routes are consolidated later, update old links, redirects, and Cloudflare Pages deployment behavior deliberately.
 
-Expected Astro target structure:
+Possible future Vite + Vue target structure:
 
 ```text
 src/
@@ -237,23 +255,30 @@ src/
     layout/
     panels/
   content/
-    articles/
+    learn/
+      pharmacopoeia/
+      tutorials/
+      case-data/
+    journeys/
+    tools/
     case-studies/
-    tutorials/
   layouts/
   lib/
     validation/
     statistics/
     units/
   pages/
-    index.astro
+    Home.vue
+    Learn.vue
+    Journeys.vue
+    Tools.vue
     tools/
-      concentration-converter.astro
-      oos-risk-explorer.astro
-      validation-sample-size-calculator.astro
+      concentration-converter.vue
+      oos-risk-explorer.vue
+      validation-sample-size-calculator.vue
     simulators/
-      anova-explorer.astro
-      validation-simulator.astro
+      anova-explorer.vue
+      validation-simulator.vue
 public/
   assets/
 ```
@@ -403,7 +428,7 @@ node tests/<module>.test.mjs
 python3 -m http.server 4173 --bind 127.0.0.1
 ```
 
-When Astro is introduced, define a single documented command set such as:
+When Vite + Vue is introduced, define a single documented command set such as:
 
 ```bash
 npm run dev
@@ -421,9 +446,9 @@ Current deployment model:
 - Asset links should work from deployed root paths.
 - Avoid server-only assumptions.
 
-Future Astro deployment:
+Future Vite + Vue deployment:
 
-- Use Astro static output.
+- Use static build output.
 - Use Cloudflare Pages as static hosting first.
 - Add Cloudflare Functions only if a specific feature requires server-side execution.
 - Keep public assets stable so existing icon and brand URLs remain valid.
@@ -453,12 +478,12 @@ Each phase should be small, reversible, and independently deployable.
 - Add tests for known examples and edge cases.
 - Keep UI unchanged.
 
-### Phase 3: Introduce Astro In Parallel
+### Phase 3: Establish Vite + Vue Homepage
 
-- Add Astro with static output.
-- Port the homepage first because it has low interaction risk.
-- Recreate shared layout components: `BaseHead`, `SubpageHeader`, `SiteFooter`, `ToolShell`, `Panel`, `MetricCard`.
-- Deploy to a preview branch before replacing the current root.
+- Add Vite + Vue with static output.
+- Keep the Vite + Vue homepage as the default root entry.
+- Recreate shared layout components: `SiteHead`, `SubpageHeader`, `SiteFooter`, `ToolShell`, `Panel`, `MetricCard`.
+- Continue migrating pages one at a time without breaking existing routes.
 
 ### Phase 4: Port Low-Risk Tools
 
@@ -476,9 +501,10 @@ Each phase should be small, reversible, and independently deployable.
 
 ### Phase 6: Content Platform Growth
 
-- Add `learn/`, tutorials, articles, and case studies as static Astro content.
+- Add `learn/`, `journeys/`, tutorials, case data, and case studies as static content.
 - Use content collections only when metadata becomes meaningful.
 - Keep homepage concise and avoid turning it into a dashboard.
+- Do not introduce a traditional Articles section as a top-level product area.
 
 ## Change Control
 

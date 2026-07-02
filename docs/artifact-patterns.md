@@ -10,8 +10,9 @@ BioassayCraft artifacts should help practitioners move from rule awareness to sc
 
 Applies to:
 
+- Learn artifacts
 - Tutorials
-- Lessons
+- Case-data explanations
 - Case studies
 
 A Learning Artifact should organize reading as a guided reasoning path.
@@ -359,7 +360,7 @@ Patterns that affect all pages:
 
 Patterns by artifact type:
 
-- Learning Artifact Pattern: primarily affects tutorials, lessons, and case studies.
+- Learning Artifact Pattern: primarily affects Learn artifacts, tutorials, case-data explanations, and case studies.
 - Explorer Pattern: primarily affects concept exploration pages such as OOS Risk Explorer and ANOVA Explorer.
 - Calculator Pattern: primarily affects tools that estimate, convert, or calculate scientific quantities.
 - Simulator Pattern: primarily affects pages that let users experience a scenario or model behavior over time.

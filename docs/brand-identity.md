@@ -52,13 +52,13 @@ Homepage supporting tagline:
 Learn the reasoning behind bioassays.
 ```
 
-Homepage status text:
+Homepage core line:
 
 ```text
-Coming Soon.
+From theory to practice.
 ```
 
-Keep `Coming Soon.` as visible homepage status text while the site is pre-launch, but do not include `Coming Soon` in browser/app/SEO metadata.
+The homepage should not use `Coming Soon` as visible status text, browser metadata, app metadata, or SEO copy. The homepage now represents the active BioassayCraft product.
 
 ## Concept Explorations
 

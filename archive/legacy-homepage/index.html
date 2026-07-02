@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BioassayCraft is a platform for bioassay, scientific reasoning, statistics, analytical development, and interactive learning.">
+  <title>BioassayCraft</title>
+  <meta property="og:title" content="BioassayCraft">
+  <meta name="twitter:title" content="BioassayCraft">
+  <meta name="apple-mobile-web-app-title" content="BioassayCraft">
+  <link rel="icon" href="../../assets/icons/favicon.ico" sizes="any">
+  <link rel="icon" href="../../assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../../assets/icons/favicon-32x32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="../../assets/icons/favicon-16x16.png" type="image/png" sizes="16x16">
+  <link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="../../assets/icons/site.webmanifest">
+  <meta name="theme-color" content="#F7F5F0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/home.css">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" defer></script>
+  <script src="assets/js/home-reasoning-constellation.js" defer></script>
+</head>
+<body>
+  <header class="home-header" aria-label="Primary">
+    <a class="home-brand" href="/" aria-label="BioassayCraft home">
+      <img class="home-brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+      <span>BioassayCraft</span>
+    </a>
+    <nav class="home-nav" aria-label="Main navigation">
+      <a href="/learn/">Learn</a>
+      <a href="/journeys/">Journeys</a>
+      <a href="/tools/">Tools</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-inner">
+        <h1 id="hero-title">
+          <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+          <span>BioassayCraft</span>
+        </h1>
+        <p class="hero-subtitle">Interactive pharmacopoeia learning, practice journeys, and practical bioassay tools.</p>
+        <p class="hero-description">From pharmacopoeial rules to statistical models, interactive artifacts, and practical bioassay decisions.</p>
+        <p class="hero-status">Coming Soon. Selected tools are available.</p>
+
+        <section class="constellation-section" aria-labelledby="constellation-title">
+          <div class="constellation-copy">
+            <span class="section-kicker">Reasoning Constellation</span>
+            <h2 id="constellation-title">A quiet map of how bioassay reasoning comes together.</h2>
+            <p id="constellation-note">BioassayCraft connects rules, models, artifacts, and practical decisions without turning the homepage into a dashboard.</p>
+          </div>
+          <div
+            id="reasoning-constellation"
+            class="reasoning-constellation"
+            role="img"
+            aria-label="Reasoning Constellation showing Learn, Journeys, and Tools connected to bioassay reasoning."
+          >
+            <div class="constellation-fallback">
+              <span>Learn</span>
+              <span>Journeys</span>
+              <span>Tools</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-section" aria-label="BioassayCraft modules">
+          <div class="module-grid">
+            <a class="module-card" href="/learn/" data-constellation-group="learn">
+              <span>Learn</span>
+              <strong>Interactive pharmacopoeia learning</strong>
+              <p>Understand the rule.</p>
+            </a>
+            <a class="module-card" href="/journeys/" data-constellation-group="journeys">
+              <span>Journeys</span>
+              <strong>Structured bioassay practice workflows</strong>
+              <p>Apply it in practice.</p>
+            </a>
+            <a class="module-card" href="/tools/" data-constellation-group="tools">
+              <span>Tools</span>
+              <strong>Focused calculators and simulators</strong>
+              <p>Calculate the focused question.</p>
+            </a>
+          </div>
+        </section>
+
+        <section class="tools-preview" aria-label="Featured tools">
+          <h2>Featured tools</h2>
+          <div class="tool-link-grid">
+            <a href="/tools/oos-risk-explorer/">OOS Risk Explorer <span aria-hidden="true">&rarr;</span></a>
+            <a href="/tools/validation-sample-size-calculator/">Validation Sample Size Calculator <span aria-hidden="true">&rarr;</span></a>
+            <a href="/tools/concentration-converter/">Concentration Converter <span aria-hidden="true">&rarr;</span></a>
+            <a href="/simulators/anova-model-comparison/">ANOVA Explorer <span aria-hidden="true">&rarr;</span></a>
+            <a href="/simulators/validation-simulator/">Method Validation Simulator <span aria-hidden="true">&rarr;</span></a>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span class="footer-belief">BioassayCraft is the craft of understanding.</span>
+    <span class="footer-domain">bioassaycraft.com</span>
+  </footer>
+</body>
+</html>

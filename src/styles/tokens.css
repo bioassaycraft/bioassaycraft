@@ -1,0 +1,8 @@
+:root {
+  --app-bg: var(--bc-bg, #f7f5f0);
+  --app-text: var(--bc-text, #171717);
+  --app-muted: var(--bc-secondary, #6e7278);
+  --app-rule: var(--bc-border, #d6d9de);
+  --app-accent: var(--bc-blue, #2457b3);
+  --app-focus: var(--bc-focus-ring, rgba(36, 86, 179, 0.16));
+}

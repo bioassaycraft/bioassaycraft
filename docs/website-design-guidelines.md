@@ -1,6 +1,6 @@
 # BioassayCraft Website Design Guidelines
 
-This document defines the design baseline for future BioassayCraft pages, tools, lessons, simulations, and documentation.
+This document defines the design baseline for future BioassayCraft pages, tools, Learn artifacts, simulations, and documentation.
 
 Use it together with:
 
@@ -64,7 +64,7 @@ References:
 4. Treat interactive tools as instruments, not marketing widgets.
 5. Let scientific ideas become visible through models, controls, plots, and explanation.
 6. Use motion only when it clarifies state or interaction.
-7. Design every page so it can sit comfortably beside future lessons, tools, and simulations.
+7. Design every page so it can sit comfortably beside future Learn artifacts, tools, and simulations.
 8. Do not add content simply to fill space.
 9. Prefer a quiet artifact or learning object over a feature pitch.
 
@@ -77,17 +77,20 @@ Rules:
 - Avoid explaining too much at once.
 - Use pages to establish a clear hierarchy of understanding.
 - Prefer an additional click over a crowded page.
-- Put detailed explanation on the relevant tool, simulator, lesson, article, or case-study page, not on the homepage.
+- Put detailed explanation on the relevant tool, simulator, Learn artifact, journey, or case-study page, not on the homepage.
 - Let the homepage establish brand impression, show content direction, and provide a small number of entry points.
 - Treat lower homepage links as a content library or directory, not as product feature cards.
 
 Future content areas may include:
 
-- Simulators
+- Learn artifacts
+- Journeys
 - Practical tools
 - Interactive tutorials
+- Case-data explanations
 - Case studies
-- Articles
+
+Articles should not become a top-level product section. Text-led content should live under a specific learning, journey, tool, or case-study purpose.
 
 Design the homepage and subpage patterns so these areas can grow without changing the visual language.
 
@@ -215,7 +218,7 @@ Rules:
 - Prefer full-width page bands or unframed layouts over nested cards.
 - Use cards only for repeated items, tool panels, result rows, and modals.
 - Do not place cards inside cards.
-- Use grid for tool layouts, result panels, comparison views, and lesson structures.
+- Use grid for tool layouts, result panels, comparison views, and Learn artifact structures.
 - Use flex for small alignment problems such as button rows and headers.
 - Preserve generous whitespace, but avoid empty decorative space.
 - Avoid horizontal scrolling at every viewport.
@@ -239,9 +242,9 @@ Tools rules:
 - Numeric output should use mono/tabular styling.
 - Each tool should have a clear page title, short purpose, input area, output area, and formula or reasoning note when useful.
 
-Lessons rules:
+Learn artifact rules:
 
-- Lessons should prioritize reading flow and conceptual clarity.
+- Learn artifacts should prioritize reading flow and conceptual clarity.
 - Use diagrams and simulations only when they explain something.
 - Avoid long hero introductions.
 - Prefer stepwise explanation with visible examples.

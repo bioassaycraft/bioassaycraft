@@ -1,9 +1,12 @@
 # Project Structure
 
+This document is the source of truth for the current directory structure, route conventions, file naming, and static-site organization.
+
 BioassayCraft is organized by product responsibility rather than by the current number of pages.
 
 ```text
 .
+├── archive/                Historical pages and retired prototypes, not deployed
 ├── assets/
 │   ├── brand/              Brand source artwork and explorations
 │   ├── css/                Shared and page-specific stylesheets
@@ -12,26 +15,39 @@ BioassayCraft is organized by product responsibility rather than by the current 
 │   └── js/                 Shared and page-specific JavaScript
 │       └── tools/          Tool-specific JavaScript
 ├── docs/                   Platform and brand documentation
-├── learn/                  Future educational learning pages
-├── lessons/                Legacy lesson placeholder
-├── simulators/             Interactive simulator pages
+├── learn/                  Interactive pharmacopoeia learning entry and pages
+├── journeys/               Structured practice workflow entry and pages
+├── lessons/                Legacy placeholder only; do not add new content here
+├── scripts/                Build and migration helper scripts
+├── simulators/             Existing simulator routes, product-classified as Tools
+├── src/                    Vite + Vue source for the homepage and gradual migration
 ├── tools/                  Interactive calculators, converters, and utilities
-└── index.html              Homepage
+├── index.html              Vite entry for the default homepage
+├── package.json            Vite + Vue + D3.js scripts and dependencies
+└── vite.config.js          Vite configuration
 ```
 
 ## Conventions
 
 - Put reusable brand and typography primitives in `assets/css/base.css`.
-- Put homepage-only styles in `assets/css/home.css`.
+- Keep the default homepage at `index.html` as the Vite entry.
+- Put homepage Vue implementation and gradual migration source files under `src/`.
+- Put retired homepage versions under `archive/`, outside navigation and deployment copying.
+- Put small build helpers under `scripts/`.
 - Put tool-specific CSS in `assets/css/tools/<tool-name>.css`.
 - Put tool-specific JavaScript in `assets/js/tools/<tool-name>.js`.
 - Put public icon files and the web manifest in `assets/icons/`.
 - Put each interactive tool in `tools/<tool-name>/`.
 - Put each simulation or simulator in `simulators/<simulator-name>/`.
-- Every tool and simulator route should use the directory + `index.html` pattern, for example `tools/concentration-converter/index.html` and `simulators/anova-model-comparison/index.html`.
-- Put future learning pages under `learn/`.
+- Product classification now groups current calculators, converters, explorers, and simulators under Tools, even when some existing routes physically remain under `simulators/`.
+- Every route should use the directory + `index.html` pattern, for example `tools/concentration-converter/index.html`, `simulators/anova-model-comparison/index.html`, `learn/index.html`, and `journeys/index.html`.
+- Put interactive pharmacopoeia learning pages under `learn/`.
+- Put structured practice workflow pages under `journeys/`.
+- Treat `lessons/` as a legacy placeholder. Do not add new Learn content there, and do not develop it into a parallel Lessons or Articles module.
 - Keep legacy routes as thin redirects only when an existing URL needs to remain valid.
+- Do not move existing `simulators/` routes only to make the directory tree cleaner. Route consolidation should wait for an intentional migration plan with old-link handling.
 - Keep long-form notes, brand rules, and architecture notes in `docs/`.
+- `npm run build` outputs to `dist/` and copies existing static routes into that build output.
 
 Avoid ambiguous filenames such as `style.css`, `styles.css`, `script.js`, or `main.js` once a file has a clear responsibility.
 
@@ -39,8 +55,14 @@ Highest-level product, design, engineering, and content decisions should follow 
 
 Product and platform decisions should follow [Product Philosophy](product-philosophy.md).
 
+Information architecture should follow [Information Architecture](information-architecture.md).
+
+Content writing and pharmacopoeial handling should follow [Content Principles](content-principles.md).
+
 Engineering decisions should follow [Coding Guidelines](coding-guidelines.md).
 
 Design tokens, reusable interface patterns, and future component extraction should follow [Design System](design-system.md).
 
 Design philosophy and page-level decisions should follow [Website Design Guidelines](website-design-guidelines.md).
+
+Technical migration decisions should follow [Technical Direction](technical-direction.md) and [Development Roadmap](development-roadmap.md).
