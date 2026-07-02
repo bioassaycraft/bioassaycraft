@@ -115,7 +115,7 @@ Goals:
 - Componentize repeated page structures.
 - Componentize complex visualizations.
 - Improve local hot-reload development.
-- Preserve static deployment to Cloudflare Pages.
+- Preserve static deployment through Cloudflare Workers static assets.
 - Move reusable scientific code toward typed modules.
 
 Current status:

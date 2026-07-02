@@ -6,7 +6,7 @@ Use it together with:
 - [Development Roadmap](development-roadmap.md)
 - [Project Structure](project-structure.md)
 
-This document is the source of truth for technology choices, the Vite + Vue + D3.js migration direction, and Cloudflare Pages deployment principles.
+This document is the source of truth for technology choices, the Vite + Vue + D3.js migration direction, and Cloudflare Workers static asset deployment principles.
 
 BioassayCraft is currently a static HTML/CSS/JavaScript site. That remains appropriate for the current stage.
 
@@ -18,7 +18,7 @@ The long-term technical direction is:
 Static HTML/CSS/JS
   -> Vite + Vue
   -> Vite + Vue + D3.js for complex interactive artifacts
-  -> Cloudflare Pages static deployment
+  -> Cloudflare Workers static asset deployment
 ```
 
 This direction should be adopted gradually.
@@ -150,17 +150,18 @@ Current strategy:
 
 This keeps `/`, `/learn/`, `/journeys/`, `/tools/`, and `/simulators/` available while Vue migration continues page by page.
 
-## Cloudflare Pages
+## Cloudflare Workers
 
-The site should continue to deploy as static files.
+The site should deploy to Cloudflare Workers as static assets.
 
-Any future build step should produce static output suitable for Cloudflare Pages.
+Any future build step should produce static output suitable for Wrangler deployment from `./dist`.
 
-Current Cloudflare Pages settings:
+Current Cloudflare Workers settings:
 
 ```text
 Build command: npm run build
-Output directory: dist
+Deploy command: npx wrangler deploy
+Assets directory: ./dist
 ```
 
 Avoid server-only features unless a later product need clearly requires them.

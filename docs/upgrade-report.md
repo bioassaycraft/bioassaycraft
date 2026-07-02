@@ -18,23 +18,23 @@ It did not change:
 
 ## Technology Stack Audit
 
-| Area | Before | After | Latest Checked | Decision | Risk |
-| --- | --- | --- | --- | --- | --- |
-| Node.js | 23.11.0 local | `.nvmrc` 24.18.0 | 24.18.0 LTS, 26.4.0 latest release | Recommend 24 LTS | Low |
-| npm | 10.9.2 local | packageManager 11.18.0 | 11.18.0 | Use with Node 24 | Low |
-| Vite | 5.4.21 | 8.1.3 | 8.1.3 | Upgraded | Medium |
-| @vitejs/plugin-vue | 5.2.4 | 6.0.7 | 6.0.7 | Upgraded | Medium |
-| Vue | 3.5.39 | 3.5.39 | 3.5.39 | Kept current | Low |
-| D3 | 7.9.0 | 7.9.0 | 7.9.0 | Kept current | Low |
-| Vue Router | not installed | not installed | 5.1.0 | Not needed now | Low |
-| TypeScript | not installed | not installed | 6.0.3 | Defer | Medium |
-| ESLint | not installed | 10.6.0 | 10.6.0 | Added | Low |
-| @eslint/js | not installed | 10.0.1 | 10.0.1 | Added | Low |
-| eslint-plugin-vue | not installed | 10.9.2 | 10.9.2 | Added | Low |
-| Prettier | not installed | 3.9.4 | 3.9.4 | Added | Low |
-| PostCSS | transitive only | transitive only | 8.5.16 | No direct config | Low |
-| Autoprefixer | not installed | not installed | 10.5.2 | Not needed now | Low |
-| Wrangler | not installed | not installed | 4.107.0 | Not needed | Low |
+| Area               | Before          | After                  | Latest Checked                     | Decision                 | Risk   |
+| ------------------ | --------------- | ---------------------- | ---------------------------------- | ------------------------ | ------ |
+| Node.js            | 23.11.0 local   | `.nvmrc` 24.18.0       | 24.18.0 LTS, 26.4.0 latest release | Recommend 24 LTS         | Low    |
+| npm                | 10.9.2 local    | packageManager 11.18.0 | 11.18.0                            | Use with Node 24         | Low    |
+| Vite               | 5.4.21          | 8.1.3                  | 8.1.3                              | Upgraded                 | Medium |
+| @vitejs/plugin-vue | 5.2.4           | 6.0.7                  | 6.0.7                              | Upgraded                 | Medium |
+| Vue                | 3.5.39          | 3.5.39                 | 3.5.39                             | Kept current             | Low    |
+| D3                 | 7.9.0           | 7.9.0                  | 7.9.0                              | Kept current             | Low    |
+| Vue Router         | not installed   | not installed          | 5.1.0                              | Not needed now           | Low    |
+| TypeScript         | not installed   | not installed          | 6.0.3                              | Defer                    | Medium |
+| ESLint             | not installed   | 10.6.0                 | 10.6.0                             | Added                    | Low    |
+| @eslint/js         | not installed   | 10.0.1                 | 10.0.1                             | Added                    | Low    |
+| eslint-plugin-vue  | not installed   | 10.9.2                 | 10.9.2                             | Added                    | Low    |
+| Prettier           | not installed   | 3.9.4                  | 3.9.4                              | Added                    | Low    |
+| PostCSS            | transitive only | transitive only        | 8.5.16                             | No direct config         | Low    |
+| Autoprefixer       | not installed   | not installed          | 10.5.2                             | Not needed now           | Low    |
+| Wrangler           | not installed   | 4.107.0                | 4.107.0                            | Added for Workers deploy | Low    |
 
 Latest versions were checked from the npm registry. Node.js LTS status was checked from the official Node.js website.
 
@@ -52,20 +52,18 @@ Because Node 23 is outside that support range, `npm install` on the audit machin
 
 ## Cloudflare Deployment
 
-BioassayCraft should deploy to Cloudflare Pages.
+BioassayCraft is configured for Cloudflare Workers static assets deployment.
 
 Recommended settings:
 
 ```text
 Build command: npm run build
-Output directory: dist
 Root directory: /
 Node.js version: 24.18.0
+Deploy command: npx wrangler deploy
 ```
 
-Cloudflare Workers is not needed because the project currently produces static assets and has no server runtime, API handlers, KV, queues, Durable Objects, or SSR requirement.
-
-Wrangler is not installed and should not be added unless the project later introduces Worker-specific infrastructure.
+Wrangler deploys `./dist` as Worker static assets. The project uses `assets.not_found_handling = "single-page-application"` so navigation requests that do not match a concrete file are served by `/index.html`.
 
 ## Dependencies Upgraded
 
@@ -79,6 +77,7 @@ Wrangler is not installed and should not be added unless the project later intro
 - `eslint-plugin-vue`
 - `globals`
 - `prettier`
+- `wrangler`
 
 ## Dependencies Kept
 
@@ -93,7 +92,6 @@ D3 is currently reserved for scientific visualization work. It is not imported b
 - `typescript`: useful later, but adding it now would expand migration scope.
 - `postcss`: already present transitively through Vite and Vue tooling.
 - `autoprefixer`: not needed without a custom PostCSS pipeline.
-- `wrangler`: not needed for Cloudflare Pages static deployment.
 
 ## Compatibility Fixes
 

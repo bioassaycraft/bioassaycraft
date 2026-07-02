@@ -49,18 +49,20 @@ Existing `tools/` and `simulators/` routes are preserved. Calculators, converter
 
 The previous homepage is archived at `archive/legacy-homepage/` for historical reference only. It is not part of site navigation or the deployment build.
 
-## Cloudflare Pages
+## Cloudflare Workers
 
 Recommended settings:
 
 ```text
 Build command: npm run build
-Output directory: dist
 Root directory: /
 Node.js version: 24.18.0
+Deploy command: npx wrangler deploy
 ```
 
 The build runs Vite for the default homepage and then copies the existing static site directories into `dist/` so current tool and learning routes continue to deploy at their existing paths.
+
+Wrangler deploys `./dist` as Worker static assets using `wrangler.jsonc`.
 
 ## Migration Boundary
 

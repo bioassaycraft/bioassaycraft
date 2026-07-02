@@ -37,7 +37,7 @@ Current problems:
 - Panel, metric card, chart, form, table, footer, and header patterns are repeated with small variations.
 - Some interactive pages mix rendering, state handling, SVG drawing, and domain logic in large page scripts.
 - There is no build tool, package metadata, lint command, formatting command, or standard local preview command.
-- Deployment expectations for Cloudflare Pages are implicit rather than documented in one engineering guide.
+- Deployment expectations for Cloudflare Workers static assets are documented through `wrangler.jsonc`.
 - Mobile behavior is handled page by page, which creates a risk of inconsistent breakpoints and chart readability.
 - `learn/` is the formal home for future interactive pharmacopoeia learning. `lessons/` exists only as a legacy placeholder and should not receive new content.
 - Existing files are not yet consistently tracked and reviewed as one coherent app surface.
@@ -50,7 +50,7 @@ Recommended long-term route:
 Static HTML/CSS/JS
   -> Vite + Vue
   -> Vite + Vue + D3.js for complex interactive artifacts
-  -> Cloudflare Pages deployment
+  -> Cloudflare Workers static asset deployment
 ```
 
 Vite + Vue + D3.js is the preferred migration direction because it supports fast local iteration, componentized scientific interfaces, and custom statistical visualization while preserving static deployment.
@@ -243,7 +243,7 @@ Rules while the site remains static:
 - Keep page-specific CSS under `assets/css/tools/` or `assets/css/simulators/` until a shared component stylesheet exists.
 - Do not create vague files such as `script.js`, `main.js`, `style.css`, or `new.html`.
 - Do not duplicate legacy routes unless an existing deployed URL must remain valid.
-- Do not move `simulators/` pages into `tools/` only for naming purity. If routes are consolidated later, update old links, redirects, and Cloudflare Pages deployment behavior deliberately.
+- Do not move `simulators/` pages into `tools/` only for naming purity. If routes are consolidated later, update old links, redirects, and Cloudflare Workers static asset deployment behavior deliberately.
 
 Possible future Vite + Vue target structure:
 
@@ -441,7 +441,7 @@ npm run test
 
 Current deployment model:
 
-- Static files can be deployed directly to Cloudflare Pages.
+- Static files are deployed through Cloudflare Workers static assets.
 - Directory routes must contain `index.html`.
 - Asset links should work from deployed root paths.
 - Avoid server-only assumptions.
@@ -449,8 +449,8 @@ Current deployment model:
 Future Vite + Vue deployment:
 
 - Use static build output.
-- Use Cloudflare Pages as static hosting first.
-- Add Cloudflare Functions only if a specific feature requires server-side execution.
+- Use Wrangler to deploy `./dist`.
+- Add Worker script logic only if a specific feature requires server-side execution.
 - Keep public assets stable so existing icon and brand URLs remain valid.
 
 ## Migration Plan
@@ -512,7 +512,7 @@ Before a large migration:
 
 - Confirm the target route map.
 - Confirm whether old static files remain as redirects or are removed.
-- Confirm Cloudflare Pages build settings.
+- Confirm Cloudflare Workers build and deploy settings.
 - Confirm preview URL behavior.
 - Confirm tests and smoke checks.
 

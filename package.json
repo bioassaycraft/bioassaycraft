@@ -13,7 +13,9 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test",
     "lint": "eslint src scripts tests vite.config.js eslint.config.js prettier.config.js",
-    "format": "prettier --check \"src/**/*.{js,vue,css}\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.{js,json,html}\""
+    "format": "prettier --check \"src/**/*.{js,vue,css}\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.{js,json,html}\"",
+    "deploy": "wrangler deploy",
+    "deploy:dry-run": "wrangler deploy --dry-run"
   },
   "dependencies": {
     "d3": "^7.9.0",
@@ -26,6 +28,7 @@
     "eslint-plugin-vue": "^10.9.2",
     "globals": "^17.7.0",
     "prettier": "^3.9.4",
-    "vite": "^8.1.3"
+    "vite": "^8.1.3",
+    "wrangler": "^4.107.0"
   }
 }

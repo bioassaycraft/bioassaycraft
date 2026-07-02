@@ -128,7 +128,7 @@ Current Tools classification:
 
 Current physical routes still include `tools/` and `simulators/` because the site is static and existing URLs should remain stable. Product classification treats them all as Tools until a later migration consolidates routes intentionally.
 
-Do not move `/simulators/` routes into `/tools/` only for naming purity. If a future Vite + Vue route cleanup consolidates product routes, it must handle old links, redirects, and Cloudflare Pages deployment behavior explicitly.
+Do not move `/simulators/` routes into `/tools/` only for naming purity. If a future Vite + Vue route cleanup consolidates product routes, it must handle old links, redirects, and Cloudflare Workers static asset deployment behavior explicitly.
 
 Future Tools may include:
 

@@ -29,7 +29,7 @@ Use these when a task specifically touches content, structure, technology, or pa
   Current directory structure, route conventions, file naming, and static-site organization.
 
 - [technical-direction.md](technical-direction.md)  
-  Vite + Vue + D3.js migration direction and Cloudflare Pages deployment principles.
+  Vite + Vue + D3.js migration direction and Cloudflare Workers static asset deployment principles.
 
 - [upgrade-report.md](upgrade-report.md)
   Frontend infrastructure audit, dependency upgrade decisions, Cloudflare deployment check, and validation notes.
@@ -92,7 +92,7 @@ The long-term direction is:
 Vite + Vue homepage
   -> selected Vite + Vue tools
   -> Vite + Vue + D3.js scientific artifacts
-  -> Cloudflare Pages static deployment
+  -> Cloudflare Workers static asset deployment
 ```
 
 Do not perform full Vue migration, route consolidation, backend setup, database setup, account system, or scientific calculation changes unless explicitly requested.
