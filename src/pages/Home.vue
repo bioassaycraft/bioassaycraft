@@ -6,73 +6,68 @@ const emit = defineEmits(["activate-group", "clear-group"]);
 const heroProgress = ref(0);
 const hasScrolled = ref(false);
 
-const reasoningNodes = [
-  {
-    label: "Question",
-    note: "What decision must the assay support?",
-  },
-  {
-    label: "ATP",
-    note: "Name the intended purpose before designing the method.",
-  },
-  {
-    label: "Method Design",
-    note: "Choose the format, readout, model, and controls.",
-  },
-  {
-    label: "Validation",
-    note: "Ask how much evidence is enough.",
-  },
-  {
-    label: "Evidence",
-    note: "Bias, precision, residuals, and reportable results become visible.",
-  },
-  {
-    label: "Decision",
-    note: "Use the evidence to support practical judgement.",
-  },
-];
-
-const practicePaths = [
+const journeyItems = [
   {
     title: "Method Development",
-    note: "Define purpose, design choices, and assay strategy.",
+    note: "ATP-driven design choices, assay strategy.",
+    href: "/journeys/",
   },
   {
     title: "Method Validation",
-    note: "Ask how much evidence is enough.",
+    note: "Evidence for reportable results.",
+    href: "/journeys/",
   },
   {
     title: "Data Analysis",
-    note: "Turn variation into interpretable evidence.",
+    note: "Interpretation of bioassay data.",
+    href: "/journeys/",
   },
 ];
 
-const artifacts = [
+const tools = [
   {
-    title: "ANOVA Explorer",
-    note: "Explore how variation becomes evidence.",
-    href: "/simulators/anova-model-comparison/",
-  },
-  {
-    title: "Validation Sample Size",
-    note: "Estimate evidence required by validation assumptions.",
-    href: "/tools/validation-sample-size-calculator/",
-  },
-  {
-    title: "Concentration Converter",
-    note: "Move between mass and molar thinking.",
+    title: "Conc. Converter",
+    note: "Mass ↔ molar.",
     href: "/tools/concentration-converter/",
   },
   {
-    title: "OOS Risk Explorer",
-    note: "Reason through tail-area risk.",
-    href: "/tools/oos-risk-explorer/",
+    title: "Sample Size Calculator",
+    note: "Runs from assumptions.",
+    href: "/tools/validation-sample-size-calculator/",
   },
   {
-    title: "Method Validation Simulator",
-    note: "Explore validation design as risk reasoning.",
+    title: "ANOVA Explorer",
+    note: "Variation becomes evidence.",
+    href: "/simulators/anova-model-comparison/",
+  },
+  {
+    title: "Validation Simulator",
+    note: "Validation as risk reasoning.",
     href: "/simulators/validation-simulator/",
+  },
+  {
+    title: "OOS Risk Explorer",
+    note: "Tail-area risk.",
+    href: "/tools/oos-risk-explorer/",
+  },
+];
+
+const learnItems = [
+  {
+    title: "中国药典",
+    detail: "1431 / 9307 / 9401",
+  },
+  {
+    title: "USP",
+    detail: "<1032> / <1033> / <1034>",
+  },
+  {
+    title: "EP",
+    detail: "5.3",
+  },
+  {
+    title: "ICH",
+    detail: "Q2(R2) / Q14",
   },
 ];
 
@@ -154,98 +149,64 @@ onBeforeUnmount(() => {
     :class="{ 'has-scrolled': hasScrolled }"
     aria-labelledby="home-title"
   >
-    <section class="notebook-scene scene-identity" aria-label="BioassayCraft identity">
-      <div class="notebook-paper" aria-hidden="true"></div>
-      <div class="identity-copy">
+    <section class="home-scene hero-scene" aria-label="BioassayCraft identity">
+      <div class="hero-field" aria-hidden="true"></div>
+      <div class="hero-copy">
         <h1 id="home-title" :style="heroTitleStyle">BioassayCraft</h1>
-        <p class="hero-slogan">From theory to practice.</p>
-        <p class="hero-subline">
-          Interactive tutorials, simulations, practical tools, and bioassay insights.
-        </p>
+        <p>From theory to practice.</p>
       </div>
-      <a class="scroll-cue" href="#learn" aria-label="Scroll to begin">
+      <a class="scroll-cue" href="#learn" aria-label="Explore BioassayCraft">
         <span aria-hidden="true">↓</span>
       </a>
     </section>
 
-    <section
-      id="learn"
-      class="notebook-scene scene-question reading-scene"
-      aria-labelledby="question-title"
-    >
-      <div class="scene-copy">
-        <p class="eyebrow">Question</p>
-        <h2 id="question-title">Every scientific decision begins with a question.</h2>
-        <p class="question-line">How do we know an assay is fit for purpose?</p>
-      </div>
-      <div class="scene-illustration question-illustration" aria-hidden="true">
-        <span></span>
-      </div>
-    </section>
-
-    <section class="notebook-scene scene-chain reading-scene" aria-labelledby="chain-title">
-      <div class="scene-copy">
-        <p class="eyebrow">Reasoning chain</p>
-        <h2 id="chain-title">From question to evidence, then decision.</h2>
+    <section id="learn" class="home-scene content-scene learn-scene" aria-labelledby="learn-title">
+      <div class="scene-heading">
+        <p class="eyebrow">Learn</p>
+        <h2 id="learn-title">Coming Soon.</h2>
+        <p class="scene-note">Learn beyond the guidance.</p>
       </div>
 
-      <ol class="reasoning-chain" aria-label="Bioassay reasoning chain">
-        <li v-for="node in reasoningNodes" :key="node.label" class="chain-node">
-          <span class="chain-dot" aria-hidden="true"></span>
-          <strong>{{ node.label }}</strong>
-          <small>{{ node.note }}</small>
+      <ul class="learn-list" aria-label="Future BioassayCraft learning references">
+        <li v-for="item in learnItems" :key="item.title">
+          <strong>{{ item.title }}</strong>
+          <span v-if="item.detail">{{ item.detail }}</span>
         </li>
-      </ol>
+      </ul>
     </section>
 
     <section
       id="journey"
-      class="notebook-scene scene-paths reading-scene"
-      aria-labelledby="paths-title"
+      class="home-scene content-scene journey-scene"
+      aria-labelledby="journey-title"
     >
-      <div class="scene-copy">
-        <p class="eyebrow">Practice paths</p>
-        <h2 id="paths-title">Follow the reasoning.</h2>
+      <div class="scene-heading">
+        <p class="eyebrow">Journey</p>
+        <h2 id="journey-title">Coming Soon.</h2>
+        <p class="scene-note">Every bioassay follows its own journey.</p>
       </div>
 
-      <div class="path-list" aria-label="Bioassay practice paths">
-        <article v-for="path in practicePaths" :key="path.title" class="path-node" tabindex="0">
-          <h3>{{ path.title }}</h3>
-          <p>{{ path.note }}</p>
-        </article>
-      </div>
-    </section>
-
-    <section
-      id="tools"
-      class="notebook-scene scene-artifacts reading-scene"
-      aria-labelledby="artifacts-title"
-    >
-      <div class="scene-copy">
-        <p class="eyebrow">Artifacts</p>
-        <h2 id="artifacts-title">Scientific objects for exploration.</h2>
-      </div>
-
-      <div class="artifact-list" aria-label="BioassayCraft artifacts">
-        <a
-          v-for="artifact in artifacts"
-          :key="artifact.href"
-          class="artifact-link"
-          :href="artifact.href"
-        >
-          <span>{{ artifact.title }}</span>
-          <small>{{ artifact.note }}</small>
+      <div class="journey-list" aria-label="BioassayCraft journeys">
+        <a v-for="item in journeyItems" :key="item.title" class="journey-link" :href="item.href">
+          <span>{{ item.title }}</span>
+          <small>{{ item.note }}</small>
         </a>
       </div>
     </section>
 
-    <section class="notebook-scene scene-closing" aria-label="BioassayCraft closing reflection">
-      <div class="closing-copy">
-        <p>Theory guides the question.</p>
-        <p>Evidence supports the decision.</p>
-        <p>Practice refines the craft.</p>
+    <section id="tools" class="home-scene content-scene tools-scene" aria-labelledby="tools-title">
+      <div class="scene-heading">
+        <p class="eyebrow">Tools</p>
+        <h2 id="tools-title">Practical tools</h2>
+        <p class="scene-note">That may be useful.</p>
       </div>
-      <p class="closing-domain">bioassaycraft.com</p>
+
+      <div class="tool-list" aria-label="BioassayCraft tools">
+        <a v-for="tool in tools" :key="tool.href" class="tool-link" :href="tool.href">
+          <span>{{ tool.title }}</span>
+          <small>{{ tool.note }}</small>
+        </a>
+      </div>
     </section>
   </section>
 </template>

@@ -51,18 +51,26 @@ The previous homepage is archived at `archive/legacy-homepage/` for historical r
 
 ## Cloudflare Workers
 
-Recommended settings:
+Production deploys through GitHub Actions to Cloudflare Workers static assets.
 
 ```text
 Build command: npm run build
-Root directory: /
-Node.js version: 24.18.0
 Deploy command: npx wrangler deploy
+GitHub workflow: .github/workflows/deploy.yml
 ```
 
 The build runs Vite for the default homepage and then copies the existing static site directories into `dist/` so current tool and learning routes continue to deploy at their existing paths.
 
 Wrangler deploys `./dist` as Worker static assets using `wrangler.jsonc`.
+
+Required GitHub secrets:
+
+```text
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+```
+
+See [docs/deployment.md](docs/deployment.md) for the full deployment workflow.
 
 ## Migration Boundary
 

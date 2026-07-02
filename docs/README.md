@@ -31,6 +31,9 @@ Use these when a task specifically touches content, structure, technology, or pa
 - [technical-direction.md](technical-direction.md)  
   Vite + Vue + D3.js migration direction and Cloudflare Workers static asset deployment principles.
 
+- [deployment.md](deployment.md)
+  GitHub Actions deployment flow, required Cloudflare secrets, and Workers static asset deployment notes.
+
 - [upgrade-report.md](upgrade-report.md)
   Frontend infrastructure audit, dependency upgrade decisions, Cloudflare deployment check, and validation notes.
 
