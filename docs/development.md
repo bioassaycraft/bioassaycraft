@@ -116,13 +116,7 @@ npm run format
 
 Existing `tools/` and `simulators/` routes are preserved. Calculators, converters, explorers, and simulators are product-classified as Tools even when some physical routes still live under `simulators/`.
 
-The previous homepage is archived at:
-
-```text
-archive/legacy-homepage/
-```
-
-It is retained for historical reference only and is not part of site navigation or the deployment build.
+The previous homepage archive has been removed from the active repository. It is not part of site navigation or the deployment build.
 
 ## Deployment
 

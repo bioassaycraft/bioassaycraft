@@ -105,15 +105,9 @@ D3 is currently reserved for scientific visualization work. It is not imported b
 
 ## Removed Legacy Code
 
-The retired homepage had already been moved to `archive/legacy-homepage/`.
+The retired homepage archive has been removed from the active repository.
 
-This pass confirmed there are no active references to:
-
-- `assets/css/home.css`
-- `assets/js/home-reasoning-constellation.js`
-- `/app/` homepage entry
-- old homepage constellation code
-- Wrangler configuration
+This pass confirmed there are no active references to the retired homepage entry, old homepage constellation code, or obsolete Wrangler configuration.
 
 ## Validation
 
