@@ -118,9 +118,10 @@ const requestScrollUpdate = () => {
 
 const heroTitleStyle = computed(() => {
   const progress = heroProgress.value;
-  const x = -progress * Math.min(window.innerWidth * 0.34, 430);
-  const y = -progress * Math.min(window.innerHeight * 0.3, 260);
-  const scale = 1 - progress * 0.72;
+  const isMobile = window.innerWidth < 768;
+  const x = -progress * Math.min(window.innerWidth * (isMobile ? 0.14 : 0.34), isMobile ? 80 : 430);
+  const y = -progress * Math.min(window.innerHeight * (isMobile ? 0.18 : 0.3), isMobile ? 96 : 260);
+  const scale = 1 - progress * (isMobile ? 0.34 : 0.72);
 
   return {
     transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,

@@ -173,7 +173,7 @@ Recommended hierarchy:
 
 Global page rules:
 
-- Use explicit content width, usually `width: min(var(--max-width), calc(100% - 48px))`.
+- Use explicit content width, usually `width: min(var(--max-width), calc(100% - var(--bc-container-inline)))`.
 - Keep page background consistent.
 - Avoid horizontal overflow.
 - Use grids for tool and simulator workspaces.
@@ -197,6 +197,79 @@ Subpage rules:
 - Put controls near the outputs they affect.
 - Keep formulas and details available but not visually dominant.
 - Prefer panels for actual tool regions, not decoration.
+
+## Responsive Design
+
+Responsive behavior is part of the design system, not a per-page fix. New pages must use the shared responsive tokens in `assets/css/base.css` and the same breakpoint model used by the homepage, module index pages, tools, and simulators.
+
+Breakpoints:
+
+- Desktop: `1200px` and wider.
+- Tablet: `768px` to `1199px`.
+- Mobile: below `768px`.
+
+CSS custom properties document these values:
+
+```css
+--bc-breakpoint-desktop: 1200px;
+--bc-breakpoint-tablet-min: 768px;
+--bc-breakpoint-tablet-max: 1199px;
+--bc-breakpoint-mobile-max: 767px;
+```
+
+Media queries must use `@media (max-width: 1199px)` for tablet-and-smaller changes and `@media (max-width: 767px)` for mobile changes. Do not introduce isolated breakpoints such as `640px`, `700px`, `820px`, or `980px` unless a specific component has a measured, documented need.
+
+Typography scaling:
+
+- Use `clamp()` through shared tokens rather than fixed viewport-width-only sizing.
+- Homepage brand title uses `--bc-home-title`.
+- Page, tool, and simulator titles use `--bc-hero-title`.
+- Major section headings use `--bc-h2-size`.
+- Keep `letter-spacing: 0` for large headings.
+- On mobile, large headings should use a slightly looser line-height, usually `0.98` to `1`, so long words do not appear clipped.
+- Mobile homepage title should read at roughly 55-65% of the desktop visual scale and must fit inside the content container on common phone widths.
+
+Hero layout:
+
+- Desktop heroes may use two-column editorial layouts.
+- Tablet heroes may keep two columns only when both columns remain readable without squeezing copy.
+- Mobile heroes collapse to one column and reduce vertical padding instead of simply shrinking the desktop layout.
+- The Hero title must have `max-width: 100%` or a container-limited width and must never cause horizontal overflow.
+- Homepage Hero should keep visual focus on the title, but mobile spacing should be compact enough that the first viewport is not mostly empty.
+- Mobile homepage Hero should reduce top padding, keep the title centered, and reserve only a small lower cue area.
+
+Navigation:
+
+- Desktop navigation can use wider gaps and full-size labels.
+- Tablet navigation compresses gap before changing structure.
+- Mobile navigation remains visible because there are only three primary entries.
+- Do not add a hamburger menu for the current `Learn`, `Journey`, and `Tools` navigation.
+- Mobile navigation should use smaller type, reduced gap, and at least `38px` effective height per link.
+- Header logo, brand text, and nav must be vertically compressed on mobile while preserving the minimal style.
+
+Spacing:
+
+- Use `--bc-container-inline`, `--bc-page-padding-block`, `--bc-header-padding-block`, and `--bc-section-gap`.
+- Desktop containers usually use `calc(100% - 48px)`.
+- Tablet containers use `calc(100% - 40px)`.
+- Mobile containers use `calc(100% - 32px)`.
+- Reduce mobile Hero and header vertical padding before reducing content readability.
+- Keep whitespace generous, but avoid empty first-screen space that pushes the main message out of view.
+
+Viewport units:
+
+- Do not use traditional `100vh` for primary page or Hero height.
+- Use `100svh` for stable mobile viewport sizing.
+- Use `100dvh` only when a component intentionally needs to respond to browser chrome expansion and collapse.
+- Fallbacks may be used for older browsers, but the modern `svh` or `dvh` rule must be the effective rule.
+
+Overflow and tap targets:
+
+- `body` should prevent page-level horizontal scrolling with `overflow-x: hidden`, but this is not a substitute for fixing overflowing components.
+- Use `minmax(0, 1fr)` in grids that contain text, charts, forms, or scientific output.
+- Tables and matrices may use component-level horizontal scrolling when preserving columns is clearer than forcing them into unreadable cards.
+- Buttons, links, inputs, and segmented controls must remain comfortably tappable on mobile.
+- Before shipping, check `320px`, `375px`, `390px`, `768px`, and desktop widths for title clipping, text overlap, horizontal scroll, and unusable controls.
 
 ## Scientific User Experience
 

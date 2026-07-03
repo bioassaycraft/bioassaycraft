@@ -51,9 +51,9 @@ p {
 }
 
 .page {
-  width: min(var(--max-width), calc(100% - 48px));
+  width: min(var(--max-width), calc(100% - var(--bc-container-inline)));
   margin: 0 auto;
-  padding: 34px 0 64px;
+  padding: var(--bc-page-padding-block);
 }
 
 .site-header {
@@ -61,7 +61,7 @@ p {
   justify-content: space-between;
   gap: 18px;
   align-items: center;
-  padding: 18px 0 42px;
+  padding: var(--bc-header-padding-block);
 }
 
 .brand-link,
@@ -132,7 +132,7 @@ summary:focus-visible {
 
 h1 {
   max-width: 740px;
-  font-size: clamp(2.15rem, 4vw, 4.2rem);
+  font-size: var(--bc-hero-title);
   font-weight: 600;
   letter-spacing: 0;
   line-height: 0.96;
@@ -757,7 +757,7 @@ tr:last-child td {
   text-align: right;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1199px) {
   .hero,
   .reasoning-lead,
   .workspace,
@@ -779,16 +779,15 @@ tr:last-child td {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .page {
-    width: min(100% - 28px, var(--max-width));
-    padding-top: 22px;
+    width: min(var(--max-width), calc(100% - var(--bc-container-inline)));
   }
 
   .site-header {
     align-items: flex-start;
     flex-direction: column;
-    padding-bottom: 30px;
+    padding-bottom: 24px;
   }
 
   .back-link {
@@ -797,7 +796,18 @@ tr:last-child td {
   }
 
   .hero {
-    padding-top: 18px;
+    gap: 18px;
+    padding: 18px 0 22px;
+  }
+
+  h1 {
+    max-width: 100%;
+    line-height: 1;
+  }
+
+  .subtitle {
+    font-size: 0.94rem;
+    line-height: 1.58;
   }
 
   .result-grid,

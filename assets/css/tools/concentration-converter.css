@@ -29,7 +29,7 @@ html {
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100svh;
   color: var(--text);
   background: var(--background);
   text-rendering: optimizeLegibility;
@@ -48,13 +48,13 @@ p {
 
 .page,
 .site-footer {
-  width: min(1040px, calc(100% - 48px));
+  width: min(1040px, calc(100% - var(--bc-container-inline)));
   margin: 0 auto;
 }
 
 .page {
-  min-height: calc(100vh - 87px);
-  padding: 34px 0 68px;
+  min-height: calc(100svh - 87px);
+  padding: var(--bc-page-padding-block);
 }
 
 .site-header {
@@ -62,7 +62,7 @@ p {
   justify-content: space-between;
   gap: 18px;
   align-items: center;
-  padding: 18px 0 42px;
+  padding: var(--bc-header-padding-block);
 }
 
 .brand-link,
@@ -126,7 +126,7 @@ p {
 h1 {
   max-width: 740px;
   margin-top: 10px;
-  font-size: clamp(2.15rem, 4vw, 4.2rem);
+  font-size: var(--bc-hero-title);
   font-weight: 600;
   letter-spacing: 0;
   line-height: 0.96;
@@ -416,14 +416,10 @@ h2 {
   text-align: right;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 1199px) {
   .page,
   .site-footer {
-    width: min(100% - 32px, 1040px);
-  }
-
-  .page {
-    padding-top: 22px;
+    width: min(1040px, calc(100% - var(--bc-container-inline)));
   }
 
   .site-header {
@@ -442,10 +438,11 @@ h2 {
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 767px) {
   .site-header {
     align-items: flex-start;
     flex-direction: column;
+    padding-bottom: 24px;
   }
 
   .back-link {
@@ -453,8 +450,19 @@ h2 {
     justify-content: center;
   }
 
+  .converter-hero {
+    gap: 18px;
+    padding: 18px 0 22px;
+  }
+
+  h1 {
+    max-width: 100%;
+    line-height: 1;
+  }
+
   .subtitle {
     font-size: 0.94rem;
+    line-height: 1.58;
   }
 
   .lead-block,
