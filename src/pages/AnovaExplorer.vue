@@ -1,6 +1,12 @@
 <script setup>
 import * as d3 from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import MobileAnovaSummary from "../components/anova/MobileAnovaSummary.vue";
+import MobileSegmentedNavigation from "../components/anova/MobileSegmentedNavigation.vue";
+import MobileStepController from "../components/anova/MobileStepController.vue";
+import MobileTopControls from "../components/anova/MobileTopControls.vue";
+import MobileVarianceDetailCard from "../components/anova/MobileVarianceDetailCard.vue";
+import MobileVarianceTree from "../components/anova/MobileVarianceTree.vue";
 import { anovaCopy } from "../i18n/anova-explorer";
 import {
   createAnovaScenes,
@@ -12,16 +18,25 @@ import {
 const language = ref("zh");
 const activeModule = ref("single");
 const activeStep = ref("mean");
+const explorerRoot = ref(null);
 const chartSvg = ref(null);
 const chartWrap = ref(null);
 const headerMorphTrigger = ref(null);
+const moduleControl = ref(null);
+const stepControl = ref(null);
 const ssScaleMode = ref("teaching");
 const hoveredSS = ref(null);
+const selectedMobileNodeId = ref(null);
+const mobileView = ref("fit");
+const fullMobileAnovaOpen = ref(false);
+const mobileInfoOpen = ref(false);
+const mobileContentTop = ref(0);
 const isHeaderMorphed = ref(false);
 const parameters = ref({ ...defaultAnovaParameters });
 
 let chartObserver = null;
 let headerMorphObserver = null;
+let mobileHeaderObserver = null;
 
 const ssBarWidth = 760;
 
@@ -30,6 +45,7 @@ const scenes = computed(() => createAnovaScenes(parameters.value));
 const moduleSteps = computed(() => stepOrder[activeModule.value]);
 const scene = computed(() => scenes.value[activeModule.value][activeStep.value]);
 const stepCopy = computed(() => copy.value.steps[activeModule.value][activeStep.value]);
+const activeStepIndex = computed(() => moduleSteps.value.indexOf(activeStep.value));
 const equationText = computed(() => {
   if (typeof scene.value.equation === "string") return scene.value.equation;
   return scene.value.equation[language.value] || scene.value.equation.en;
@@ -117,10 +133,41 @@ const formulaPanel = computed(() => {
 const ssModeNote = computed(() =>
   ssScaleMode.value === "teaching" ? copy.value.ssTeachingNote : copy.value.ssTrueNote,
 );
+const mobileShellStyle = computed(() =>
+  mobileContentTop.value ? { "--mobile-content-top": `${mobileContentTop.value}px` } : {},
+);
+
+const updateMobileContentTop = () => {
+  if (typeof window === "undefined") return;
+  if (!window.matchMedia("(max-width: 768px)").matches || !explorerRoot.value) {
+    mobileContentTop.value = 0;
+    return;
+  }
+
+  const headerParts = [
+    explorerRoot.value.querySelector(".mobile-top-controls"),
+    explorerRoot.value.querySelector(".mobile-view-switch"),
+    explorerRoot.value.querySelector(".mobile-step-card"),
+  ].filter(Boolean);
+
+  if (!headerParts.length) return;
+
+  const rootTop = explorerRoot.value.getBoundingClientRect().top;
+  const headerBottom = Math.max(...headerParts.map((part) => part.getBoundingClientRect().bottom));
+  const styles = window.getComputedStyle(explorerRoot.value);
+  const gap = Number.parseFloat(styles.getPropertyValue("--mobile-section-gap")) || 8;
+  mobileContentTop.value = Math.ceil(headerBottom - rootTop + gap);
+};
 
 const setModule = (module) => {
   activeModule.value = module;
   activeStep.value = stepOrder[module][0];
+};
+
+const goToAdjacentStep = (direction) => {
+  const nextIndex = activeStepIndex.value + direction;
+  if (nextIndex < 0 || nextIndex >= moduleSteps.value.length) return;
+  activeStep.value = moduleSteps.value[nextIndex];
 };
 
 const setLanguage = (lang) => {
@@ -196,6 +243,13 @@ const componentColor = (key) =>
     extra: "#8e7a54",
     unconstrainedResidual: "#777b80",
     constrainedResidual: "#6f7379",
+    specimen: "#6f7e8c",
+    deviationParallel: "#766f86",
+    residualII: "#777b80",
+    modelLof: "#a17875",
+    standardLof: "#a17875",
+    testLof: "#a17875",
+    error: "#6f857b",
   })[key] || "#6e7278";
 
 const groupColor = (key) =>
@@ -388,6 +442,451 @@ const buildSSBarLayout = (current, displayMode, width) => {
 };
 
 const ssBarLayout = computed(() => buildSSBarLayout(scene.value, ssScaleMode.value, ssBarWidth));
+
+const mobileAnovaKeyForNode = (node) => {
+  if (!node) return null;
+  if (node.syntheticResidual) return null;
+  if (activeModule.value === "fourpl") {
+    if (node.key === "preparation") return "specimen";
+    if (node.key === "nonparallelism") return "deviationParallel";
+    if (node.key === "unconstrainedResidual") return "residualII";
+    if (node.key === "lackOfFit" || node.id === "lof") return "modelLof";
+    if (node.key === "pureError") return "error";
+  }
+
+  if (node.key === "lackOfFit" || /^lof\d?$/.test(node.id)) return "lackOfFit";
+  return node.key;
+};
+
+const mobileNodeColor = (key, id) =>
+  ({
+    total: "#303845",
+    treatment: "#59636f",
+    regression: "#4f7fd3",
+    preparation: "#4f7fd3",
+    intersection: "#7c78a3",
+    nonlinearity: "#d39444",
+    nonparallelism: "#7c78a3",
+    lackOfFit: "#d39444",
+    pureError: "#986fd0",
+    extra: "#a98442",
+    constrainedResidual: "#5ba08a",
+    unconstrainedResidual: "#5ba08a",
+    residualII: "#5ba08a",
+    modelLof: "#d39444",
+    error: "#986fd0",
+  })[key] ||
+  {
+    residual: "#5ba08a",
+    lof: "#d39444",
+    lof1: "#5ba08a",
+    lof2: "#5ba08a",
+    lof3: "#5ba08a",
+    lof4: "#5ba08a",
+  }[id] ||
+  componentColor(key);
+
+const mobileNodePrimaryLabel = (node) => {
+  return mobileLabelForKey(node.key, node.inlineLabel || node.label);
+};
+
+const mobileLabelForKey = (key, fallback = key) => {
+  return copy.value.mobile.nodeLabels?.[key] || fallback;
+};
+
+const mobileDetailLabelForKey = (key, fallback = key) => {
+  return copy.value.mobile.nodeDetailLabels?.[key] || mobileLabelForKey(key, fallback);
+};
+
+const mobileStepName = computed(() => {
+  return copy.value.mobile.stepNames?.[activeStep.value] || stepCopy.value.name;
+});
+
+const mobileNodeFlex = (node) => {
+  if (node.key === "total") return 1;
+  return Math.max(0.74, Math.min(3.2, node.percent / 26));
+};
+
+const mobileReadableShareFor = (segment) => {
+  const label = mobileLabelForKey(segment.key, segment.inlineLabel || segment.label);
+  if (["preparation", "specimen"].includes(segment.key)) return 0.155;
+  if (["nonparallelism", "nonlinearity", "pureError"].includes(segment.key)) return 0.13;
+  if (label.length >= 5) return 0.15;
+  if (label.length >= 3) return 0.125;
+  if (label.length === 2) return 0.11;
+  return 0.098;
+};
+
+const constrainedMobileSegmentShares = (segments) => {
+  const total =
+    segments.reduce((sumValue, segment) => sumValue + Math.max(0, segment.trueSS), 0) || 1;
+  const rawShares = segments.map((segment, index) => ({
+    index,
+    id: segment.id,
+    key: segment.key,
+    share: Math.max(0, segment.trueSS) / total,
+    minShare: mobileReadableShareFor(segment),
+  }));
+  const minTotal = rawShares.reduce((sumValue, item) => sumValue + item.minShare, 0);
+  const locked = new Set();
+  const finalShares = new Map();
+  const shareMap = new Map();
+
+  const setShare = (item, share) => {
+    shareMap.set(item.id, share);
+    shareMap.set(item.key, share);
+    if (
+      ["preparation", "specimen"].includes(item.key) ||
+      ["preparation", "specimen"].includes(item.id)
+    ) {
+      shareMap.set("preparation", share);
+      shareMap.set("specimen", share);
+    }
+  };
+
+  if (minTotal >= 1) {
+    rawShares.forEach((item) => finalShares.set(item.index, item.minShare / minTotal));
+  } else {
+    let remainingSpace = 1;
+    let changed = true;
+
+    while (changed) {
+      changed = false;
+      const flexible = rawShares.filter((item) => !locked.has(item.index));
+      const flexibleRawTotal = flexible.reduce((sumValue, item) => sumValue + item.share, 0);
+      const nextLocked = [];
+
+      flexible.forEach((item) => {
+        const candidate =
+          flexibleRawTotal > 0
+            ? (item.share / flexibleRawTotal) * remainingSpace
+            : remainingSpace / Math.max(1, flexible.length);
+        if (candidate < item.minShare) {
+          nextLocked.push(item);
+        }
+      });
+
+      nextLocked.forEach((item) => {
+        locked.add(item.index);
+        finalShares.set(item.index, item.minShare);
+        remainingSpace = Math.max(0, remainingSpace - item.minShare);
+        changed = true;
+      });
+    }
+
+    const flexible = rawShares.filter((item) => !locked.has(item.index));
+    const flexibleRawTotal = flexible.reduce((sumValue, item) => sumValue + item.share, 0);
+    flexible.forEach((item) => {
+      const share =
+        flexibleRawTotal > 0
+          ? (item.share / flexibleRawTotal) * remainingSpace
+          : remainingSpace / Math.max(1, flexible.length);
+      finalShares.set(item.index, Math.max(0, share));
+    });
+  }
+
+  rawShares.forEach((item) => setShare(item, finalShares.get(item.index) || 0));
+  const primaryTotal =
+    rawShares.reduce((sumValue, item) => sumValue + (shareMap.get(item.id) || 0), 0) || 1;
+  rawShares.forEach((item) => setShare(item, (shareMap.get(item.id) || 0) / primaryTotal));
+
+  return shareMap;
+};
+
+const mobileBaseSegmentShareMap = computed(() => {
+  const finalStep = moduleSteps.value[moduleSteps.value.length - 1];
+  const finalScene = scenes.value[activeModule.value][finalStep] || scene.value;
+  const finalRows = toSSRows(finalScene);
+  const finalSegments = finalRows[finalRows.length - 1]?.segments || [];
+  return constrainedMobileSegmentShares(finalSegments);
+});
+
+const makeMobileNode = (segment, totalSS) => ({
+  id: segment.id,
+  key: segment.key,
+  label: segment.inlineLabel || segment.longLabel || segment.label,
+  shortLabel: segment.label,
+  longLabel: segment.longLabel,
+  trueSS: segment.trueSS,
+  percent: totalSS ? (segment.trueSS / totalSS) * 100 : 0,
+  parts: segment.parts,
+  color: mobileNodeColor(segment.key, segment.id),
+  anovaKey: null,
+  children: [],
+});
+
+const makeMobileResidualNode = (segments, totalSS) => {
+  const residualSS = segments.reduce((total, segment) => total + segment.trueSS, 0);
+
+  return {
+    id: `mobile-residual-${segments.map((segment) => segment.id).join("-")}`,
+    key: "residual",
+    label: mobileLabelForKey("residual"),
+    shortLabel: mobileLabelForKey("residual"),
+    longLabel: mobileLabelForKey("residual"),
+    trueSS: residualSS,
+    percent: totalSS ? (residualSS / totalSS) * 100 : 0,
+    parts: segments.flatMap((segment) => segment.parts),
+    color: mobileNodeColor("residual", "residual"),
+    anovaKey: null,
+    syntheticResidual: true,
+    children: segments.map((segment) => makeMobileNode(segment, totalSS)),
+  };
+};
+
+const flattenMobileTree = (node) => {
+  if (!node) return [];
+  return [node, ...(node.children || []).flatMap((child) => flattenMobileTree(child))];
+};
+
+const mobileVarianceTree = computed(() => {
+  const rows = toSSRows(scene.value);
+  const rootSegment = rows[0]?.segments[0];
+  if (!rootSegment) return null;
+
+  const root = makeMobileNode(rootSegment, rootSegment.trueSS || 1);
+  const totalSS = root.trueSS || 1;
+  const currentRow = rows[rows.length - 1];
+  const residualKeys = new Set([
+    "lackOfFit",
+    "pureError",
+    "constrainedResidual",
+    "unconstrainedResidual",
+  ]);
+
+  if (currentRow) {
+    const explainedSegments = currentRow.segments.filter(
+      (segment) => !residualKeys.has(segment.key),
+    );
+    const residualSegments = currentRow.segments.filter((segment) => residualKeys.has(segment.key));
+
+    root.children = explainedSegments.map((segment) => makeMobileNode(segment, totalSS));
+
+    if (residualSegments.length > 1) {
+      root.children.push(makeMobileResidualNode(residualSegments, totalSS));
+    } else if (residualSegments.length === 1) {
+      root.children.push(makeMobileNode(residualSegments[0], totalSS));
+    }
+  }
+
+  flattenMobileTree(root).forEach((node) => {
+    node.anovaKey = mobileAnovaKeyForNode(node);
+  });
+
+  return root;
+});
+
+const mobileFlatNodes = computed(() => flattenMobileTree(mobileVarianceTree.value));
+const mobileTreeLevels = computed(() => {
+  const levels = [];
+  const queue = mobileVarianceTree.value ? [{ node: mobileVarianceTree.value, depth: 0 }] : [];
+
+  while (queue.length) {
+    const { node, depth } = queue.shift();
+    if (!levels[depth]) levels[depth] = [];
+    levels[depth].push(node);
+    node.children.forEach((child) => queue.push({ node: child, depth: depth + 1 }));
+  }
+
+  return levels;
+});
+const mobileTreeActiveIds = computed(() =>
+  highlightIdsFor(selectedMobileNodeId.value || scene.value.activeTerm, scene.value.module),
+);
+const mobileTreeActiveIdList = computed(() => [...mobileTreeActiveIds.value]);
+const prepareMobileNode = (node) =>
+  node
+    ? {
+        ...node,
+        mobileLabel: mobileNodePrimaryLabel(node),
+        mobileDetailLabel: mobileDetailLabelForKey(node.key, node.longLabel || node.label),
+        mobileFlex: mobileNodeFlex(node),
+        children: (node.children || []).map((child) => prepareMobileNode(child)),
+      }
+    : null;
+const mobileDisplayLevels = computed(() => {
+  const preparedRoot = prepareMobileNode(mobileVarianceTree.value);
+  const preparedById = new Map(flattenMobileTree(preparedRoot).map((node) => [node.id, node]));
+  return mobileTreeLevels.value.map((level) =>
+    level.map((node) => preparedById.get(node.id) || node),
+  );
+});
+const mobileSSRows = computed(() => {
+  const rows = toSSRows(scene.value);
+  const totalSS =
+    rows[0]?.segments.reduce((total, segment) => total + Math.max(0, segment.trueSS), 0) || 1;
+
+  return rows.map((row, index) => {
+    const stepIndex = activeModule.value === "fourpl" ? index : index - 1;
+    const stepKey = moduleSteps.value[stepIndex];
+    const title =
+      row.rowId === "total"
+        ? copy.value.mobile.ssRowTitles.total
+        : copy.value.mobile.stepNames?.[stepKey] ||
+          copy.value.mobile.ssRowTitles.layer ||
+          row.equation;
+
+    const segmentsWithShares = row.segments.map((segment) => {
+      const fixedShare =
+        segment.key === "total"
+          ? 1
+          : segment.parts.reduce(
+              (sumValue, part) =>
+                sumValue +
+                (mobileBaseSegmentShareMap.value.get(part.id) ||
+                  mobileBaseSegmentShareMap.value.get(part.key) ||
+                  0),
+              0,
+            );
+
+      return {
+        segment,
+        visualShare:
+          fixedShare || (row.segments.length === 1 ? 1 : mobileReadableShareFor(segment)),
+      };
+    });
+    const rowShareTotal =
+      segmentsWithShares.reduce((sumValue, item) => sumValue + item.visualShare, 0) || 1;
+    const rowScale = Math.abs(rowShareTotal - 1) < 0.001 ? 1 : 1 / rowShareTotal;
+
+    return {
+      ...row,
+      mobileTitle: title,
+      segments: segmentsWithShares.map(({ segment, visualShare }) => {
+        const node = makeMobileNode(segment, totalSS);
+        node.anovaKey = mobileAnovaKeyForNode(node);
+        return {
+          ...node,
+          mobileLabel: mobileNodePrimaryLabel(node),
+          mobileDetailLabel: mobileDetailLabelForKey(node.key, node.longLabel || node.label),
+          visualFlex: visualShare * rowScale,
+        };
+      }),
+    };
+  });
+});
+const mobileSSNodeList = computed(() =>
+  mobileSSRows.value.flatMap((row) => row.segments.map((segment) => ({ ...segment }))),
+);
+const defaultMobileNode = computed(
+  () =>
+    mobileSSNodeList.value.find(
+      (node) => node.id !== "total" && mobileTreeActiveIds.value.has(node.id),
+    ) ||
+    mobileFlatNodes.value.find(
+      (node) => node.id !== "total" && mobileTreeActiveIds.value.has(node.id),
+    ) ||
+    mobileSSNodeList.value.find((node) => node.id === "total") ||
+    mobileFlatNodes.value.find((node) => node.id === "total") ||
+    null,
+);
+const selectedMobileNode = computed(
+  () =>
+    mobileSSNodeList.value.find((node) => node.id === selectedMobileNodeId.value) ||
+    mobileDisplayLevels.value.flat().find((node) => node.id === selectedMobileNodeId.value) ||
+    mobileSSNodeList.value.find((node) => node.id === defaultMobileNode.value?.id) ||
+    mobileDisplayLevels.value.flat().find((node) => node.id === defaultMobileNode.value?.id) ||
+    defaultMobileNode.value,
+);
+const mobileFitHint = computed(() => {
+  if (selectedMobileNode.value?.key === "lackOfFit") return copy.value.mobile.fitLofHint;
+  return copy.value.mobile.fitHint;
+});
+const selectedMobileRow = computed(() => {
+  const node = selectedMobileNode.value;
+  if (!node) return null;
+  return scene.value.anovaRows.find((row) => row.key === node.anovaKey) || null;
+});
+const selectedMobileStats = computed(() => {
+  if (!selectedMobileNode.value) return null;
+  if (selectedMobileRow.value) return selectedMobileRow.value;
+  if (selectedMobileNode.value.syntheticResidual) {
+    const childRows = selectedMobileNode.value.children
+      .map((child) => scene.value.anovaRows.find((row) => row.key === child.anovaKey))
+      .filter(Boolean);
+    const df = childRows.reduce((total, row) => total + Number(row.df || 0), 0);
+    return {
+      ss: selectedMobileNode.value.trueSS,
+      df: df || null,
+      ms: df ? selectedMobileNode.value.trueSS / df : null,
+      f: null,
+      pValue: "",
+    };
+  }
+  return {
+    ss: selectedMobileNode.value.trueSS,
+    df: null,
+    ms: null,
+    f: null,
+    pValue: "",
+  };
+});
+const selectedMobileStatItems = computed(() => {
+  if (!selectedMobileNode.value) return [];
+  const stats = selectedMobileStats.value;
+  const items = [{ label: copy.value.ss, value: formatNumber(selectedMobileNode.value.trueSS) }];
+  if (stats?.df != null) items.push({ label: copy.value.df, value: String(stats.df) });
+  if (stats?.ms != null) items.push({ label: copy.value.ms, value: formatNumber(stats.ms) });
+  if (stats?.f != null && formatStatistic(stats.f))
+    items.push({ label: copy.value.f, value: formatStatistic(stats.f) });
+  if (stats?.pValue) items.push({ label: copy.value.pValue, value: stats.pValue });
+  return items;
+});
+const selectedMobileCorrespondingLabel = computed(() => {
+  if (!selectedMobileNode.value) return "";
+  if (selectedMobileRow.value) return mobileLabelForKey(selectedMobileRow.value.key);
+  if (selectedMobileNode.value.syntheticResidual && selectedMobileNode.value.children.length) {
+    return selectedMobileNode.value.children
+      .map((child) => mobileNodePrimaryLabel(child))
+      .join(" + ");
+  }
+  return copy.value.mobile.noAnovaRow;
+});
+const mobileSelectedDescription = computed(() => {
+  const node = selectedMobileNode.value;
+  if (!node) return copy.value.mobile.detailHint;
+  if (node.syntheticResidual) {
+    return `${copy.value.mobile.residualDescription} ${copy.value.ss}: ${formatNumber(
+      node.trueSS,
+    )}.`;
+  }
+  return `${copy.value.ssHover[node.id] || copy.value.ssHover[node.key] || node.longLabel} ${copy.value.ss}: ${formatNumber(
+    node.trueSS,
+  )}.`;
+});
+const rowIsMobileSelected = (row) => {
+  if (!selectedMobileNode.value) return row.highlight;
+  return selectedMobileRow.value?.key === row.key;
+};
+const mobileSummaryRows = computed(() =>
+  scene.value.anovaRows
+    .filter((row) => row.pValue && ["significant", "notSignificant"].includes(row.expected))
+    .slice(0, 3),
+);
+const formatMobileAnovaRow = (row) => ({
+  raw: row,
+  key: row.key,
+  label: mobileLabelForKey(row.key),
+  color: componentColor(row.key),
+  ss: formatNumber(row.ss),
+  df: row.df,
+  ms: row.ms === null ? "—" : formatNumber(row.ms),
+  f: formatStatistic(row.f) || "—",
+  pValue: row.pValue || "—",
+  isSelected: rowIsMobileSelected(row),
+});
+const mobileSummaryCards = computed(() => mobileSummaryRows.value.map(formatMobileAnovaRow));
+const mobileAnovaCards = computed(() => scene.value.anovaRows.map(formatMobileAnovaRow));
+const toggleMobileNode = (node) => {
+  selectedMobileNodeId.value = selectedMobileNodeId.value === node.id ? null : node.id;
+};
+const toggleMobileRow = (row) => {
+  const node = [...mobileFlatNodes.value]
+    .reverse()
+    .find((candidate) => candidate.anovaKey === row.key);
+  if (!node) return;
+  selectedMobileNodeId.value = selectedMobileNodeId.value === node.id ? null : node.id;
+};
 const hoveredSSRow = ref(null);
 const hoveredSegment = computed(() => {
   if (!hoveredSS.value) return null;
@@ -572,9 +1071,13 @@ const drawChart = () => {
 
   const current = scene.value;
   const svg = d3.select(chartSvg.value);
+  const isMobileChart =
+    typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches;
   const width = Math.max(500, chartWrap.value.clientWidth || 620);
-  const height = 414;
-  const margin = { top: 18, right: 18, bottom: 42, left: 46 };
+  const height = isMobileChart ? 300 : 414;
+  const margin = isMobileChart
+    ? { top: 14, right: 14, bottom: 36, left: 42 }
+    : { top: 18, right: 18, bottom: 42, left: 46 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const xScale = d3
@@ -722,6 +1225,33 @@ watch([scene, language, ssScaleMode], async () => {
   drawChart();
 });
 
+watch([activeModule, activeStep], async () => {
+  selectedMobileNodeId.value = null;
+  mobileInfoOpen.value = false;
+  fullMobileAnovaOpen.value = false;
+  await nextTick();
+  updateMobileContentTop();
+  if (typeof window === "undefined" || !window.matchMedia("(max-width: 768px)").matches) return;
+  moduleControl.value?.querySelector(".is-active")?.scrollIntoView({
+    inline: "center",
+    block: "nearest",
+  });
+  stepControl.value?.querySelector(".is-active")?.scrollIntoView({
+    inline: "center",
+    block: "nearest",
+  });
+});
+
+watch([language, mobileView], async () => {
+  await nextTick();
+  updateMobileContentTop();
+  if (mobileView.value === "fit") drawChart();
+});
+
+watch([selectedMobileNodeId], () => {
+  mobileInfoOpen.value = false;
+});
+
 onMounted(async () => {
   await nextTick();
   drawChart();
@@ -738,16 +1268,50 @@ onMounted(async () => {
     );
     headerMorphObserver.observe(headerMorphTrigger.value);
   }
+
+  if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
+    updateMobileContentTop();
+    mobileHeaderObserver = new ResizeObserver(updateMobileContentTop);
+    [
+      explorerRoot.value?.querySelector(".mobile-top-controls"),
+      explorerRoot.value?.querySelector(".mobile-view-switch"),
+      explorerRoot.value?.querySelector(".mobile-step-card"),
+    ]
+      .filter(Boolean)
+      .forEach((part) => mobileHeaderObserver.observe(part));
+    window.addEventListener("resize", updateMobileContentTop);
+
+    moduleControl.value?.querySelector(".is-active")?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+    });
+    stepControl.value?.querySelector(".is-active")?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+    });
+  }
 });
 
 onBeforeUnmount(() => {
   chartObserver?.disconnect();
   headerMorphObserver?.disconnect();
+  mobileHeaderObserver?.disconnect();
+  if (typeof window !== "undefined") {
+    window.removeEventListener("resize", updateMobileContentTop);
+  }
 });
 </script>
 
 <template>
-  <main class="anova-explorer morph-header-v1" :class="{ 'is-header-morphed': isHeaderMorphed }">
+  <main
+    ref="explorerRoot"
+    class="anova-explorer morph-header-v1"
+    :class="[
+      { 'is-header-morphed': isHeaderMorphed },
+      mobileView === 'fit' ? 'is-mobile-fit' : 'is-mobile-decomposition',
+    ]"
+    :style="mobileShellStyle"
+  >
     <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
     <header class="explorer-topbar">
       <div class="header-inner">
@@ -790,10 +1354,25 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
+    <MobileTopControls
+      :copy="copy"
+      :active-module="activeModule"
+      :module-order="moduleOrder"
+      :language="language"
+      @set-module="setModule"
+      @set-language="setLanguage"
+    />
+
+    <MobileSegmentedNavigation
+      :copy="copy"
+      :active-view="mobileView"
+      @set-view="mobileView = $event"
+    />
+
     <section class="module-sticky" aria-label="ANOVA Explorer module switcher">
       <div class="control-group module-group">
         <span>{{ copy.modulesLabel }}</span>
-        <div class="segmented-control">
+        <div ref="moduleControl" class="segmented-control">
           <button
             v-for="module in moduleOrder"
             :key="module"
@@ -807,7 +1386,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="control-group step-group">
         <span>{{ copy.stepsLabel }}</span>
-        <div class="step-control">
+        <div ref="stepControl" class="step-control">
           <button
             v-for="(step, index) in moduleSteps"
             :key="step"
@@ -821,6 +1400,17 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </section>
+
+    <MobileStepController
+      :copy="copy"
+      :steps="moduleSteps"
+      :active-step="activeStep"
+      :active-step-index="activeStepIndex"
+      :step-name="mobileStepName"
+      @previous="goToAdjacentStep(-1)"
+      @next="goToAdjacentStep(1)"
+      @set-step="activeStep = $event"
+    />
 
     <section class="teaching-grid" aria-label="ANOVA interactive teaching workspace">
       <div class="visual-panel chart-panel">
@@ -846,6 +1436,7 @@ onBeforeUnmount(() => {
           <h2 id="model-panel-title">{{ stepCopy.name }}</h2>
         </div>
 
+        <p class="mobile-fit-note">{{ mobileFitHint }}</p>
         <dl class="model-facts">
           <div class="formula-panel">
             <dt>{{ copy.equation }}</dt>
@@ -925,6 +1516,7 @@ onBeforeUnmount(() => {
       </div>
       <label>
         <span>{{ copy.pureErrorControl }}</span>
+        <output>{{ formatNumber(parameters.pureError) }}</output>
         <input
           type="range"
           :value="parameters.pureError"
@@ -936,6 +1528,7 @@ onBeforeUnmount(() => {
       </label>
       <label v-if="activeModule === 'sra'">
         <span>{{ copy.interceptControl }}</span>
+        <output>{{ formatNumber(parameters.interceptShift) }}</output>
         <input
           type="range"
           :value="parameters.interceptShift"
@@ -947,6 +1540,7 @@ onBeforeUnmount(() => {
       </label>
       <label v-if="activeModule === 'pla'">
         <span>{{ copy.slopeControl }}</span>
+        <output>{{ formatNumber(parameters.slopeShift) }}</output>
         <input
           type="range"
           :value="parameters.slopeShift"
@@ -958,6 +1552,7 @@ onBeforeUnmount(() => {
       </label>
       <label v-if="activeModule !== 'fourpl'">
         <span>{{ copy.nonlinearityControl }}</span>
+        <output>{{ formatNumber(parameters.nonlinearity) }}</output>
         <input
           type="range"
           :value="parameters.nonlinearity"
@@ -969,6 +1564,7 @@ onBeforeUnmount(() => {
       </label>
       <label v-if="activeModule === 'fourpl'">
         <span>{{ copy.fourPlControl }}</span>
+        <output>{{ formatNumber(parameters.fourPlDifference) }}</output>
         <input
           type="range"
           :value="parameters.fourPlDifference"
@@ -1070,6 +1666,36 @@ onBeforeUnmount(() => {
       <p class="ss-hover-note">{{ hoverNote }}</p>
     </section>
 
+    <MobileVarianceTree
+      :copy="copy"
+      :rows="mobileSSRows"
+      :active-ids="mobileTreeActiveIdList"
+      :selected-node-id="selectedMobileNodeId || ''"
+      @select-node="toggleMobileNode"
+    />
+
+    <MobileAnovaSummary
+      :copy="copy"
+      :summary-rows="mobileSummaryCards"
+      :full-rows="mobileAnovaCards"
+      :full-open="fullMobileAnovaOpen"
+      :empty-text="copy.tableEmpty"
+      variant="summary"
+      @select-row="toggleMobileRow"
+      @toggle-full="fullMobileAnovaOpen = !fullMobileAnovaOpen"
+    />
+
+    <MobileVarianceDetailCard
+      :copy="copy"
+      :node="selectedMobileNode"
+      :stats="selectedMobileStatItems"
+      :description="mobileSelectedDescription"
+      :corresponding-label="selectedMobileCorrespondingLabel"
+      :info-open="mobileInfoOpen"
+      @toggle-info="mobileInfoOpen = !mobileInfoOpen"
+      @clear="selectedMobileNodeId = null"
+    />
+
     <section class="anova-table-wrap" aria-labelledby="anova-table-title">
       <h2 id="anova-table-title">{{ copy.anovaPanel }}</h2>
       <p>{{ copy.anovaHint }}</p>
@@ -1103,6 +1729,17 @@ onBeforeUnmount(() => {
       </div>
       <div v-else class="empty-table">{{ copy.tableEmpty }}</div>
     </section>
+
+    <MobileAnovaSummary
+      :copy="copy"
+      :summary-rows="mobileSummaryCards"
+      :full-rows="mobileAnovaCards"
+      :full-open="fullMobileAnovaOpen"
+      :empty-text="copy.tableEmpty"
+      variant="full"
+      @select-row="toggleMobileRow"
+      @toggle-full="fullMobileAnovaOpen = !fullMobileAnovaOpen"
+    />
   </main>
 </template>
 
@@ -1465,6 +2102,10 @@ button {
   display: grid;
   gap: 5px;
   min-width: 0;
+}
+
+.parameter-strip label output {
+  display: none;
 }
 
 .parameter-strip input[type="number"] {
@@ -1981,6 +2622,10 @@ button {
   opacity: 0.92;
 }
 
+.mobile-fit-note {
+  display: none;
+}
+
 @media (max-width: 1199px) {
   .module-sticky,
   .teaching-grid,
@@ -2028,53 +2673,244 @@ button {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .anova-explorer {
-    --topbar-sticky-height: 92px;
-    width: min(100% - 28px, 1360px);
-    padding-top: calc(var(--topbar-sticky-height) + 12px);
+    --mobile-safe-top: max(env(safe-area-inset-top), 12px);
+    --mobile-gap-xs: 4px;
+    --mobile-gap-sm: 6px;
+    --mobile-gap-md: 7px;
+    --mobile-control-height: 34px;
+    --mobile-switch-height: 34px;
+    --mobile-step-height: 64px;
+    --mobile-section-gap: var(--mobile-gap-md);
+    --mobile-header-gap: var(--mobile-section-gap);
+    --mobile-slider-height: 24px;
+    --mobile-chart-aspect-ratio: 16 / 9;
+    --mobile-bar-gap: 0px;
+    --mobile-card-radius: 16px;
+    --mobile-card-border: rgba(0, 0, 0, 0.08);
+    --mobile-card-bg: rgba(255, 255, 255, 0.48);
+    --mobile-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    display: flex;
+    flex-direction: column;
+    width: min(100% - 32px, 1360px);
+    padding-top: var(
+      --mobile-content-top,
+      calc(
+        var(--mobile-safe-top) + var(--mobile-control-height) + var(--mobile-switch-height) +
+          var(--mobile-step-height) + var(--mobile-section-gap) + var(--mobile-section-gap) +
+          var(--mobile-section-gap)
+      )
+    );
+    padding-bottom: 24px;
   }
 
-  .header-inner,
-  .explorer-header {
-    align-items: flex-start;
-    grid-template-columns: 1fr;
+  .anova-explorer.is-mobile-decomposition {
+    padding-top: var(
+      --mobile-content-top,
+      calc(
+        var(--mobile-safe-top) + var(--mobile-control-height) + var(--mobile-switch-height) +
+          var(--mobile-step-height) + var(--mobile-section-gap) + var(--mobile-section-gap) +
+          var(--mobile-section-gap)
+      )
+    );
   }
 
-  .header-inner {
-    width: min(100% - 28px, 1360px);
-    gap: 10px;
-  }
-
-  .topbar-spacer {
+  .explorer-topbar {
     display: none;
   }
 
-  .topbar-actions {
-    justify-self: start;
+  .explorer-header {
+    display: none;
   }
 
-  .back-link {
-    justify-content: center;
+  .module-sticky {
+    display: none;
   }
 
-  h1 {
-    font-size: clamp(1.35rem, 7vw, 1.95rem);
-    line-height: 1;
+  .step-group {
+    display: none;
   }
 
-  .language-switch {
-    width: auto;
+  .teaching-grid {
+    order: 4;
+    display: contents;
   }
 
-  .language-switch button {
-    flex: 1;
+  .chart-panel {
+    order: 4;
+    display: flex;
+    margin-top: 0;
+    padding: 12px;
+    border-radius: var(--mobile-card-radius);
+    background: var(--mobile-card-bg);
+    box-shadow: var(--mobile-shadow);
   }
 
-  .chart-panel,
-  .insight-panel,
-  .ss-panel {
-    padding: 14px;
+  .panel-title-row {
+    gap: 8px;
+  }
+
+  .panel-title-row span {
+    display: none;
+  }
+
+  .panel-title-row strong {
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  .chart-legend {
+    display: none;
+  }
+
+  .parameter-strip {
+    order: 5;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--mobile-section-gap);
+    margin-top: var(--mobile-section-gap);
+    padding: 10px;
+    border: 1px solid var(--mobile-card-border);
+    border-radius: var(--mobile-card-radius);
+    background: rgba(255, 255, 255, 0.38);
+    box-shadow: var(--mobile-shadow);
+  }
+
+  .parameter-head {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .parameter-strip label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    align-items: center;
+  }
+
+  .parameter-head span,
+  .parameter-strip label span {
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+  }
+
+  .parameter-strip label output {
+    display: block;
+    color: var(--accent, #4f5661);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.66rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  .quiet-button {
+    min-height: 26px;
+    padding-inline: 8px;
+    font-size: 0.66rem;
+  }
+
+  .parameter-strip input[type="range"] {
+    grid-column: 1 / -1;
+    min-height: var(--mobile-slider-height);
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  .chart-wrap {
+    flex: 0 0 auto;
+  }
+
+  .anova-chart {
+    height: 178px;
+    min-height: 0;
+  }
+
+  .insight-panel {
+    order: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    height: auto;
+    margin-top: var(--mobile-section-gap);
+    padding: 12px;
+    border-radius: var(--mobile-card-radius);
+    background: rgba(255, 255, 255, 0.42);
+    box-shadow: var(--mobile-shadow);
+  }
+
+  .insight-heading {
+    display: none;
+  }
+
+  .model-facts {
+    order: 2;
+    display: block;
+    margin: 0;
+  }
+
+  .model-facts .fact-block {
+    display: none;
+  }
+
+  .mobile-fit-note {
+    order: 1;
+    display: block;
+    margin: 0;
+    padding: 7px 10px;
+    color: #315fba;
+    font-size: 0.68rem;
+    line-height: 1.34;
+    border: 1px solid rgba(49, 95, 186, 0.16);
+    border-radius: 12px;
+    background: rgba(49, 95, 186, 0.06);
+  }
+
+  .formula-panel {
+    height: auto;
+    min-height: 0;
+    padding: 10px !important;
+    border-radius: 12px;
+  }
+
+  .formula-panel dt {
+    margin-bottom: 7px;
+    font-size: 0.6rem;
+  }
+
+  .formula-theory {
+    font-size: 0.6rem !important;
+    line-height: 1.34 !important;
+  }
+
+  .formula-param-grid {
+    margin-top: 7px;
+    font-size: 0.56rem !important;
+  }
+
+  .formula-param-row {
+    grid-template-columns: minmax(58px, 0.62fr) minmax(0, 2.6fr);
+    gap: 8px;
+  }
+
+  .formula-param-cells {
+    gap: 8px;
+  }
+
+  .is-mobile-fit .mobile-variance-panel,
+  .is-mobile-fit .mobile-node-detail,
+  .is-mobile-fit .mobile-anova-cards,
+  .is-mobile-decomposition .chart-panel,
+  .is-mobile-decomposition .parameter-strip,
+  .is-mobile-decomposition .insight-panel {
+    display: none;
+  }
+
+  .ss-panel,
+  .anova-table-wrap {
+    display: none;
   }
 
   .model-facts dd {
