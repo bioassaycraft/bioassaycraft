@@ -17,6 +17,12 @@ a {
   color: inherit;
 }
 
+.back-link {
+  justify-content: center;
+  min-width: 108px;
+  white-space: nowrap;
+}
+
 .page-shell {
   display: grid;
   min-height: 100svh;

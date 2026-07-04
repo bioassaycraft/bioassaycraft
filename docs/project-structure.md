@@ -9,11 +9,11 @@ BioassayCraft is organized by product responsibility rather than by the current 
 ├── archive/                Historical pages and retired prototypes, not deployed
 ├── assets/
 │   ├── brand/              Brand source artwork and explorations
-│   ├── css/                Shared and page-specific stylesheets
-│   │   └── tools/          Tool-specific stylesheets
+│   ├── css/                Shared and remaining static page stylesheets
+│   │   └── tools/          Tool-specific stylesheets for non-migrated static tools
 │   ├── icons/              Favicons, app icons, and web manifest
-│   └── js/                 Shared and page-specific JavaScript
-│       └── tools/          Tool-specific JavaScript
+│   └── js/                 Shared and remaining static page JavaScript
+│       └── tools/          Tool-specific JavaScript for non-migrated static tools
 ├── docs/                   Platform and brand documentation
 ├── learn/                  Interactive pharmacopoeia learning entry and pages
 ├── journeys/               Structured practice workflow entry and pages
@@ -34,20 +34,21 @@ BioassayCraft is organized by product responsibility rather than by the current 
 - Put homepage Vue implementation and gradual migration source files under `src/`.
 - Put retired homepage versions under `archive/`, outside navigation and deployment copying.
 - Put small build helpers under `scripts/`.
-- Put tool-specific CSS in `assets/css/tools/<tool-name>.css`.
-- Put tool-specific JavaScript in `assets/js/tools/<tool-name>.js`.
+- Put static tool-specific CSS in `assets/css/tools/<tool-name>.css` only for tools that have not moved to Vue.
+- Put static tool-specific JavaScript in `assets/js/tools/<tool-name>.js` only for tools that have not moved to Vue.
 - Put public icon files and the web manifest in `assets/icons/`.
 - Put each interactive tool in `tools/<tool-name>/`.
 - Put each simulation or simulator in `simulators/<simulator-name>/`.
 - Product classification now groups current calculators, converters, explorers, and simulators under Tools, even when some existing routes physically remain under `simulators/`.
-- Every route should use the directory + `index.html` pattern, for example `tools/concentration-converter/index.html`, `simulators/anova-model-comparison/index.html`, `learn/index.html`, and `journeys/index.html`.
+- Every route should use the directory + `index.html` pattern, for example `tools/concentration-converter/index.html`, `anova/index.html`, `learn/index.html`, and `journeys/index.html`.
+- Vite-managed tool routes keep their public `index.html` as the Vite entry and their implementation under `src/`. Current Vite-managed tool routes include `/anova/` and `/tools/concentration-converter/`.
 - Put interactive pharmacopoeia learning pages under `learn/`.
 - Put structured practice workflow pages under `journeys/`.
 - Treat `lessons/` as a legacy placeholder. Do not add new Learn content there, and do not develop it into a parallel Lessons or Articles module.
 - Keep legacy routes as thin redirects only when an existing URL needs to remain valid.
 - Do not move existing `simulators/` routes only to make the directory tree cleaner. Route consolidation should wait for an intentional migration plan with old-link handling.
 - Keep long-form notes, brand rules, and architecture notes in `docs/`.
-- `npm run build` outputs to `dist/` and copies existing static routes into that build output.
+- `npm run build` outputs to `dist/`, then copies existing static routes into that build output. Vite-managed routes listed in `scripts/copy-static-site.mjs` are not overwritten by the static copy step.
 
 Avoid ambiguous filenames such as `style.css`, `styles.css`, `script.js`, or `main.js` once a file has a clear responsibility.
 

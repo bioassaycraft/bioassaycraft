@@ -198,6 +198,16 @@ Subpage rules:
 - Keep formulas and details available but not visually dominant.
 - Prefer panels for actual tool regions, not decoration.
 
+Calculator workspace rules:
+
+- Lightweight calculator pages should feel like one scientific workspace, not a stack of unrelated cards.
+- Use a two-pane desktop layout when the task has clear input and output sides: the input workspace should usually be slightly wider, around 58%, and the result workspace around 42%.
+- Organize inputs, parameters, results, details, and notes as sections inside workspace panes. Use quiet dividers and spacing to show structure instead of separate heavy cards.
+- Put the primary numeric result near the top of the result workspace, with a compact conversion or calculation relationship directly beneath it.
+- Keep notes as a low-emphasis section inside the result workspace unless the concept genuinely needs a larger teaching panel.
+- On mobile, collapse to a single reading order: hero, input workspace, parameter section, result workspace, notes, footer.
+- Future calculator-style tools should reuse this workspace rhythm before inventing a new layout.
+
 ## Responsive Design
 
 Responsive behavior is part of the design system, not a per-page fix. New pages must use the shared responsive tokens in `assets/css/base.css` and the same breakpoint model used by the homepage, module index pages, tools, and simulators.
@@ -374,6 +384,7 @@ Rules:
 - This does not conflict with the homepage using minimal anchors such as Learn, Journey, and Tools.
 - Revisit full subpage navigation only when Learn, Journeys, and Tools contain enough content to require it.
 - Use the same spacing, radius, border, and hover behavior across all subpages.
+- Reserve a stable width for the back-home action so localized labels such as `返回首页` and `Back to home` do not shift adjacent controls.
 - Adjust relative paths only as needed by route depth.
 
 Site footer:

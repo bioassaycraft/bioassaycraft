@@ -8,6 +8,7 @@ export default defineConfig({
       input: {
         main: "index.html",
         anovaExplorer: "anova/index.html",
+        concentrationConverter: "tools/concentration-converter/index.html",
       },
     },
   },

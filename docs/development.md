@@ -116,6 +116,13 @@ npm run format
 
 Existing `tools/` and `simulators/` routes are preserved. Calculators, converters, explorers, and simulators are product-classified as Tools even when some physical routes still live under `simulators/`.
 
+Vite-managed tool routes:
+
+- `/anova/`
+- `/tools/concentration-converter/`
+
+These routes keep a public `index.html` entry but implement the page in `src/`. The static copy step in `scripts/copy-static-site.mjs` skips Vite-managed tool route folders so the bundled output is not overwritten.
+
 The previous homepage archive has been removed from the active repository. It is not part of site navigation or the deployment build.
 
 ## Deployment

@@ -1,121 +1,27 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="BioassayCraft concentration unit converter for mass and molar concentration.">
-  <title>BioassayCraft</title>
-  <meta property="og:title" content="BioassayCraft">
-  <meta name="twitter:title" content="BioassayCraft">
-  <meta name="apple-mobile-web-app-title" content="BioassayCraft">
-  <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
-  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="/assets/icons/favicon-32x32.png" type="image/png" sizes="32x32">
-  <link rel="icon" href="/assets/icons/favicon-16x16.png" type="image/png" sizes="16x16">
-  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" sizes="180x180">
-  <link rel="manifest" href="/assets/icons/site.webmanifest">
-  <meta name="theme-color" content="#F7F5F0">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../assets/css/base.css">
-  <link rel="stylesheet" href="../../assets/css/tools/concentration-converter.css">
-</head>
-<body>
-  <main class="page">
-    <header class="site-header">
-      <a class="brand-link" href="../../" aria-label="BioassayCraft home">
-        <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
-        <span class="brand-name">bioassaycraft</span>
-      </a>
-      <a class="back-link" href="../../">Back to home</a>
-    </header>
-
-    <section class="converter-hero" aria-labelledby="page-title">
-      <div>
-        <span class="eyebrow">Calculator</span>
-        <h1 id="page-title">Concentration Converter</h1>
-        <p class="subtitle">This page helps you understand how molecular weight connects mass concentration and molar concentration.</p>
-      </div>
-      <div class="hero-note">
-        <span class="note-label">Scientific question</span>
-        <p>When a molecule changes from ng/mL or mg/mL to nM or μM, what relationship is doing the conversion?</p>
-      </div>
-    </section>
-
-    <section class="reasoning-lead" aria-label="Scientific idea">
-      <div class="lead-block">
-        <span class="section-kicker">Scientific idea</span>
-        <p>Mass concentration describes how much material is present. Molar concentration describes how many molecules or moles are present. Molecular weight is the bridge between them.</p>
-      </div>
-      <div class="mentor-note">
-        <span>Mentor note</span>
-        <p>The same mass concentration can mean very different molar exposure for molecules with different molecular weights. Check the conversion before comparing assays or dose-response ranges.</p>
-      </div>
-    </section>
-
-    <section class="tool" aria-label="Concentration conversion workspace">
-      <div class="panel">
-        <div class="panel-head">
-          <span class="section-kicker">Interaction</span>
-          <h2>Known concentration</h2>
-          <p>Enter one concentration and molecular weight; the other concentration systems update from the same molar basis.</p>
-        </div>
-
-        <div class="field">
-          <label for="concentration">Concentration</label>
-          <div class="input-row">
-            <input id="concentration" class="numeric" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 10">
-            <select id="sourceUnit" aria-label="Concentration unit">
-              <option value="ngml" selected>ng/mL</option>
-              <option value="ugml">μg/mL</option>
-              <option value="mgml">mg/mL</option>
-              <option value="nm">nM</option>
-              <option value="um">μM</option>
-              <option value="m">M</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="molecularWeight">Molecular weight</label>
-          <div class="input-row">
-            <input id="molecularWeight" class="numeric" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 500">
-            <select id="molecularWeightUnit" aria-label="Molecular weight unit">
-              <option value="da">Da</option>
-              <option value="kda" selected>kDa</option>
-            </select>
-          </div>
-          <div class="hint">Da and g/mol are numerically equivalent. kDa is converted to Da before calculation.</div>
-        </div>
-
-        <div id="message" class="error" role="status" aria-live="polite"></div>
-      </div>
-
-      <div class="panel" aria-label="Conversion result">
-        <div class="result-head">
-          <div>
-            <span class="section-kicker">Scientific result</span>
-            <h2>Equivalent concentrations</h2>
-          </div>
-          <span id="baseValue" class="base numeric">Waiting for input</span>
-        </div>
-
-        <div id="results" class="results"></div>
-
-        <div class="formula">
-          <span class="section-kicker">Formula audit</span>
-          Mass concentration (g/L) = molar concentration (mol/L) × molecular weight (g/mol)
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <span class="footer-belief">BioassayCraft is the craft of understanding.</span>
-    <span class="footer-domain">bioassaycraft.com</span>
-  </footer>
-
-  <script src="../../assets/js/tools/concentration-converter.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="BioassayCraft concentration unit converter for mass concentration, molar concentration, and molecular-weight-linked conversions."
+    />
+    <title>Concentration Converter - BioassayCraft</title>
+    <meta name="theme-color" content="#F7F5F0" />
+    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any" />
+    <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/assets/icons/site.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="concentration-converter-app"></div>
+    <script type="module" src="/src/concentration-converter/main.js"></script>
+  </body>
 </html>

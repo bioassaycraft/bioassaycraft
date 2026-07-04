@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Archived BioassayCraft concentration unit converter for mass and molar concentration."
+    />
+    <title>Legacy Concentration Converter - BioassayCraft</title>
+    <link rel="icon" href="../../assets/icons/favicon.ico" sizes="any" />
+    <link rel="icon" href="../../assets/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../assets/css/base.css" />
+    <style>
+      :root {
+        color-scheme: light;
+        --background: var(--bc-bg);
+        --surface: rgba(255, 255, 255, 0.44);
+        --surface-soft: rgba(255, 255, 255, 0.28);
+        --text: var(--bc-text);
+        --muted: var(--bc-secondary);
+        --quiet: var(--bc-secondary);
+        --rule: var(--bc-border);
+        --soft-rule: rgba(214, 217, 222, 0.72);
+        --accent: var(--bc-blue);
+        --accent-soft: var(--bc-blue-soft);
+        --accent-border: var(--bc-blue-border);
+        --focus-ring: var(--bc-focus-ring);
+        --warn: #b42318;
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        color: var(--text);
+        background: var(--background);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .page,
+      .site-footer {
+        width: min(1040px, calc(100% - var(--bc-container-inline)));
+        margin: 0 auto;
+      }
+
+      .page {
+        min-height: calc(100svh - 87px);
+        padding: var(--bc-page-padding-block);
+      }
+
+      .site-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+        padding: var(--bc-header-padding-block);
+      }
+
+      .brand-link,
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      .brand-link {
+        gap: 12px;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+
+      .brand-mark {
+        display: block;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+      }
+
+      .back-link {
+        min-height: 40px;
+        padding: 0 14px;
+        color: var(--accent);
+        border: 1px solid var(--accent-border);
+        border-radius: 7px;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .eyebrow,
+      .note-label,
+      .section-kicker,
+      .mentor-note span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .converter-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 0.74fr);
+        gap: 28px;
+        align-items: end;
+        padding: 22px 0 24px;
+        border-top: 1px solid var(--text);
+      }
+
+      h1 {
+        max-width: 740px;
+        margin-top: 10px;
+        font-size: var(--bc-hero-title);
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 0.96;
+      }
+
+      .subtitle {
+        max-width: 680px;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .hero-note,
+      .lead-block,
+      .mentor-note,
+      .panel {
+        border: 1px solid var(--rule);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      .hero-note {
+        display: grid;
+        gap: 8px;
+        padding: 16px;
+      }
+
+      .hero-note p,
+      .mentor-note p,
+      .panel-head p,
+      .formula,
+      .hint {
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .reasoning-lead {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.64fr);
+        gap: 18px;
+        align-items: stretch;
+        margin-top: 18px;
+      }
+
+      .lead-block,
+      .mentor-note {
+        display: grid;
+        gap: 10px;
+        padding: 18px;
+      }
+
+      .lead-block p {
+        color: var(--text);
+        font-size: 1.18rem;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+
+      .mentor-note {
+        background: var(--surface-soft);
+      }
+
+      .tool {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+        gap: 24px;
+        align-items: start;
+        margin-top: 22px;
+      }
+
+      .panel {
+        position: relative;
+        padding: 22px;
+      }
+
+      .panel-head {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 18px;
+      }
+
+      .panel-head h2,
+      h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      label {
+        color: var(--text);
+        font-size: 0.86rem;
+        font-weight: 500;
+      }
+
+      .input-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 158px;
+        gap: 10px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        min-height: 46px;
+        border: 1px solid var(--soft-rule);
+        border-radius: 7px;
+        background: var(--surface-soft);
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 0.94rem;
+        outline: none;
+      }
+
+      input {
+        font-family: var(--font-mono);
+        padding: 10px 12px;
+      }
+
+      select {
+        padding: 10px 34px 10px 12px;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px var(--focus-ring);
+      }
+
+      .hint,
+      .error {
+        min-height: 22px;
+        font-size: 0.8rem;
+        line-height: 1.6;
+      }
+
+      .error {
+        color: var(--warn);
+        font-weight: 500;
+      }
+
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        margin-bottom: 14px;
+      }
+
+      .base {
+        color: var(--muted);
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
+
+      .results {
+        display: grid;
+        gap: 10px;
+      }
+
+      .result {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        min-height: 58px;
+        padding: 11px 13px;
+        border: 1px solid var(--soft-rule);
+        border-radius: var(--radius);
+        background: var(--surface-soft);
+      }
+
+      .result.active {
+        border-color: var(--accent-border);
+        background: var(--accent-soft);
+      }
+
+      .unit {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .unit small {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 500;
+      }
+
+      .result-value {
+        font-size: 0.94rem;
+        font-weight: 500;
+        text-align: right;
+        overflow-wrap: anywhere;
+      }
+
+      .formula {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--soft-rule);
+        font-size: 0.8rem;
+      }
+
+      .site-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 28px 0 38px;
+        color: var(--muted);
+        border-top: 1px solid var(--rule);
+        font-size: 0.72rem;
+        font-weight: 500;
+      }
+
+      .footer-domain {
+        text-align: right;
+      }
+
+      @media (max-width: 1199px) {
+        .converter-hero,
+        .reasoning-lead,
+        .tool {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .site-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .back-link {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .input-row,
+        .result {
+          grid-template-columns: 1fr;
+        }
+
+        .result-value {
+          text-align: left;
+        }
+
+        .result-head {
+          display: grid;
+        }
+
+        .base {
+          white-space: normal;
+        }
+
+        .site-footer {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .footer-domain {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="site-header">
+        <a class="brand-link" href="../../" aria-label="BioassayCraft home">
+          <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true" />
+          <span class="brand-name">bioassaycraft</span>
+        </a>
+        <a class="back-link" href="../../">Back to home</a>
+      </header>
+
+      <section class="converter-hero" aria-labelledby="page-title">
+        <div>
+          <span class="eyebrow">Calculator</span>
+          <h1 id="page-title">Concentration Converter</h1>
+          <p class="subtitle">
+            This page helps you understand how molecular weight connects mass concentration and
+            molar concentration.
+          </p>
+        </div>
+        <div class="hero-note">
+          <span class="note-label">Scientific question</span>
+          <p>
+            When a molecule changes from ng/mL or mg/mL to nM or μM, what relationship is doing the
+            conversion?
+          </p>
+        </div>
+      </section>
+
+      <section class="reasoning-lead" aria-label="Scientific idea">
+        <div class="lead-block">
+          <span class="section-kicker">Scientific idea</span>
+          <p>
+            Mass concentration describes how much material is present. Molar concentration describes
+            how many molecules or moles are present. Molecular weight is the bridge between them.
+          </p>
+        </div>
+        <div class="mentor-note">
+          <span>Mentor note</span>
+          <p>
+            The same mass concentration can mean very different molar exposure for molecules with
+            different molecular weights. Check the conversion before comparing assays or
+            dose-response ranges.
+          </p>
+        </div>
+      </section>
+
+      <section class="tool" aria-label="Concentration conversion workspace">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="section-kicker">Interaction</span>
+            <h2>Known concentration</h2>
+            <p>
+              Enter one concentration and molecular weight; the other concentration systems update
+              from the same molar basis.
+            </p>
+          </div>
+
+          <div class="field">
+            <label for="concentration">Concentration</label>
+            <div class="input-row">
+              <input
+                id="concentration"
+                class="numeric"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+                placeholder="e.g. 10"
+              />
+              <select id="sourceUnit" aria-label="Concentration unit">
+                <option value="ngml" selected>ng/mL</option>
+                <option value="ugml">μg/mL</option>
+                <option value="mgml">mg/mL</option>
+                <option value="nm">nM</option>
+                <option value="um">μM</option>
+                <option value="m">M</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="molecularWeight">Molecular weight</label>
+            <div class="input-row">
+              <input
+                id="molecularWeight"
+                class="numeric"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+                placeholder="e.g. 500"
+              />
+              <select id="molecularWeightUnit" aria-label="Molecular weight unit">
+                <option value="da">Da</option>
+                <option value="kda" selected>kDa</option>
+              </select>
+            </div>
+            <div class="hint">
+              Da and g/mol are numerically equivalent. kDa is converted to Da before calculation.
+            </div>
+          </div>
+
+          <div id="message" class="error" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="panel" aria-label="Conversion result">
+          <div class="result-head">
+            <div>
+              <span class="section-kicker">Scientific result</span>
+              <h2>Equivalent concentrations</h2>
+            </div>
+            <span id="baseValue" class="base numeric">Waiting for input</span>
+          </div>
+
+          <div id="results" class="results"></div>
+
+          <div class="formula">
+            <span class="section-kicker">Formula audit</span>
+            Mass concentration (g/L) = molar concentration (mol/L) × molecular weight (g/mol)
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span class="footer-belief">BioassayCraft is the craft of understanding.</span>
+      <span class="footer-domain">bioassaycraft.com</span>
+    </footer>
+
+    <script>
+      const units = [
+        { key: "ngml", label: "ng/mL", name: "mass concentration", kind: "mass", gPerL: 1e-6 },
+        { key: "ugml", label: "μg/mL", name: "mass concentration", kind: "mass", gPerL: 1e-3 },
+        { key: "mgml", label: "mg/mL", name: "mass concentration", kind: "mass", gPerL: 1 },
+        { key: "nm", label: "nM", name: "molar concentration", kind: "molar", molPerL: 1e-9 },
+        { key: "um", label: "μM", name: "molar concentration", kind: "molar", molPerL: 1e-6 },
+        { key: "m", label: "M", name: "molar concentration", kind: "molar", molPerL: 1 },
+      ];
+
+      const concentrationInput = document.querySelector("#concentration");
+      const molecularWeightInput = document.querySelector("#molecularWeight");
+      const molecularWeightUnitSelect = document.querySelector("#molecularWeightUnit");
+      const sourceUnitSelect = document.querySelector("#sourceUnit");
+      const message = document.querySelector("#message");
+      const results = document.querySelector("#results");
+      const baseValue = document.querySelector("#baseValue");
+
+      function formatNumber(value) {
+        if (!Number.isFinite(value)) return "--";
+        if (value === 0) return "0";
+        const absolute = Math.abs(value);
+
+        if (absolute >= 1e6 || absolute < 0.0001) {
+          return value.toExponential(6).replace(/\.?0+e/, "e");
+        }
+
+        return new Intl.NumberFormat("en-US", {
+          maximumSignificantDigits: 8,
+        }).format(value);
+      }
+
+      function getInputState() {
+        const concentration = Number(concentrationInput.value);
+        const molecularWeightValue = Number(molecularWeightInput.value);
+        const molecularWeightMultiplier = molecularWeightUnitSelect.value === "kda" ? 1000 : 1;
+        const molecularWeight = molecularWeightValue * molecularWeightMultiplier;
+        const sourceUnit = units.find((unit) => unit.key === sourceUnitSelect.value);
+
+        if (concentrationInput.value === "" || molecularWeightInput.value === "") {
+          return {
+            ready: false,
+            text: "Enter a concentration and molecular weight to see the shared molar basis.",
+          };
+        }
+
+        if (!Number.isFinite(concentration) || concentration < 0) {
+          return {
+            ready: false,
+            text: "Concentration should be a number greater than or equal to 0.",
+          };
+        }
+
+        if (!Number.isFinite(molecularWeightValue) || molecularWeightValue <= 0) {
+          return { ready: false, text: "Molecular weight should be greater than 0." };
+        }
+
+        return { ready: true, concentration, molecularWeight, sourceUnit };
+      }
+
+      function toMolPerL(value, unit, molecularWeight) {
+        if (unit.kind === "mass") {
+          return (value * unit.gPerL) / molecularWeight;
+        }
+
+        return value * unit.molPerL;
+      }
+
+      function fromMolPerL(molPerL, unit, molecularWeight) {
+        if (unit.kind === "mass") {
+          return (molPerL * molecularWeight) / unit.gPerL;
+        }
+
+        return molPerL / unit.molPerL;
+      }
+
+      function renderEmpty(text) {
+        message.textContent = text;
+        baseValue.textContent = "Waiting for input";
+        results.innerHTML = units
+          .map(
+            (unit) => `
+        <div class="result">
+          <div class="unit">${unit.label}<small>${unit.name}</small></div>
+          <div class="result-value">--</div>
+        </div>
+      `,
+          )
+          .join("");
+      }
+
+      function calculate() {
+        const state = getInputState();
+
+        if (!state.ready) {
+          renderEmpty(state.text);
+          return;
+        }
+
+        const molPerL = toMolPerL(state.concentration, state.sourceUnit, state.molecularWeight);
+        const gramPerL = molPerL * state.molecularWeight;
+
+        message.textContent = "";
+        baseValue.textContent = `${formatNumber(molPerL)} mol/L`;
+        results.innerHTML = units
+          .map((unit) => {
+            const converted = fromMolPerL(molPerL, unit, state.molecularWeight);
+            const activeClass = unit.key === state.sourceUnit.key ? " active" : "";
+
+            return `
+          <div class="result${activeClass}">
+            <div class="unit">${unit.label}<small>${unit.name}</small></div>
+            <div class="result-value">${formatNumber(converted)}</div>
+          </div>
+        `;
+          })
+          .join("");
+
+        baseValue.title = `${formatNumber(gramPerL)} g/L`;
+      }
+
+      concentrationInput.addEventListener("input", calculate);
+      molecularWeightInput.addEventListener("input", calculate);
+      molecularWeightUnitSelect.addEventListener("change", calculate);
+      sourceUnitSelect.addEventListener("change", calculate);
+      calculate();
+    </script>
+  </body>
+</html>

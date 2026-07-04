@@ -60,6 +60,11 @@ Do not use D3 as a general UI animation system. Do not use motion to replace sci
 - Panel transition: use a brief fade and 4-8px vertical movement.
 - Chart annotation: keep labels near the relevant mark, but let D3 manage chart-space positioning.
 
+Current examples:
+
+- `ANOVA Explorer` uses D3 for bespoke model visualization and Vue for the SSbar and interface state.
+- `Concentration Converter` uses the shared motion utility for quiet result updates and keeps explanatory notes in the workspace flow.
+
 ## Testing
 
 Core calculation changes should be covered by Vitest. Visual polish does not need unit tests, but statistical calculations, formatting boundaries, and risk / sample-size logic should have focused tests.

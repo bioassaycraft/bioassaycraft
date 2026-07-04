@@ -5,6 +5,7 @@ const root = process.cwd();
 const dist = join(root, "dist");
 
 const entries = ["assets", "learn", "journeys", "tools", "simulators", "lessons"];
+const viteManagedRoutes = new Set([join(root, "tools", "concentration-converter")]);
 
 await mkdir(dist, { recursive: true });
 
@@ -13,5 +14,6 @@ for (const entry of entries) {
     recursive: true,
     force: true,
     errorOnExist: false,
+    filter: (source) => !viteManagedRoutes.has(source),
   });
 }
