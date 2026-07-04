@@ -207,8 +207,12 @@ Tools:
 - `/tools/concentration-converter/`
 - `/tools/validation-sample-size-calculator/`
 - `/tools/oos-risk-explorer/`
-- `/simulators/anova-model-comparison/`
+- `/anova/`
 - `/simulators/validation-simulator/`
+
+Legacy ANOVA:
+
+- `archive/anova/ANOVA6.html`
 
 ## Future Expansion
 

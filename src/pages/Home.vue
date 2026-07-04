@@ -38,7 +38,7 @@ const tools = [
   {
     title: "ANOVA Explorer",
     note: "Variation becomes evidence.",
-    href: "/simulators/anova-model-comparison/",
+    href: "/anova/",
   },
   {
     title: "Validation Simulator",
