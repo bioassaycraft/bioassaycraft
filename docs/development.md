@@ -114,14 +114,14 @@ npm run format
 - Learn entry: `/learn/`
 - Journeys entry: `/journeys/`
 
-Existing `tools/` and `simulators/` routes are preserved. Calculators, converters, explorers, and simulators are product-classified as Tools even when some physical routes still live under `simulators/`.
+Existing `tools/` and `simulators/` routes are preserved. Calculators, converters, and simulators are product-classified as Tools even when some physical routes still live under `simulators/`. Learning explorers such as ANOVA Explorer live under `learn/`.
 
-Vite-managed tool routes:
+Vite-managed routes:
 
-- `/anova/`
-- `/tools/concentration-converter/`
+- `/learn/anova-explorer/`
+- `/tools/converter/`
 
-These routes keep a public `index.html` entry but implement the page in `src/`. The static copy step in `scripts/copy-static-site.mjs` skips Vite-managed tool route folders so the bundled output is not overwritten.
+These routes keep a public `index.html` entry but implement the page in `src/`. The static copy step in `scripts/copy-static-site.mjs` skips Vite-managed route folders so the bundled output is not overwritten.
 
 The previous homepage archive has been removed from the active repository. It is not part of site navigation or the deployment build.
 

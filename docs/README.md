@@ -81,7 +81,7 @@ Do not create a top-level Articles section.
 
 `lessons/` is a legacy placeholder only and should not receive new content.
 
-Calculators, converters, explorers, and simulators are product-classified as Tools, even when some current physical routes remain under `simulators/`.
+Calculators, converters, utilities, and simulators are product-classified as Tools, even when some current physical routes remain under `simulators/`. Learning explorers such as ANOVA Explorer belong under `learn/`.
 
 ## Current Technical Boundary
 

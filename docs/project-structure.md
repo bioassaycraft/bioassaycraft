@@ -39,9 +39,9 @@ BioassayCraft is organized by product responsibility rather than by the current 
 - Put public icon files and the web manifest in `assets/icons/`.
 - Put each interactive tool in `tools/<tool-name>/`.
 - Put each simulation or simulator in `simulators/<simulator-name>/`.
-- Product classification now groups current calculators, converters, explorers, and simulators under Tools, even when some existing routes physically remain under `simulators/`.
-- Every route should use the directory + `index.html` pattern, for example `tools/concentration-converter/index.html`, `anova/index.html`, `learn/index.html`, and `journeys/index.html`.
-- Vite-managed tool routes keep their public `index.html` as the Vite entry and their implementation under `src/`. Current Vite-managed tool routes include `/anova/` and `/tools/concentration-converter/`.
+- Product classification groups calculators, converters, and simulators under Tools. Learning explorers such as ANOVA Explorer live under `learn/`.
+- Every route should use the directory + `index.html` pattern, for example `tools/converter/index.html`, `learn/anova-explorer/index.html`, `learn/index.html`, and `journeys/index.html`.
+- Vite-managed routes keep their public `index.html` as the Vite entry and their implementation under `src/`. Current Vite-managed routes include `/learn/anova-explorer/` and `/tools/converter/`.
 - Put interactive pharmacopoeia learning pages under `learn/`.
 - Put structured practice workflow pages under `journeys/`.
 - Treat `lessons/` as a legacy placeholder. Do not add new Learn content there, and do not develop it into a parallel Lessons or Articles module.

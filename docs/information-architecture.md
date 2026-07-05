@@ -112,11 +112,11 @@ A minimum viable Journey can be a static step-by-step page with inputs, explanat
 
 ## Tools
 
-Tools are focused calculators and simulators.
+Tools are focused calculators, converters, utilities, and simulators.
 
-Their purpose is to complete a specific calculation, conversion, exploration, or simulation clearly and quickly while preserving assumptions, interpretation, and scope.
+Their purpose is to complete a specific calculation, conversion, utility task, or simulation clearly and quickly while preserving assumptions, interpretation, and scope.
 
-In the current product classification, calculators, converters, explorers, and simulators all belong to Tools.
+In the current product classification, calculators, converters, utilities, and simulators belong to Tools. Learning explorers such as ANOVA Explorer belong to Learn.
 
 Current Tools classification:
 
@@ -204,11 +204,14 @@ Journeys:
 Tools:
 
 - `/tools/`
-- `/tools/concentration-converter/`
+- `/tools/converter/`
 - `/tools/validation-sample-size-calculator/`
 - `/tools/oos-risk-explorer/`
-- `/anova/`
 - `/simulators/validation-simulator/`
+
+Learn modules:
+
+- `/learn/anova-explorer/`
 
 Legacy ANOVA:
 

@@ -197,7 +197,7 @@ Good candidates for componentization:
 
 - `tools/oos-risk-explorer/`
 - `tools/validation-sample-size-calculator/`
-- `tools/concentration-converter/`
+- `tools/converter/`
 - `simulators/anova-model-comparison/`
 - `simulators/validation-simulator/`
 
@@ -235,7 +235,7 @@ Rules while the site remains static:
 - Use directory routes with `index.html`.
 - Put tool pages under `tools/<tool-name>/index.html`.
 - Put simulator pages under `simulators/<simulator-name>/index.html`.
-- Treat calculators, converters, explorers, and simulators as Tools in product classification, even when a current route remains under `simulators/`.
+- Treat calculators, converters, utilities, and simulators as Tools in product classification, even when a current route remains under `simulators/`. Learning explorers such as ANOVA Explorer belong under `learn/`.
 - Keep `learn/` as the formal directory for interactive pharmacopoeia learning.
 - Do not add new content to `lessons/`; keep it only for legacy compatibility if needed.
 - Keep reusable calculations under `assets/js/lib/<domain>/`.

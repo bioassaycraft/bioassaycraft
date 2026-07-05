@@ -129,8 +129,8 @@ Route checks returned `200 OK` for:
 - `/tools/`
 - `/tools/oos-risk-explorer/`
 - `/tools/validation-sample-size-calculator/`
-- `/tools/concentration-converter/`
-- `/anova/`
+- `/tools/converter/`
+- `/learn/anova-explorer/`
 - `/simulators/validation-simulator/`
 
 Security check:

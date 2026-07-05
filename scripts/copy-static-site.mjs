@@ -5,7 +5,10 @@ const root = process.cwd();
 const dist = join(root, "dist");
 
 const entries = ["assets", "learn", "journeys", "tools", "simulators", "lessons"];
-const viteManagedRoutes = new Set([join(root, "tools", "concentration-converter")]);
+const viteManagedRoutes = new Set([
+  join(root, "learn", "anova-explorer"),
+  join(root, "tools", "converter"),
+]);
 
 await mkdir(dist, { recursive: true });
 

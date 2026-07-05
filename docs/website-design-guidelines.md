@@ -655,7 +655,7 @@ Route and folder rules:
 - Put interactive simulations and simulator-style learning modules under `simulators/<simulator-name>/index.html`.
 - Use `simulators/` as the canonical route directory; do not create a parallel `simulations/` directory for simulator pages.
 - Do not use root-level module files such as `tools/example.html` or `simulators/example.html` for new pages.
-- Prefer stable directory URLs such as `/tools/concentration-converter/` and `/anova/`.
+- Prefer stable directory URLs such as `/tools/converter/` and `/learn/anova-explorer/`.
 - Add a legacy redirect only after a URL has been published or externally shared.
 
 CSS:

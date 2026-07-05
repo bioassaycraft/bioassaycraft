@@ -7,8 +7,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: "index.html",
-        anovaExplorer: "anova/index.html",
-        concentrationConverter: "tools/concentration-converter/index.html",
+        anovaExplorer: "learn/anova-explorer/index.html",
+        concentrationConverter: "tools/converter/index.html",
       },
     },
   },

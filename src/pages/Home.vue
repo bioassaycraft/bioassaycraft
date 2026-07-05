@@ -28,17 +28,12 @@ const tools = [
   {
     title: "Conc. Converter",
     note: "Mass ↔ molar.",
-    href: "/tools/concentration-converter/",
+    href: "/tools/converter/",
   },
   {
     title: "Sample Size Calculator",
     note: "Runs from assumptions.",
     href: "/tools/validation-sample-size-calculator/",
-  },
-  {
-    title: "ANOVA Explorer",
-    note: "Variation becomes evidence.",
-    href: "/anova/",
   },
   {
     title: "Validation Simulator",
@@ -53,6 +48,11 @@ const tools = [
 ];
 
 const learnItems = [
+  {
+    title: "ANOVA Explorer",
+    detail: "Variance decomposition and model reasoning.",
+    href: "/learn/anova-explorer/",
+  },
   {
     title: "中国药典",
     detail: "1431 / 9307 / 9401",
@@ -170,8 +170,14 @@ onBeforeUnmount(() => {
 
       <ul class="learn-list" aria-label="Future BioassayCraft learning references">
         <li v-for="item in learnItems" :key="item.title">
-          <strong>{{ item.title }}</strong>
-          <span v-if="item.detail">{{ item.detail }}</span>
+          <a v-if="item.href" :href="item.href">
+            <strong>{{ item.title }}</strong>
+            <span v-if="item.detail">{{ item.detail }}</span>
+          </a>
+          <template v-else>
+            <strong>{{ item.title }}</strong>
+            <span v-if="item.detail">{{ item.detail }}</span>
+          </template>
         </li>
       </ul>
     </section>
