@@ -59,6 +59,11 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
+html,
+body {
+  touch-action: manipulation;
+}
+
 h1,
 h2,
 h3,
@@ -88,6 +93,19 @@ input,
 select,
 textarea {
   font-size: 0.94rem;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[role="button"],
+.control,
+.tab,
+.toggle,
+.step-button {
+  touch-action: manipulation;
 }
 
 .mono,
