@@ -1695,7 +1695,6 @@ onBeforeUnmount(() => {
       :corresponding-label="selectedMobileCorrespondingLabel"
       :info-open="mobileInfoOpen"
       @toggle-info="mobileInfoOpen = !mobileInfoOpen"
-      @clear="selectedMobileNodeId = null"
     />
 
     <section class="anova-table-wrap" aria-labelledby="anova-table-title">
@@ -2689,8 +2688,14 @@ button {
     --mobile-header-control-padding-x: 10px;
     --mobile-header-control-font-size: 0.72rem;
     --mobile-header-control-font-weight: 650;
-    --mobile-header-control-border: rgba(214, 217, 222, 0.54);
-    --mobile-header-control-bg: rgba(255, 255, 255, 0.48);
+    --mobile-glass-blur: 16px;
+    --mobile-glass-bg: rgba(255, 255, 255, 0.48);
+    --mobile-glass-border: rgba(214, 217, 222, 0.54);
+    --mobile-glass-shadow: 0 8px 20px rgba(23, 23, 23, 0.026);
+    --mobile-glass-radius: 14px;
+    --mobile-header-control-border: var(--mobile-glass-border);
+    --mobile-header-control-bg: var(--mobile-glass-bg);
+    --mobile-header-control-shadow: var(--mobile-glass-shadow);
     --mobile-section-gap: var(--mobile-gap-md);
     --mobile-header-gap: var(--mobile-section-gap);
     --mobile-slider-height: 24px;

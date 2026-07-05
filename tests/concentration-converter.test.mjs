@@ -83,4 +83,39 @@ describe("concentration converter", () => {
     assert.equal(concentrationUnits.find((unit) => unit.key === "nmolL").label, "nM");
     assert.notEqual(concentrationUnits.find((unit) => unit.key === "nmolL").label, "NM");
   });
+
+  it("converts common mobile default mass and molar directions", () => {
+    const massToMolar = convertConcentration({
+      value: 100,
+      fromUnitKey: "ngmL",
+      toUnitKey: "nmolL",
+      molecularWeightValue: 150,
+      molecularWeightUnitKey: "kda",
+    });
+
+    assert.equal(massToMolar.ok, true);
+    assert.ok(Math.abs(massToMolar.outputValue - 0.6666666667) < 1e-9);
+
+    const oneNanomolar = convertConcentration({
+      value: 150,
+      fromUnitKey: "ngmL",
+      toUnitKey: "nmolL",
+      molecularWeightValue: 150,
+      molecularWeightUnitKey: "kda",
+    });
+
+    assert.equal(oneNanomolar.ok, true);
+    assert.ok(Math.abs(oneNanomolar.outputValue - 1) < 1e-9);
+
+    const molarToMass = convertConcentration({
+      value: 0.6666666667,
+      fromUnitKey: "nmolL",
+      toUnitKey: "ngmL",
+      molecularWeightValue: 150,
+      molecularWeightUnitKey: "kda",
+    });
+
+    assert.equal(molarToMass.ok, true);
+    assert.ok(Math.abs(molarToMass.outputValue - 100) < 1e-6);
+  });
 });

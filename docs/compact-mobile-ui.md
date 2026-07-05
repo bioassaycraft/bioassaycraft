@@ -75,6 +75,11 @@ Use these mobile-specific tokens or local aliases that map to them:
 --mobile-header-control-font-weight: 650;
 --mobile-header-control-border: rgba(214, 217, 222, 0.54);
 --mobile-header-control-bg: rgba(255, 255, 255, 0.48);
+--mobile-glass-blur: 16px;
+--mobile-glass-bg: rgba(255, 255, 255, 0.48);
+--mobile-glass-border: rgba(214, 217, 222, 0.54);
+--mobile-glass-shadow: 0 8px 20px rgba(23, 23, 23, 0.026);
+--mobile-glass-radius: 14px;
 --mobile-header-gap: var(--mobile-section-gap);
 --mobile-content-top: auto; /* measured from the fixed shell */
 --mobile-chart-aspect-ratio: 16 / 9;
@@ -108,6 +113,7 @@ Content offset:
 Mobile implementations should use or mirror these component roles:
 
 - `MobileShell`: fixed mobile shell and scrollable content rhythm.
+- `MobileToolHeader`: reusable selector + language switch + home icon row for mobile tool and Explorer pages.
 - `MobileTopControls`: model/tool selector and language switch.
 - `MobileSegmentedNavigation`: primary workspace switch.
 - `MobileStepController`: fixed step navigation.
@@ -124,12 +130,24 @@ Components may own mobile-specific layout and typography, but they must share th
 The first mobile shell row uses a shared header-control specification for selectors, segmented switches, and compact language controls:
 
 - Use the same visual height for model/tool selectors and language switches.
+- Place the home action as a compact icon button beside the language switch when a mobile page needs a return-home affordance.
+- Keep the header row container transparent; only individual controls should carry glass/card backgrounds, borders, or shadows.
 - Do not rely on browser default `select` height; set explicit height, padding, type size, border, radius, and line-height.
 - Use a custom lightweight disclosure marker when native select appearance creates vertical mismatch.
 - Keep text vertically centered and stable across Chinese and English.
 - Reuse `--mobile-header-control-*` tokens before adding component-specific overrides.
 
 The second-row segmented navigation should use the same control height, radius, font size, border, and background language as the first-row controls.
+
+## Glass Material
+
+The fixed mobile shell uses one glass material system:
+
+- The outer first-row header remains transparent so transparent space is visible between controls.
+- Individual header controls use the shared glass background, border, blur, radius, and shadow.
+- Second-row segmented navigation and third-row step navigation use the same `--mobile-glass-*` tokens.
+- Do not mix opaque cards, different blur radii, or unrelated shadows across the fixed shell.
+- Home icon buttons keep the same button size as other header controls; only the icon may be tuned for visual weight.
 
 ## Mobile Step Navigation
 

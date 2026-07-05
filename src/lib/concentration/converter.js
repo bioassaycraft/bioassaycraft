@@ -21,8 +21,9 @@ export const molecularWeightUnits = [
 
 export const molecularWeightPresets = [
   { key: "igg", label: "IgG antibody", value: 150, unit: "kda" },
-  { key: "fab", label: "Fab fragment", value: 50, unit: "kda" },
-  { key: "albumin", label: "Albumin", value: 66.5, unit: "kda" },
+  { key: "vhh", label: "VHH", value: 15, unit: "kda" },
+  { key: "scfv", label: "scFv", value: 27, unit: "kda" },
+  { key: "bsa", label: "BSA", value: 66.5, unit: "kda" },
 ];
 
 export function getConcentrationUnit(key) {

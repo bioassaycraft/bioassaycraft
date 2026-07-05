@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
 import { animateElement, getNumberChangeKeyframes, numberChangeTransition } from "../utils/motion";
 import {
@@ -20,9 +21,14 @@ const isHeaderMorphed = ref(false);
 const headerMorphTrigger = ref(null);
 const resultPanel = ref(null);
 const copyState = ref("idle");
+const activePresetKey = ref("");
+const mobileCalculation = ref(null);
+const recentCalculations = ref([]);
+const lastRecentSignature = ref("");
 
 let headerMorphObserver = null;
 let copyTimer = null;
+let isRestoringCalculation = false;
 
 const converterCopy = {
   en: {
@@ -31,14 +37,27 @@ const converterCopy = {
     compactSubtitle: "Mass ↔ molar concentration conversion.",
     home: "Back to home",
     languageLabel: "Language",
+    mobileControlsLabel: "Mobile converter controls",
+    unitConverter: "Concentration",
     workspace: "Workspace",
     inputWorkspace: "Input Workspace",
     resultWorkspace: "Result Workspace",
     knownConcentration: "Known concentration",
     molecularWeight: "Molecular weight",
     conversionResult: "Conversion result",
+    convertedResult: "Converted result",
+    currentUnit: "Current unit",
+    targetUnit: "Target unit",
+    swapUnits: "Swap units",
+    clearInput: "Clear input",
+    recentCalculations: "Recent calculations",
+    clearHistory: "Clear history",
+    noRecentCalculations: "Successful conversions appear here during this session.",
+    restoreCalculation: "Restore calculation",
     notesTitle: "Notes for interpretation",
     copyResult: "Copy result",
+    calculate: "Go",
+    calculatePrompt: "Enter values and tap Calculate.",
     copied: "Copied",
     copyFailed: "Copy failed",
     inputValue: "Input value",
@@ -79,8 +98,9 @@ const converterCopy = {
     ],
     presetLabels: {
       igg: "IgG antibody",
-      fab: "Fab fragment",
-      albumin: "Albumin",
+      vhh: "VHH",
+      scfv: "scFv",
+      bsa: "BSA",
     },
   },
   zh: {
@@ -89,14 +109,27 @@ const converterCopy = {
     compactSubtitle: "质量浓度 ↔ 摩尔浓度换算。",
     home: "返回首页",
     languageLabel: "语言切换",
+    mobileControlsLabel: "移动端换算控制区",
+    unitConverter: "浓度换算",
     workspace: "工作区",
     inputWorkspace: "输入工作区",
     resultWorkspace: "结果工作区",
     knownConcentration: "已知浓度",
     molecularWeight: "分子量",
     conversionResult: "换算结果",
+    convertedResult: "换算结果",
+    currentUnit: "当前单位",
+    targetUnit: "目标单位",
+    swapUnits: "交换单位",
+    clearInput: "清空输入",
+    recentCalculations: "最近换算",
+    clearHistory: "清空记录",
+    noRecentCalculations: "本次会话中的成功换算会显示在这里。",
+    restoreCalculation: "恢复换算",
     notesTitle: "解释说明",
     copyResult: "复制结果",
+    calculate: "Go",
+    calculatePrompt: "请输入数值并点击计算。",
     copied: "已复制",
     copyFailed: "复制失败",
     inputValue: "输入值",
@@ -136,8 +169,9 @@ const converterCopy = {
     ],
     presetLabels: {
       igg: "IgG 抗体",
-      fab: "Fab 片段",
-      albumin: "白蛋白",
+      vhh: "VHH",
+      scfv: "scFv",
+      bsa: "BSA",
     },
   },
 };
@@ -145,6 +179,18 @@ const converterCopy = {
 const copy = computed(() => converterCopy[language.value]);
 const massUnits = computed(() => concentrationUnits.filter((unit) => unit.kind === "mass"));
 const molarUnits = computed(() => concentrationUnits.filter((unit) => unit.kind === "molar"));
+const mobileToolOptions = computed(() => [
+  { value: "unitConverter", label: copy.value.unitConverter },
+]);
+const mobileMolecularWeightUnits = computed(() =>
+  molecularWeightUnits.filter((unit) => ["kda", "da"].includes(unit.key)),
+);
+const activeFromUnit = computed(
+  () => concentrationUnits.find((unit) => unit.key === fromUnitKey.value) ?? concentrationUnits[0],
+);
+const mobileTargetUnits = computed(() =>
+  activeFromUnit.value.kind === "mass" ? molarUnits.value : massUnits.value,
+);
 
 const result = computed(() =>
   convertConcentration({
@@ -200,6 +246,77 @@ const resultEmptyMessage = computed(() => {
   return copy.value.emptyResult;
 });
 
+const mobileResultMessage = computed(() => {
+  if (!mobileCalculation.value) return copy.value.calculatePrompt;
+  if (mobileCalculation.value.result.ok) return "";
+
+  const calculationResult = mobileCalculation.value.result;
+  if (calculationResult.reasonKey === "emptyValue") return copy.value.calculatePrompt;
+  return copy.value.messages[calculationResult.reasonKey] ?? calculationResult.reason;
+});
+
+const mobileActiveResult = computed(() => mobileCalculation.value?.result ?? null);
+
+const hasMobileResult = computed(() => mobileActiveResult.value?.ok === true);
+
+const mobileOutputLabel = computed(() => {
+  if (!hasMobileResult.value) return "--";
+  return formatConcentrationNumber(mobileActiveResult.value.outputValue);
+});
+
+const mobileOutputUnitLabel = computed(() => mobileActiveResult.value?.toUnit?.label ?? "--");
+
+const mobileInputLabel = computed(() => {
+  if (!hasMobileResult.value) return "";
+  const active = mobileActiveResult.value.fromUnit;
+  return `${mobileActiveResult.value.inputValue} ${active.label}`;
+});
+
+const mobileConversionRelationLabel = computed(() => {
+  if (!hasMobileResult.value) return "";
+  return `${mobileInputLabel.value} → ${mobileOutputLabel.value} ${mobileOutputUnitLabel.value}`;
+});
+
+const compactResultText = computed(() => {
+  if (!hasMobileResult.value) return "";
+  return `${mobileOutputLabel.value} ${mobileOutputUnitLabel.value}`;
+});
+
+const mobileMolecularWeightDisplay = computed(() => {
+  if (!molecularWeightValue.value) return "--";
+  const unit =
+    mobileMolecularWeightUnits.value.find((item) => item.key === molecularWeightUnitKey.value) ??
+    mobileMolecularWeightUnits.value[0];
+  return `${molecularWeightValue.value} ${unit.label}`;
+});
+
+function buildCalculationRecord(calculationResult) {
+  if (!calculationResult.ok) return null;
+  const outputValue = formatConcentrationNumber(calculationResult.outputValue);
+  const outputUnit = calculationResult.toUnit.label;
+  return {
+    signature: [
+      inputValue.value,
+      fromUnitKey.value,
+      toUnitKey.value,
+      molecularWeightValue.value,
+      molecularWeightUnitKey.value,
+      outputValue,
+    ].join("|"),
+    inputValue: inputValue.value,
+    fromUnitKey: fromUnitKey.value,
+    fromUnitLabel: calculationResult.fromUnit.label,
+    toUnitKey: toUnitKey.value,
+    toUnitLabel: outputUnit,
+    molecularWeightValue: molecularWeightValue.value,
+    molecularWeightUnitKey: molecularWeightUnitKey.value,
+    molecularWeightLabel: mobileMolecularWeightDisplay.value,
+    outputValue,
+    outputLabel: `${outputValue} ${outputUnit}`,
+    result: calculationResult,
+  };
+}
+
 const resultText = computed(() => {
   if (!result.value.ok) return "";
 
@@ -218,10 +335,113 @@ const resultText = computed(() => {
 function applyPreset(preset) {
   molecularWeightValue.value = String(preset.value);
   molecularWeightUnitKey.value = preset.unit;
+  activePresetKey.value = preset.key;
 }
 
 function setLanguage(nextLanguage) {
   language.value = nextLanguage;
+}
+
+function ensureOppositeTarget(nextUnitKey) {
+  const nextUnit = concentrationUnits.find((unit) => unit.key === nextUnitKey);
+  const currentTarget = concentrationUnits.find((unit) => unit.key === toUnitKey.value);
+
+  if (!nextUnit || currentTarget?.kind !== nextUnit.kind) return;
+  toUnitKey.value = nextUnit.kind === "mass" ? "nmolL" : "ngmL";
+}
+
+function setCurrentUnit(nextUnitKey) {
+  fromUnitKey.value = nextUnitKey;
+  ensureOppositeTarget(nextUnitKey);
+}
+
+function setTargetUnit(nextUnitKey) {
+  const nextTarget = concentrationUnits.find((unit) => unit.key === nextUnitKey);
+  if (!nextTarget || nextTarget.kind === activeFromUnit.value.kind) return;
+  toUnitKey.value = nextUnitKey;
+}
+
+function swapUnits() {
+  const nextFromUnit = toUnitKey.value;
+  const nextToUnit = fromUnitKey.value;
+  fromUnitKey.value = nextFromUnit;
+  toUnitKey.value = nextToUnit;
+}
+
+function clearInput() {
+  inputValue.value = "";
+}
+
+function clearActivePreset() {
+  activePresetKey.value = "";
+}
+
+async function copyCompactResult() {
+  if (!hasMobileResult.value || !compactResultText.value) return;
+
+  try {
+    await navigator.clipboard.writeText(compactResultText.value);
+    copyState.value = "copied";
+    window.clearTimeout(copyTimer);
+    copyTimer = window.setTimeout(() => {
+      copyState.value = "idle";
+    }, 1400);
+  } catch {
+    copyState.value = "failed";
+  }
+}
+
+function invalidateMobileCalculation() {
+  mobileCalculation.value = null;
+  copyState.value = "idle";
+}
+
+function calculateMobileResult() {
+  const calculationResult = result.value;
+  const record = buildCalculationRecord(calculationResult);
+
+  mobileCalculation.value = {
+    result: calculationResult,
+    record,
+  };
+
+  if (record) {
+    recordRecentCalculation(record);
+  }
+
+  pulseResult();
+}
+
+function recordRecentCalculation(record) {
+  if (!record || record.signature === lastRecentSignature.value) return;
+
+  lastRecentSignature.value = record.signature;
+  recentCalculations.value = [
+    record,
+    ...recentCalculations.value.filter((item) => item.signature !== record.signature),
+  ].slice(0, 5);
+}
+
+function restoreRecentCalculation(record) {
+  isRestoringCalculation = true;
+  fromUnitKey.value = record.fromUnitKey;
+  toUnitKey.value = record.toUnitKey;
+  molecularWeightValue.value = record.molecularWeightValue;
+  molecularWeightUnitKey.value = record.molecularWeightUnitKey;
+  inputValue.value = record.inputValue;
+  activePresetKey.value = "";
+  mobileCalculation.value = {
+    result: record.result,
+    record,
+  };
+  nextTick(() => {
+    isRestoringCalculation = false;
+  });
+}
+
+function clearHistory() {
+  recentCalculations.value = [];
+  lastRecentSignature.value = "";
 }
 
 async function copyResult() {
@@ -244,10 +464,12 @@ async function pulseResult() {
   animateElement(resultPanel.value, getNumberChangeKeyframes(), numberChangeTransition);
 }
 
-watch(
-  [inputValue, fromUnitKey, toUnitKey, molecularWeightValue, molecularWeightUnitKey],
-  pulseResult,
-);
+watch([inputValue, fromUnitKey, toUnitKey, molecularWeightValue, molecularWeightUnitKey], () => {
+  pulseResult();
+  if (!isRestoringCalculation) {
+    invalidateMobileCalculation();
+  }
+});
 
 onMounted(() => {
   if ("IntersectionObserver" in window && headerMorphTrigger.value) {
@@ -271,6 +493,48 @@ onBeforeUnmount(() => {
   <div class="converter-shell">
     <main class="concentration-converter" :class="{ 'is-header-morphed': isHeaderMorphed }">
       <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
+      <MobileToolHeader
+        class="converter-mobile-header"
+        :aria-label="copy.mobileControlsLabel"
+        :selector-label="copy.unitConverter"
+        :options="mobileToolOptions"
+        selected-value="unitConverter"
+        :language="language"
+        :language-label="copy.languageLabel"
+        :home-label="copy.home"
+        @set-language="setLanguage"
+      />
+      <section class="mobile-unit-state-bar" aria-label="Mobile unit conversion direction">
+        <label>
+          <span>{{ copy.currentUnit }}</span>
+          <select :value="fromUnitKey" @change="setCurrentUnit($event.target.value)">
+            <option v-for="unit in concentrationUnits" :key="unit.key" :value="unit.key">
+              {{ unit.label }}
+            </option>
+          </select>
+        </label>
+        <button
+          type="button"
+          class="mobile-icon-button mobile-swap-button"
+          :aria-label="copy.swapUnits"
+          @click="swapUnits"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 7h10" />
+            <path d="m14 4 3 3-3 3" />
+            <path d="M17 17H7" />
+            <path d="m10 14-3 3 3 3" />
+          </svg>
+        </button>
+        <label>
+          <span>{{ copy.targetUnit }}</span>
+          <select :value="toUnitKey" @change="setTargetUnit($event.target.value)">
+            <option v-for="unit in mobileTargetUnits" :key="unit.key" :value="unit.key">
+              {{ unit.label }}
+            </option>
+          </select>
+        </label>
+      </section>
       <header class="tool-topbar">
         <div class="header-inner">
           <a class="brand-link" href="/" aria-label="BioassayCraft home">
@@ -313,7 +577,7 @@ onBeforeUnmount(() => {
       </section>
 
       <form
-        class="converter-workspace"
+        class="converter-workspace desktop-converter-workspace"
         aria-label="Concentration conversion workspace"
         @submit.prevent="pulseResult"
       >
@@ -402,12 +666,13 @@ onBeforeUnmount(() => {
                   step="any"
                   inputmode="decimal"
                   :placeholder="copy.mwPlaceholder"
+                  @input="clearActivePreset"
                 />
               </label>
 
               <label class="field-block">
                 <span>{{ copy.mwUnit }}</span>
-                <select v-model="molecularWeightUnitKey">
+                <select v-model="molecularWeightUnitKey" @change="clearActivePreset">
                   <option v-for="unit in molecularWeightUnits" :key="unit.key" :value="unit.key">
                     {{ unit.label }}
                   </option>
@@ -420,6 +685,7 @@ onBeforeUnmount(() => {
                 v-for="preset in molecularWeightPresets"
                 :key="preset.key"
                 type="button"
+                :class="{ 'is-active': activePresetKey === preset.key }"
                 @click="applyPreset(preset)"
               >
                 {{ copy.presetLabels[preset.key] }}
@@ -500,6 +766,148 @@ onBeforeUnmount(() => {
               <li v-for="note in copy.notes" :key="note">{{ note }}</li>
             </ul>
           </aside>
+        </section>
+      </form>
+
+      <form class="mobile-converter-workspace" @submit.prevent="calculateMobileResult">
+        <section class="mobile-converter-card" aria-labelledby="mobile-molecular-weight-title">
+          <h2 id="mobile-molecular-weight-title">{{ copy.molecularWeight }}</h2>
+          <div class="mobile-converter-row">
+            <label>
+              <span>{{ copy.mwValue }}</span>
+              <input
+                v-model="molecularWeightValue"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+                :placeholder="copy.mwPlaceholder"
+                @input="clearActivePreset"
+              />
+            </label>
+            <label class="is-unit">
+              <span>{{ copy.mwUnit }}</span>
+              <select v-model="molecularWeightUnitKey" @change="clearActivePreset">
+                <option
+                  v-for="unit in mobileMolecularWeightUnits"
+                  :key="unit.key"
+                  :value="unit.key"
+                >
+                  {{ unit.label }}
+                </option>
+              </select>
+            </label>
+          </div>
+          <div class="mobile-preset-grid" :aria-label="copy.commonPresets">
+            <button
+              v-for="preset in molecularWeightPresets"
+              :key="preset.key"
+              type="button"
+              :class="{ 'is-active': activePresetKey === preset.key }"
+              @click="applyPreset(preset)"
+            >
+              <strong>{{ copy.presetLabels[preset.key] }}</strong>
+              <span>{{ preset.value }} {{ preset.unit }}</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="mobile-converter-card" aria-labelledby="mobile-known-concentration-title">
+          <div class="mobile-card-title-row">
+            <h2 id="mobile-known-concentration-title">{{ copy.knownConcentration }}</h2>
+            <button
+              type="button"
+              class="mobile-icon-button"
+              :aria-label="copy.clearInput"
+              :disabled="!inputValue"
+              @click="clearInput"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m7 7 10 10M17 7 7 17" />
+              </svg>
+            </button>
+          </div>
+          <div class="mobile-value-row">
+            <input
+              v-model="inputValue"
+              type="number"
+              min="0"
+              step="any"
+              inputmode="decimal"
+              :aria-label="copy.inputValue"
+              :placeholder="copy.inputPlaceholder"
+            />
+            <span class="mobile-unit-badge">{{ activeFromUnit.label }}</span>
+            <button type="submit" class="mobile-calculate-button" :aria-label="copy.calculate">
+              {{ copy.calculate }}
+            </button>
+          </div>
+        </section>
+
+        <section class="mobile-converter-card" aria-labelledby="mobile-converted-result-title">
+          <div class="mobile-card-title-row">
+            <h2 id="mobile-converted-result-title">{{ copy.convertedResult }}</h2>
+            <div class="mobile-result-actions">
+              <span v-if="copyState === 'copied'" class="mobile-copy-feedback">{{
+                copy.copied
+              }}</span>
+              <button
+                type="button"
+                class="mobile-icon-button"
+                :aria-label="copy.copyResult"
+                :disabled="!hasMobileResult"
+                @click="copyCompactResult"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 8.5h8.5v10H8z" />
+                  <path d="M5.5 15.5v-10H14" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="mobile-result-value" aria-live="polite">
+            <div v-if="hasMobileResult" class="mobile-result-inline">
+              <strong>{{ mobileOutputLabel }}</strong>
+              <span>{{ mobileOutputUnitLabel }}</span>
+            </div>
+            <p v-else>{{ mobileResultMessage }}</p>
+          </div>
+          <p v-if="hasMobileResult" class="mobile-result-relation">
+            {{ mobileConversionRelationLabel }}
+          </p>
+        </section>
+
+        <section class="mobile-converter-card" aria-labelledby="mobile-recent-title">
+          <div class="mobile-card-title-row">
+            <h2 id="mobile-recent-title">{{ copy.recentCalculations }}</h2>
+            <button
+              v-if="recentCalculations.length"
+              type="button"
+              class="mobile-text-button"
+              @click="clearHistory"
+            >
+              {{ copy.clearHistory }}
+            </button>
+          </div>
+          <p v-if="!recentCalculations.length" class="mobile-empty-note">
+            {{ copy.noRecentCalculations }}
+          </p>
+          <div v-else class="mobile-history-list">
+            <button
+              v-for="item in recentCalculations"
+              :key="item.signature"
+              type="button"
+              :aria-label="copy.restoreCalculation"
+              @click="restoreRecentCalculation(item)"
+            >
+              <span>
+                <strong>{{ item.inputValue }} {{ item.fromUnitLabel }}</strong>
+                <small>MW {{ item.molecularWeightLabel }}</small>
+              </span>
+              <span class="history-arrow" aria-hidden="true">→</span>
+              <strong>{{ item.outputLabel }}</strong>
+            </button>
+          </div>
         </section>
       </form>
     </main>
@@ -775,6 +1183,14 @@ onBeforeUnmount(() => {
   gap: 16px;
   align-items: stretch;
   margin-top: 14px;
+}
+
+.mobile-converter-workspace {
+  display: none;
+}
+
+.mobile-unit-state-bar {
+  display: none;
 }
 
 .workspace-pane {
@@ -1069,71 +1485,512 @@ select:focus,
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .converter-shell {
-    --topbar-sticky-height: 76px;
+    --mobile-safe-top: max(env(safe-area-inset-top), 12px);
+    --converter-mobile-header-height: 36px;
+    --converter-mobile-unit-switcher-height: 64px;
+    --converter-mobile-fixed-gap: 12px;
+    --converter-mobile-section-gap: var(--converter-mobile-fixed-gap);
+    --converter-mobile-unit-action-width: 30px;
+    --converter-mobile-content-offset: calc(
+      var(--mobile-safe-top) + var(--converter-mobile-header-height) +
+        var(--converter-mobile-fixed-gap) + var(--converter-mobile-unit-switcher-height) +
+        var(--converter-mobile-fixed-gap)
+    );
+    --mobile-control-gap: 8px;
+    --mobile-section-gap: var(--mobile-control-gap);
+    --mobile-control-height: 36px;
+    --mobile-unit-state-height: var(--converter-mobile-unit-switcher-height);
+    --mobile-unit-control-height: 30px;
+    --mobile-header-control-height: var(--mobile-control-height);
+    --mobile-header-select-width: 148px;
+    --mobile-calculate-width: 50px;
+    --mobile-input-unit-width: 66px;
+    --mobile-header-control-radius: 11px;
+    --mobile-header-control-padding-x: 10px;
+    --mobile-header-control-font-size: 0.72rem;
+    --mobile-header-control-font-weight: 650;
+    --mobile-header-control-border: rgba(214, 217, 222, 0.54);
+    --mobile-header-control-bg: rgba(255, 255, 255, 0.48);
+    --mobile-header-control-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    --mobile-card-radius: 16px;
+    --mobile-card-bg: rgba(255, 255, 255, 0.48);
+    --mobile-card-border: rgba(0, 0, 0, 0.08);
+    --mobile-card-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    --mobile-field-height: 38px;
   }
 
-  .concentration-converter,
-  .header-inner {
-    width: min(100% - 28px, 1280px);
+  .converter-shell {
+    --topbar-sticky-height: var(--converter-mobile-content-offset);
   }
 
   .concentration-converter {
-    padding-top: calc(var(--topbar-sticky-height) + 12px);
+    width: min(100% - 32px, 1280px);
   }
 
-  .converter-workspace {
-    gap: 12px;
+  .concentration-converter {
+    padding-top: var(--topbar-sticky-height);
+    padding-bottom: 20px;
   }
 
-  .workspace-pane {
-    gap: 12px;
-    padding: 13px;
-  }
-
-  .workspace-section {
-    padding-top: 14px;
-  }
-
-  .header-inner {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    align-items: flex-start;
-    padding: 8px 0;
-  }
-
-  .topbar-spacer {
+  .tool-topbar,
+  .converter-hero,
+  .desktop-converter-workspace {
     display: none;
   }
 
-  .topbar-actions {
-    justify-self: start;
+  .converter-shell :deep(.site-footer) {
+    display: none;
   }
 
-  .language-switch button,
-  .back-link {
-    min-height: 30px;
-  }
-
-  .field-grid,
-  .mw-grid,
-  .result-grid,
-  .result-grid div,
-  .note-list {
-    grid-template-columns: 1fr;
-  }
-
-  .result-grid div:nth-last-child(-n + 2) {
-    border-bottom: 1px solid var(--soft-line);
-  }
-
-  .result-grid div:last-child {
-    border-bottom: 0;
-  }
-
-  .workspace-title-row {
+  .mobile-unit-state-bar {
+    position: fixed;
+    top: calc(
+      var(--mobile-safe-top) + var(--converter-mobile-header-height) +
+        var(--converter-mobile-fixed-gap)
+    );
+    left: 50%;
+    z-index: 69;
     display: grid;
+    grid-template-columns:
+      minmax(0, 1fr) var(--converter-mobile-unit-action-width)
+      minmax(0, 1fr);
+    gap: var(--mobile-section-gap);
+    align-items: end;
+    width: min(100% - 32px, 1360px);
+    min-height: var(--mobile-unit-state-height);
+    padding: 8px;
+    border: 1px solid var(--mobile-card-border);
+    border-radius: var(--mobile-card-radius);
+    background: var(--mobile-card-bg);
+    box-shadow: var(--mobile-card-shadow);
+    backdrop-filter: blur(16px);
+    transform: translateX(-50%);
+  }
+
+  .mobile-unit-state-bar label {
+    display: grid;
+    gap: 4px;
+    align-self: stretch;
+    align-content: end;
+    min-width: 0;
+  }
+
+  .mobile-unit-state-bar label > span {
+    color: var(--muted);
+    font-size: 0.58rem;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .mobile-unit-state-bar select {
+    width: 100%;
+    height: var(--mobile-unit-control-height);
+    min-height: var(--mobile-unit-control-height);
+    padding: 0 24px 0 8px;
+    border: 1px solid rgba(214, 217, 222, 0.62);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 650;
+    line-height: 1;
+  }
+
+  .mobile-unit-state-bar .mobile-icon-button {
+    align-self: end;
+    width: var(--converter-mobile-unit-action-width);
+    height: var(--mobile-unit-control-height);
+    min-height: var(--mobile-unit-control-height);
+    border-radius: 10px;
+  }
+
+  .mobile-swap-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .mobile-converter-workspace {
+    display: grid;
+    gap: var(--converter-mobile-section-gap);
+  }
+
+  .mobile-converter-card {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--mobile-card-border);
+    border-radius: var(--mobile-card-radius);
+    background: var(--mobile-card-bg);
+    box-shadow: var(--mobile-card-shadow);
+  }
+
+  .mobile-converter-card h2 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 660;
+    line-height: 1.22;
+  }
+
+  .mobile-converter-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 106px;
+    gap: var(--mobile-section-gap);
+    align-items: end;
+    min-width: 0;
+  }
+
+  .mobile-converter-row label {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .mobile-converter-row label > span {
+    color: var(--muted);
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .mobile-converter-row input,
+  .mobile-converter-row select {
+    width: 100%;
+    height: var(--mobile-field-height);
+    min-height: var(--mobile-field-height);
+    border: 1px solid rgba(214, 217, 222, 0.62);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.46);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.78rem;
+    line-height: 1;
+  }
+
+  .mobile-converter-row input {
+    padding: 0 10px;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mobile-converter-row select {
+    padding: 0 28px 0 9px;
+  }
+
+  .mobile-converter-row input:focus,
+  .mobile-converter-row select:focus,
+  .mobile-unit-state-bar select:focus,
+  .mobile-value-row input:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(79, 86, 97, 0.12);
+  }
+
+  .mobile-preset-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .mobile-preset-grid button {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    min-height: 42px;
+    padding: 6px 4px;
+    border: 1px solid rgba(214, 217, 222, 0.62);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.36);
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .mobile-preset-grid button.is-active,
+  .preset-row button.is-active {
+    border-color: rgba(79, 86, 97, 0.46);
+    background: rgba(79, 86, 97, 0.12);
+  }
+
+  .mobile-preset-grid strong {
+    overflow: hidden;
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 1.12;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-preset-grid span {
+    color: var(--muted);
+    font-size: 0.58rem;
+    font-weight: 650;
+    line-height: 1.1;
+  }
+
+  .mobile-card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .mobile-result-actions {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .mobile-result-actions .mobile-copy-feedback {
+    position: absolute;
+    top: 50%;
+    right: calc(var(--mobile-field-height) + 8px);
+    margin: 0;
+    white-space: nowrap;
+    transform: translateY(-50%);
+  }
+
+  .mobile-value-row {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr) var(--mobile-input-unit-width)
+      var(--mobile-calculate-width);
+    gap: var(--mobile-section-gap);
+    align-items: center;
+    min-width: 0;
+  }
+
+  .mobile-value-row input {
+    width: 100%;
+    height: var(--mobile-field-height);
+    min-height: var(--mobile-field-height);
+    padding: 0 10px;
+    border: 1px solid rgba(214, 217, 222, 0.62);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.46);
+    color: var(--ink);
+    font: inherit;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mobile-unit-badge {
+    display: inline-grid;
+    height: var(--mobile-field-height);
+    min-width: 0;
+    place-items: center;
+    border: 1px solid rgba(214, 217, 222, 0.52);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.34);
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .mobile-calculate-button {
+    display: grid;
+    width: var(--mobile-calculate-width);
+    height: var(--mobile-field-height);
+    min-height: var(--mobile-field-height);
+    padding: 0;
+    place-items: center;
+    border: 1px solid rgba(36, 87, 179, 0.28);
+    border-radius: 11px;
+    background: rgba(36, 87, 179, 0.92);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(36, 87, 179, 0.14);
+    font-size: 0.74rem;
+    font-weight: 760;
+    line-height: 1;
+  }
+
+  .mobile-calculate-button:focus-visible {
+    outline: none;
+    box-shadow:
+      0 8px 18px rgba(36, 87, 179, 0.14),
+      0 0 0 4px rgba(36, 87, 179, 0.16);
+  }
+
+  .mobile-icon-button {
+    display: grid;
+    width: var(--mobile-field-height);
+    height: var(--mobile-field-height);
+    min-height: var(--mobile-field-height);
+    padding: 0;
+    place-items: center;
+    border: 1px solid rgba(214, 217, 222, 0.62);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.46);
+    color: var(--accent);
+    box-shadow: 0 8px 18px rgba(23, 23, 23, 0.018);
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .mobile-icon-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+  }
+
+  .mobile-icon-button svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+  }
+
+  .mobile-result-value {
+    display: grid;
+    min-width: 0;
+    min-height: 46px;
+    padding: 0 10px;
+    border: 1px solid rgba(79, 86, 97, 0.16);
+    border-radius: 11px;
+    background: rgba(79, 86, 97, 0.08);
+    align-items: center;
+  }
+
+  .mobile-result-inline {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    min-width: 0;
+  }
+
+  .mobile-result-inline strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 1.18rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    line-height: 1;
+  }
+
+  .mobile-result-inline span {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 650;
+  }
+
+  .mobile-result-value p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.7rem;
+    line-height: 1.25;
+  }
+
+  .mobile-result-relation,
+  .mobile-empty-note {
+    margin: -2px 0 0;
+    color: var(--muted);
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .mobile-copy-feedback {
+    color: var(--accent);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .mobile-text-button {
+    min-height: 26px;
+    padding: 0 8px;
+    border: 1px solid rgba(214, 217, 222, 0.58);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.34);
+    color: var(--accent);
+    font-size: 0.64rem;
+    font-weight: 700;
+  }
+
+  .mobile-history-list {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mobile-history-list button {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 16px minmax(0, 0.78fr);
+    gap: 7px;
+    align-items: center;
+    min-width: 0;
+    min-height: 42px;
+    padding: 7px 8px;
+    border: 1px solid rgba(214, 217, 222, 0.56);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.34);
+    color: var(--ink);
+    text-align: left;
+  }
+
+  .mobile-history-list span:first-child {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .mobile-history-list strong {
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-history-list small {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.58rem;
+    font-weight: 650;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .history-arrow {
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+
+  .mobile-converter-row .is-unit {
+    min-width: 0;
+  }
+
+  .mobile-converter-row input::-webkit-outer-spin-button,
+  .mobile-converter-row input::-webkit-inner-spin-button,
+  .mobile-value-row input::-webkit-outer-spin-button,
+  .mobile-value-row input::-webkit-inner-spin-button {
+    margin: 0;
+  }
+
+  .mobile-converter-row input[type="number"],
+  .mobile-value-row input[type="number"] {
+    appearance: textfield;
   }
 }
 

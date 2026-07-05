@@ -26,7 +26,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["toggle-info", "clear"]);
+const emit = defineEmits(["toggle-info"]);
 </script>
 
 <template>
@@ -44,9 +44,6 @@ const emit = defineEmits(["toggle-info", "clear"]);
         @click="emit('toggle-info')"
       >
         {{ copy.mobile.information }}
-      </button>
-      <button v-if="node" type="button" class="mobile-close-button" @click="emit('clear')">
-        ×
       </button>
     </div>
     <p v-if="!node || infoOpen">{{ description }}</p>
@@ -129,12 +126,6 @@ const emit = defineEmits(["toggle-info", "clear"]);
   .mobile-info-button.is-active {
     background: rgba(79, 127, 211, 0.12) !important;
     color: #315fba !important;
-  }
-
-  .mobile-close-button {
-    width: 24px;
-    margin-left: 0;
-    font-size: 1rem;
   }
 
   .mobile-node-detail p {

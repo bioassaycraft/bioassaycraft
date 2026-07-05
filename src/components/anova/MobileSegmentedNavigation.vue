@@ -52,10 +52,11 @@ const emit = defineEmits(["set-view"]);
     width: min(100% - 32px, 1360px);
     min-height: var(--mobile-switch-height, 36px);
     padding: 0;
-    border: 1px solid var(--mobile-header-control-border, rgba(214, 217, 222, 0.54));
-    border-radius: var(--mobile-header-control-radius, 11px);
-    background: var(--mobile-header-control-bg, rgba(255, 255, 255, 0.48));
-    backdrop-filter: blur(16px);
+    border: 1px solid var(--mobile-glass-border, rgba(214, 217, 222, 0.54));
+    border-radius: var(--mobile-glass-radius, 14px);
+    background: var(--mobile-glass-bg, rgba(255, 255, 255, 0.48));
+    box-shadow: var(--mobile-glass-shadow, 0 8px 20px rgba(23, 23, 23, 0.026));
+    backdrop-filter: blur(var(--mobile-glass-blur, 16px));
     transform: translateX(-50%);
   }
 
