@@ -62,8 +62,6 @@ The homepage should not use `Coming Soon` as visible status text, browser metada
 
 ## Concept Explorations
 
-The concept board is available at [concepts.svg](../assets/brand/concepts.svg).
-
 ### 01 Fitted Corner
 
 Design rationale: A minimal coordinate corner holds one fitted curve and three observations.
@@ -215,9 +213,6 @@ The logo may remain simple, but the broader brand system should carry deeper mea
 - Primary symbol: [logo.svg](../assets/brand/logo.svg)
 - Light symbol for dark backgrounds: [logo-light.svg](../assets/brand/logo-light.svg)
 - Dark symbol for light backgrounds: [logo-dark.svg](../assets/brand/logo-dark.svg)
-- Legacy symbol archive: [bioassaycraft-symbol.svg](../assets/brand/bioassaycraft-symbol.svg)
-- Legacy logo lockup archive: [bioassaycraft-logo.svg](../assets/brand/bioassaycraft-logo.svg)
-- Concept board: [concepts.svg](../assets/brand/concepts.svg)
 
 The live site favicon uses the same pure circular symbol at `/assets/icons/favicon.svg`.
 
