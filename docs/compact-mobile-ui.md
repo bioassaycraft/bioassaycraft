@@ -65,9 +65,16 @@ Use these mobile-specific tokens or local aliases that map to them:
 --mobile-card-gap: var(--mobile-section-gap);
 --mobile-card-radius: 16px;
 --mobile-safe-top: max(env(safe-area-inset-top), 12px);
---mobile-control-height: 34px;
---mobile-segmented-height: 34px;
---mobile-step-height: 64px;
+--mobile-control-height: 36px;
+--mobile-segmented-height: 36px;
+--mobile-step-height: 88px;
+--mobile-header-control-height: var(--mobile-control-height);
+--mobile-header-control-radius: 11px;
+--mobile-header-control-padding-x: 10px;
+--mobile-header-control-font-size: 0.72rem;
+--mobile-header-control-font-weight: 650;
+--mobile-header-control-border: rgba(214, 217, 222, 0.54);
+--mobile-header-control-bg: rgba(255, 255, 255, 0.48);
 --mobile-header-gap: var(--mobile-section-gap);
 --mobile-content-top: auto; /* measured from the fixed shell */
 --mobile-chart-aspect-ratio: 16 / 9;
@@ -111,6 +118,38 @@ Mobile implementations should use or mirror these component roles:
 - `MobileAccordion`: collapsed long-form details such as full ANOVA.
 
 Components may own mobile-specific layout and typography, but they must share the same source data, state, calculation logic, and i18n as desktop.
+
+## Header Controls
+
+The first mobile shell row uses a shared header-control specification for selectors, segmented switches, and compact language controls:
+
+- Use the same visual height for model/tool selectors and language switches.
+- Do not rely on browser default `select` height; set explicit height, padding, type size, border, radius, and line-height.
+- Use a custom lightweight disclosure marker when native select appearance creates vertical mismatch.
+- Keep text vertically centered and stable across Chinese and English.
+- Reuse `--mobile-header-control-*` tokens before adding component-specific overrides.
+
+The second-row segmented navigation should use the same control height, radius, font size, border, and background language as the first-row controls.
+
+## Mobile Step Navigation
+
+Step navigation is a touch-first control, not a compact desktop tab row:
+
+- Keep previous and next as true buttons with semantic disabled states.
+- The visual button style can remain light, but the module must provide enough vertical breathing room for touch.
+- Dot indicators should keep a small visual size while their button hit area remains larger.
+- The step title stays centered between previous and next controls.
+- The step module may be taller than other header controls because it combines navigation, title, and progress.
+
+## Mobile Chart Spacing
+
+Mobile charts should preserve their plot ratio while improving axis readability:
+
+- Prefer increasing axis label offset over changing chart calculations.
+- X-axis titles should sit with clear separation from tick labels.
+- Y-axis titles should sit with clear separation from tick labels.
+- Do not reduce plot area unless labels would otherwise clip.
+- D3 may own chart-space positioning, while Vue and CSS own surrounding layout.
 
 ## Information Hierarchy
 

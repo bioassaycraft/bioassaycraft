@@ -64,17 +64,17 @@ const emit = defineEmits(["previous", "next", "set-step"]);
   .mobile-step-card {
     position: fixed;
     top: calc(
-      var(--mobile-safe-top, 12px) + var(--mobile-control-height, 34px) +
-        var(--mobile-switch-height, 34px) + var(--mobile-header-gap, 7px) +
+      var(--mobile-safe-top, 12px) + var(--mobile-control-height, 36px) +
+        var(--mobile-switch-height, 36px) + var(--mobile-header-gap, 7px) +
         var(--mobile-header-gap, 7px)
     );
     left: 50%;
     z-index: 66;
     display: grid;
-    gap: 3px;
+    gap: 8px;
     width: min(100% - 32px, 1360px);
-    min-height: var(--mobile-step-height, 64px);
-    padding: 4px 9px;
+    min-height: var(--mobile-step-height, 88px);
+    padding: 9px 10px;
     border: 1px solid rgba(214, 217, 222, 0.54);
     border-radius: 14px;
     background: color-mix(in srgb, white 62%, var(--paper, #f7f5f0) 38%);
@@ -91,7 +91,7 @@ const emit = defineEmits(["previous", "next", "set-step"]);
   }
 
   .mobile-step-actions button {
-    min-height: 28px;
+    min-height: 34px;
     padding: 0 10px;
     border: 1px solid rgba(79, 86, 97, 0.2);
     border-radius: 11px;
@@ -138,7 +138,7 @@ const emit = defineEmits(["previous", "next", "set-step"]);
     display: flex;
     justify-content: space-between;
     width: min(100%, 232px);
-    min-height: 30px;
+    min-height: 34px;
     margin: 0 auto;
     gap: 8px;
     align-items: center;
@@ -160,8 +160,8 @@ const emit = defineEmits(["previous", "next", "set-step"]);
     position: relative;
     z-index: 1;
     display: grid;
-    width: 38px;
-    height: 30px;
+    width: 42px;
+    height: 34px;
     padding: 0;
     place-items: center;
     border: 0;

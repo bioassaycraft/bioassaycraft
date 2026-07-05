@@ -1078,6 +1078,8 @@ const drawChart = () => {
   const margin = isMobileChart
     ? { top: 14, right: 14, bottom: 36, left: 42 }
     : { top: 18, right: 18, bottom: 42, left: 46 };
+  const xLabelY = isMobileChart ? height - 3 : height - 9;
+  const yLabelY = isMobileChart ? 8 : 15;
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const xScale = d3
@@ -1133,7 +1135,7 @@ const drawChart = () => {
     .join("text")
     .attr("class", "axis-label x-label")
     .attr("x", margin.left + innerWidth / 2)
-    .attr("y", height - 9)
+    .attr("y", xLabelY)
     .text((label) => label);
 
   svg
@@ -1142,7 +1144,7 @@ const drawChart = () => {
     .join("text")
     .attr("class", "axis-label y-label")
     .attr("x", -margin.top - innerHeight / 2)
-    .attr("y", 15)
+    .attr("y", yLabelY)
     .attr("transform", "rotate(-90)")
     .text((label) => label);
 
@@ -2679,9 +2681,16 @@ button {
     --mobile-gap-xs: 4px;
     --mobile-gap-sm: 6px;
     --mobile-gap-md: 7px;
-    --mobile-control-height: 34px;
-    --mobile-switch-height: 34px;
-    --mobile-step-height: 64px;
+    --mobile-control-height: 36px;
+    --mobile-switch-height: 36px;
+    --mobile-step-height: 88px;
+    --mobile-header-control-height: var(--mobile-control-height);
+    --mobile-header-control-radius: 11px;
+    --mobile-header-control-padding-x: 10px;
+    --mobile-header-control-font-size: 0.72rem;
+    --mobile-header-control-font-weight: 650;
+    --mobile-header-control-border: rgba(214, 217, 222, 0.54);
+    --mobile-header-control-bg: rgba(255, 255, 255, 0.48);
     --mobile-section-gap: var(--mobile-gap-md);
     --mobile-header-gap: var(--mobile-section-gap);
     --mobile-slider-height: 24px;

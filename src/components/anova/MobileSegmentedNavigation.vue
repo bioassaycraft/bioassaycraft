@@ -41,7 +41,7 @@ const emit = defineEmits(["set-view"]);
   .mobile-view-switch {
     position: fixed;
     top: calc(
-      var(--mobile-safe-top, 12px) + var(--mobile-control-height, 34px) +
+      var(--mobile-safe-top, 12px) + var(--mobile-control-height, 36px) +
         var(--mobile-header-gap, 7px)
     );
     left: 50%;
@@ -50,23 +50,23 @@ const emit = defineEmits(["set-view"]);
     grid-template-columns: 1fr 1fr;
     gap: 4px;
     width: min(100% - 32px, 1360px);
-    min-height: var(--mobile-switch-height, 34px);
+    min-height: var(--mobile-switch-height, 36px);
     padding: 0;
-    border: 1px solid rgba(214, 217, 222, 0.54);
-    border-radius: 11px;
-    background: rgba(255, 255, 255, 0.34);
+    border: 1px solid var(--mobile-header-control-border, rgba(214, 217, 222, 0.54));
+    border-radius: var(--mobile-header-control-radius, 11px);
+    background: var(--mobile-header-control-bg, rgba(255, 255, 255, 0.48));
     backdrop-filter: blur(16px);
     transform: translateX(-50%);
   }
 
   .mobile-view-switch button {
-    min-height: var(--mobile-switch-height, 34px);
+    min-height: var(--mobile-switch-height, 36px);
     border: 0;
     border-radius: 10px;
     background: transparent;
     color: var(--muted, #6e7278);
-    font-size: 0.72rem;
-    font-weight: 650;
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
   }
 
   .mobile-view-switch button.is-active {
