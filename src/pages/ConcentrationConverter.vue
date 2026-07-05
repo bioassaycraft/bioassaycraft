@@ -838,6 +838,8 @@ onBeforeUnmount(() => {
               :placeholder="copy.inputPlaceholder"
             />
             <span class="mobile-unit-badge">{{ activeFromUnit.label }}</span>
+          </div>
+          <div class="mobile-action-bar">
             <button type="submit" class="mobile-calculate-button" :aria-label="copy.calculate">
               {{ copy.calculate }}
             </button>
@@ -1506,7 +1508,7 @@ select:focus,
     --mobile-unit-control-height: 30px;
     --mobile-header-control-height: var(--mobile-control-height);
     --mobile-header-select-width: 148px;
-    --mobile-calculate-width: 50px;
+    --mobile-action-height: 42px;
     --mobile-input-unit-width: 66px;
     --mobile-header-control-radius: 11px;
     --mobile-header-control-padding-x: 10px;
@@ -1762,9 +1764,7 @@ select:focus,
 
   .mobile-value-row {
     display: grid;
-    grid-template-columns:
-      minmax(0, 1fr) var(--mobile-input-unit-width)
-      var(--mobile-calculate-width);
+    grid-template-columns: minmax(0, 1fr) var(--mobile-input-unit-width);
     gap: var(--mobile-section-gap);
     align-items: center;
     min-width: 0;
@@ -1789,7 +1789,8 @@ select:focus,
     display: inline-grid;
     height: var(--mobile-field-height);
     min-width: 0;
-    place-items: center;
+    place-items: center end;
+    padding: 0 10px;
     border: 1px solid rgba(214, 217, 222, 0.52);
     border-radius: 11px;
     background: rgba(255, 255, 255, 0.34);
@@ -1800,11 +1801,16 @@ select:focus,
     white-space: nowrap;
   }
 
+  .mobile-action-bar {
+    display: flex;
+    margin-top: var(--mobile-section-gap);
+  }
+
   .mobile-calculate-button {
     display: grid;
-    width: var(--mobile-calculate-width);
-    height: var(--mobile-field-height);
-    min-height: var(--mobile-field-height);
+    width: 100%;
+    height: var(--mobile-action-height);
+    min-height: var(--mobile-action-height);
     padding: 0;
     place-items: center;
     border: 1px solid rgba(36, 87, 179, 0.28);
