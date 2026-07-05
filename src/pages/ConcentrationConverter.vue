@@ -539,7 +539,7 @@ onBeforeUnmount(() => {
         <div class="header-inner">
           <a class="brand-link" href="/" aria-label="BioassayCraft home">
             <span class="header-brand-group">
-              <img class="brand-mark" src="/assets/icons/favicon.svg" alt="" aria-hidden="true" />
+              <img class="brand-mark" src="/assets/brand/logo.svg" alt="" aria-hidden="true" />
               <span class="brand-name">bioassaycraft</span>
               <span class="morph-compact-group">
                 <span class="morph-divider" aria-hidden="true"></span>
@@ -1000,6 +1000,7 @@ onBeforeUnmount(() => {
   width: 24px;
   height: 24px;
   opacity: 0.84;
+  object-fit: contain;
 }
 
 .brand-name {

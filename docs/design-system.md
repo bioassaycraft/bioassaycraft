@@ -123,6 +123,8 @@ Current tokens:
 --bc-black: #171717;
 --bc-blue: #2457B3;
 --bc-blue-hover: #1E4B9C;
+--bc-logo-light: #F2F0EA;
+--bc-logo-dark: #4B5D6B;
 --bc-bg: #F7F5F0;
 --bc-text: #171717;
 --bc-secondary: #6E7278;
@@ -369,7 +371,7 @@ Every non-homepage page should use the shared subpage header:
 ```html
 <header class="site-header">
   <a class="brand-link" href="../../" aria-label="BioassayCraft home">
-    <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+    <img class="brand-mark" src="../../assets/brand/logo.svg" alt="" aria-hidden="true">
     <span class="brand-name">bioassaycraft</span>
   </a>
   <a class="back-link" href="../../">Back to home</a>

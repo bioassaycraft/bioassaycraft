@@ -74,6 +74,7 @@ p {
   width: 34px;
   height: 34px;
   flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .back-link {

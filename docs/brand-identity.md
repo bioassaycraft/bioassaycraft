@@ -212,13 +212,14 @@ The logo may remain simple, but the broader brand system should carry deeper mea
 
 ## Final Logo Files
 
-- Primary symbol: [bioassaycraft-symbol.svg](../assets/brand/bioassaycraft-symbol.svg)
-- Primary logo lockup: [bioassaycraft-logo.svg](../assets/brand/bioassaycraft-logo.svg)
-- Monochrome symbol: [bioassaycraft-symbol-mono.svg](../assets/brand/bioassaycraft-symbol-mono.svg)
-- Dark mode symbol: [bioassaycraft-symbol-dark.svg](../assets/brand/bioassaycraft-symbol-dark.svg)
+- Primary symbol: [logo.svg](../assets/brand/logo.svg)
+- Light symbol for dark backgrounds: [logo-light.svg](../assets/brand/logo-light.svg)
+- Dark symbol for light backgrounds: [logo-dark.svg](../assets/brand/logo-dark.svg)
+- Legacy symbol archive: [bioassaycraft-symbol.svg](../assets/brand/bioassaycraft-symbol.svg)
+- Legacy logo lockup archive: [bioassaycraft-logo.svg](../assets/brand/bioassaycraft-logo.svg)
 - Concept board: [concepts.svg](../assets/brand/concepts.svg)
 
-The live site favicon uses the same symbol at `/assets/icons/favicon.svg`.
+The live site favicon uses the same pure circular symbol at `/assets/icons/favicon.svg`.
 
 ## Construction Guide
 

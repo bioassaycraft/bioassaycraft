@@ -275,7 +275,7 @@ Reference structure:
 ```html
 <header class="site-header">
   <a class="brand-link" href="../../" aria-label="BioassayCraft home">
-    <img class="brand-mark" src="../../assets/icons/favicon.svg" alt="" aria-hidden="true">
+    <img class="brand-mark" src="../../assets/brand/logo.svg" alt="" aria-hidden="true">
     <span class="brand-name">bioassaycraft</span>
   </a>
   <a class="back-link" href="../../">Back to home</a>
@@ -436,12 +436,13 @@ Plots and diagrams:
 
 ## Logo And Brand Mark Usage
 
-Use the fitted-corner symbol from [Brand Identity](brand-identity.md).
+Use the pure circular symbol from [Brand Identity](brand-identity.md).
 
 Rules:
 
-- Use `/assets/icons/favicon.svg` for small in-page brand marks when a compact symbol is enough.
-- Use `assets/brand/bioassaycraft-logo.svg` when a full lockup is needed.
+- Use `/assets/brand/logo.svg` for in-page brand marks on light backgrounds.
+- Use `/assets/brand/logo-light.svg` for brand marks on dark backgrounds.
+- Use `/assets/icons/favicon.svg` and PNG favicon exports for browser and app icons.
 - Do not recreate the mark in CSS.
 - Do not use overlapping letter monograms.
 - Do not add biology imagery around the mark.
