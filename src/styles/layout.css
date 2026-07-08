@@ -13,6 +13,11 @@ body {
   overflow-x: hidden;
 }
 
+::selection {
+  color: var(--bc-text-inverse);
+  background: var(--bc-accent);
+}
+
 a {
   color: inherit;
 }
@@ -45,7 +50,7 @@ a {
   gap: clamp(14px, 1.4vw, 18px);
   align-items: start;
   padding: 32px 0 22px;
-  background: rgba(247, 245, 240, 0.9);
+  background: color-mix(in srgb, var(--app-bg) 90%, transparent);
   backdrop-filter: blur(12px);
 }
 

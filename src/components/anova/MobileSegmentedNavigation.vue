@@ -63,9 +63,9 @@ const emit = defineEmits(["set-view"]);
   }
 
   .mobile-view-switch button.is-active {
-    background: rgba(255, 255, 255, 0.82);
+    background: var(--bc-bg-selected, rgba(255, 255, 255, 0.82));
     color: var(--ink, #171717);
-    box-shadow: 0 8px 18px rgba(23, 23, 23, 0.032);
+    box-shadow: var(--bc-shadow-card, 0 8px 18px rgba(23, 23, 23, 0.032));
   }
 }
 </style>

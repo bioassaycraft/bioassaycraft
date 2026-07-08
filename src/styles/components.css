@@ -46,7 +46,7 @@ h2 {
 }
 
 .module-card.is-active {
-  border-top-color: rgba(36, 87, 179, 0.56);
+  border-top-color: var(--bc-accent-border);
 }
 
 .notebook-home {
@@ -74,7 +74,7 @@ h2 {
   left: 0;
   width: min(360px, 38vw);
   height: 1px;
-  background: linear-gradient(90deg, rgba(36, 87, 179, 0.26), rgba(214, 217, 222, 0));
+  background: linear-gradient(90deg, var(--bc-accent-border), transparent);
   content: "";
 }
 
@@ -93,8 +93,12 @@ h2 {
   z-index: -1;
   opacity: 0.4;
   background-image:
-    linear-gradient(rgba(36, 87, 179, 0.026) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(36, 87, 179, 0.026) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--app-accent) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--app-accent) 8%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 38px 38px;
   mask-image: radial-gradient(circle at center, black 0%, transparent 68%);
   pointer-events: none;
@@ -106,7 +110,7 @@ h2 {
   left: 50%;
   width: min(48vw, 560px);
   height: min(48vw, 560px);
-  border: 1px solid rgba(36, 87, 179, 0.06);
+  border: 1px solid color-mix(in srgb, var(--app-accent) 10%, transparent);
   border-radius: 999px;
   content: "";
   transform: translate(-50%, -50%);
@@ -141,8 +145,8 @@ h2 {
   width: 34px;
   height: 34px;
   place-items: center;
-  color: rgba(23, 23, 23, 0.42);
-  border: 1px solid rgba(23, 23, 23, 0.34);
+  color: color-mix(in srgb, var(--app-text) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--app-text) 34%, transparent);
   border-radius: 999px;
   font-size: 0.96rem;
   text-decoration: none;
@@ -165,8 +169,8 @@ h2 {
 
 .scroll-cue:hover,
 .scroll-cue:focus-visible {
-  color: rgba(23, 23, 23, 0.56);
-  border-color: rgba(23, 23, 23, 0.52);
+  color: color-mix(in srgb, var(--app-text) 56%, transparent);
+  border-color: color-mix(in srgb, var(--app-text) 52%, transparent);
   opacity: 0.56;
 }
 
@@ -323,7 +327,7 @@ h2 {
   margin: 0;
   border: 1px solid var(--app-rule);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.28);
+  background: var(--app-surface);
 }
 
 .metric-card {
@@ -404,9 +408,9 @@ h2 {
     --mobile-home-inline: 16px;
     --mobile-home-gap: 20px;
     --mobile-home-card-radius: 18px;
-    --mobile-home-glass: rgba(255, 255, 255, 0.48);
-    --mobile-home-border: rgba(214, 217, 222, 0.54);
-    --mobile-home-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    --mobile-home-glass: var(--app-glass);
+    --mobile-home-border: var(--app-rule-subtle);
+    --mobile-home-shadow: var(--app-card-shadow);
     display: grid;
     gap: var(--mobile-home-gap);
     width: 100%;
@@ -457,10 +461,10 @@ h2 {
     height: 36px;
     min-height: 36px;
     padding: 3px;
-    border: 1px solid rgba(214, 217, 222, 0.54);
+    border: 1px solid var(--app-rule-subtle);
     border-radius: 11px;
-    background: rgba(255, 255, 255, 0.48);
-    box-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    background: var(--app-glass);
+    box-shadow: var(--app-card-shadow);
     backdrop-filter: blur(16px);
   }
 
@@ -476,13 +480,13 @@ h2 {
   }
 
   .mobile-home-header .mobile-header-language button.is-active {
-    background: rgba(255, 255, 255, 0.78);
+    background: var(--bc-bg-selected);
     color: var(--app-text);
   }
 
   .mobile-home-header .mobile-header-language button:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 4px rgba(79, 86, 97, 0.12);
+    box-shadow: 0 0 0 4px var(--app-focus);
   }
 
   .mobile-home-section {
@@ -557,7 +561,7 @@ h2 {
   }
 
   .mobile-hub-card:not(.is-ready) {
-    color: rgba(23, 23, 23, 0.66);
+    color: color-mix(in srgb, var(--app-text) 66%, transparent);
   }
 
   .mobile-card-status {
@@ -581,7 +585,7 @@ h2 {
   }
 
   .mobile-card-status.is-ready {
-    color: #2457b3;
+    color: var(--app-accent);
   }
 
   .mobile-hub-card strong,
@@ -640,12 +644,12 @@ h2 {
     min-height: 40px;
     padding: 0 14px;
     color: var(--app-text);
-    border: 1px solid rgba(214, 217, 222, 0.62);
+    border: 1px solid var(--app-rule-subtle);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.56);
+    background: var(--app-glass);
     box-shadow:
-      0 8px 22px rgba(23, 23, 23, 0.06),
-      0 0 0 1px rgba(255, 255, 255, 0.46) inset;
+      var(--app-card-shadow),
+      0 0 0 1px color-mix(in srgb, var(--bc-bg-surface-solid) 46%, transparent) inset;
     backdrop-filter: blur(16px);
     font-size: 0.76rem;
     font-weight: 680;
@@ -655,7 +659,7 @@ h2 {
   .mobile-lucky-button:focus-visible {
     outline: none;
     box-shadow:
-      0 16px 34px rgba(36, 87, 179, 0.13),
+      var(--bc-glow-soft),
       0 0 0 4px var(--app-focus);
   }
 }

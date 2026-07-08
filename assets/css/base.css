@@ -1,16 +1,58 @@
 :root {
+  color-scheme: light dark;
   --bc-black: #171717;
-  --bc-blue: #2457B3;
-  --bc-blue-hover: #1E4B9C;
-  --bc-logo-light: #F2F0EA;
-  --bc-logo-dark: #4B5D6B;
-  --bc-bg: #F7F5F0;
-  --bc-text: #171717;
-  --bc-secondary: #6E7278;
-  --bc-border: #D6D9DE;
-  --bc-blue-soft: rgba(36, 86, 179, 0.08);
-  --bc-blue-border: rgba(36, 86, 179, 0.32);
+  --bc-blue: #2457b3;
+  --bc-blue-hover: #1e4b9c;
+  --bc-logo-light: #f2f0ea;
+  --bc-logo-dark: #4b5d6b;
+  --bc-bg-page: #f7f5f0;
+  --bc-bg-surface: rgba(255, 255, 255, 0.28);
+  --bc-bg-surface-solid: #ffffff;
+  --bc-bg-surface-elevated: rgba(255, 255, 255, 0.48);
+  --bc-bg-input: rgba(255, 255, 255, 0.46);
+  --bc-bg-glass: rgba(255, 255, 255, 0.48);
+  --bc-bg-glass-strong: rgba(255, 255, 255, 0.72);
+  --bc-bg-selected: rgba(255, 255, 255, 0.78);
+  --bc-text-primary: #171717;
+  --bc-text-secondary: #6e7278;
+  --bc-text-muted: #8b9097;
+  --bc-text-inverse: #ffffff;
+  --bc-border-subtle: rgba(214, 217, 222, 0.54);
+  --bc-border-default: #d6d9de;
+  --bc-border-strong: rgba(79, 86, 97, 0.32);
+  --bc-accent: #2457b3;
+  --bc-accent-hover: #1e4b9c;
+  --bc-accent-soft: rgba(36, 86, 179, 0.08);
+  --bc-accent-border: rgba(36, 86, 179, 0.32);
+  --bc-accent-strong: #315fba;
   --bc-focus-ring: rgba(36, 86, 179, 0.16);
+  --bc-shadow-card: 0 8px 22px rgba(23, 23, 23, 0.024);
+  --bc-shadow-card-strong: 0 12px 32px rgba(23, 23, 23, 0.06);
+  --bc-glow-soft: 0 0 32px rgba(36, 86, 179, 0.08);
+  --bc-chart-axis: #6e7278;
+  --bc-chart-grid: rgba(110, 114, 120, 0.2);
+  --bc-chart-point: #171717;
+  --bc-chart-line: #2457b3;
+  --bc-chart-residual: #6e7278;
+  --bc-chart-muted: #8b9097;
+  --bc-ss-treatment: #4f7fd3;
+  --bc-ss-regression: #315fba;
+  --bc-ss-residual: #8b9097;
+  --bc-ss-preparation: #8f6ec7;
+  --bc-ss-interaction: #7c78a3;
+  --bc-ss-nonlinearity: #b08a3c;
+  --bc-ss-error: #986fd0;
+  --bc-ss-extra: #a98442;
+  --bc-danger: #b34a42;
+  --bc-danger-soft: rgba(179, 74, 66, 0.1);
+  --bc-bg: var(--bc-bg-page);
+  --bc-text: var(--bc-text-primary);
+  --bc-secondary: var(--bc-text-secondary);
+  --bc-border: var(--bc-border-default);
+  --bc-blue: var(--bc-accent);
+  --bc-blue-hover: var(--bc-accent-hover);
+  --bc-blue-soft: var(--bc-accent-soft);
+  --bc-blue-border: var(--bc-accent-border);
   --bc-breakpoint-desktop: 1200px;
   --bc-breakpoint-tablet-min: 768px;
   --bc-breakpoint-tablet-max: 1199px;
@@ -23,9 +65,58 @@
   --bc-hero-title: clamp(2.35rem, 5vw, 4.4rem);
   --bc-home-title: clamp(3.15rem, 7.2vw, 6.8rem);
   --bc-h2-size: clamp(1.76rem, 3.8vw, 3.9rem);
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-display:
+    "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bc-bg-page: #0d1117;
+    --bc-bg-surface: #161b22;
+    --bc-bg-surface-solid: #161b22;
+    --bc-bg-surface-elevated: #21262d;
+    --bc-bg-input: #0d1117;
+    --bc-bg-glass: rgba(33, 38, 45, 0.72);
+    --bc-bg-glass-strong: rgba(48, 54, 61, 0.78);
+    --bc-bg-selected: rgba(48, 54, 61, 0.88);
+    --bc-text-primary: #c9d1d9;
+    --bc-text-secondary: #8b949e;
+    --bc-text-muted: #6e7681;
+    --bc-text-inverse: #0d1117;
+    --bc-border-subtle: rgba(240, 246, 252, 0.1);
+    --bc-border-default: #30363d;
+    --bc-border-strong: rgba(139, 148, 158, 0.44);
+    --bc-accent: #58a6ff;
+    --bc-accent-hover: #79c0ff;
+    --bc-accent-soft: rgba(88, 166, 255, 0.14);
+    --bc-accent-border: rgba(88, 166, 255, 0.34);
+    --bc-accent-strong: #79c0ff;
+    --bc-focus-ring: rgba(88, 166, 255, 0.24);
+    --bc-shadow-card: 0 12px 32px rgba(0, 0, 0, 0.28);
+    --bc-shadow-card-strong: 0 18px 44px rgba(0, 0, 0, 0.34);
+    --bc-glow-soft: 0 0 32px rgba(88, 166, 255, 0.1);
+    --bc-chart-axis: #8b949e;
+    --bc-chart-grid: rgba(139, 148, 158, 0.22);
+    --bc-chart-point: #c9d1d9;
+    --bc-chart-line: #58a6ff;
+    --bc-chart-residual: #8b949e;
+    --bc-chart-muted: #6e7681;
+    --bc-ss-treatment: #58a6ff;
+    --bc-ss-regression: #a5d6ff;
+    --bc-ss-residual: #8b949e;
+    --bc-ss-preparation: #d2a8ff;
+    --bc-ss-interaction: #bc8cff;
+    --bc-ss-nonlinearity: #f2cc60;
+    --bc-ss-error: #ffa657;
+    --bc-ss-extra: #dbab09;
+    --bc-danger: #ff7b72;
+    --bc-danger-soft: rgba(255, 123, 114, 0.12);
+  }
 }
 
 @media (max-width: 1199px) {
@@ -129,7 +220,16 @@ pre {
 }
 
 .brand-name {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "PingFang SC",
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: none;

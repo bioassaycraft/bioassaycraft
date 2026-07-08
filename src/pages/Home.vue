@@ -1,11 +1,12 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useLocale } from "../utils/locale";
 
 const emit = defineEmits(["activate-group", "clear-group"]);
 
 const heroProgress = ref(0);
 const hasScrolled = ref(false);
-const mobileLanguage = ref("en");
+const { locale: language, setLocale } = useLocale();
 const luckyStorageKey = "bioassaycraft:mobile-home:lucky-history";
 
 const journeyItems = [
@@ -138,7 +139,7 @@ const mobileHomeGroups = [
   },
 ];
 
-const mobileHomeCopy = {
+const homeCopy = {
   en: {
     languageLabel: "Language",
     learn: "Learn",
@@ -165,14 +166,13 @@ const mobileHomeCopy = {
   },
 };
 
-const mobileCopy = computed(() => mobileHomeCopy[mobileLanguage.value]);
+const copy = computed(() => homeCopy[language.value]);
 
-const mobileStatusLabel = (item) =>
-  item.ready ? mobileCopy.value.ready : mobileCopy.value.comingSoon;
+const mobileStatusLabel = (item) => (item.ready ? copy.value.ready : copy.value.comingSoon);
 
-const mobileGroupTitle = (group) => mobileCopy.value[group.key];
+const mobileGroupTitle = (group) => copy.value[group.key];
 
-const mobileGroupNote = (group) => mobileCopy.value[`${group.key}Note`];
+const mobileGroupNote = (group) => copy.value[`${group.key}Note`];
 
 let scrollFrame = null;
 
@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
 
     <section id="learn" class="home-scene content-scene learn-scene" aria-labelledby="learn-title">
       <div class="scene-heading">
-        <p class="eyebrow">Learn</p>
+        <p class="eyebrow">{{ copy.learn }}</p>
         <h2 id="learn-title">Coming Soon.</h2>
         <p class="scene-note">Learn beyond the guidance.</p>
       </div>
@@ -352,7 +352,7 @@ onBeforeUnmount(() => {
       aria-labelledby="journey-title"
     >
       <div class="scene-heading">
-        <p class="eyebrow">Journey</p>
+        <p class="eyebrow">{{ copy.journey }}</p>
         <h2 id="journey-title">Coming Soon.</h2>
         <p class="scene-note">Every bioassay follows its own journey.</p>
       </div>
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
 
     <section id="tools" class="home-scene content-scene tools-scene" aria-labelledby="tools-title">
       <div class="scene-heading">
-        <p class="eyebrow">Tools</p>
+        <p class="eyebrow">{{ copy.tools }}</p>
         <h2 id="tools-title">Practical tools</h2>
         <p class="scene-note">That may be useful.</p>
       </div>
@@ -387,18 +387,18 @@ onBeforeUnmount(() => {
           <span>BioassayCraft</span>
         </div>
 
-        <div class="mobile-header-language" :aria-label="mobileCopy.languageLabel">
+        <div class="mobile-header-language" :aria-label="copy.languageLabel">
           <button
             type="button"
-            :class="{ 'is-active': mobileLanguage === 'zh' }"
-            @click="mobileLanguage = 'zh'"
+            :class="{ 'is-active': language === 'zh' }"
+            @click="setLocale('zh')"
           >
             中文
           </button>
           <button
             type="button"
-            :class="{ 'is-active': mobileLanguage === 'en' }"
-            @click="mobileLanguage = 'en'"
+            :class="{ 'is-active': language === 'en' }"
+            @click="setLocale('en')"
           >
             EN
           </button>
@@ -441,20 +441,20 @@ onBeforeUnmount(() => {
         aria-labelledby="mobile-journey-title"
       >
         <div class="mobile-section-heading">
-          <h2 id="mobile-journey-title">{{ mobileCopy.journey }}</h2>
-          <p>{{ mobileCopy.journeyNote }}</p>
+          <h2 id="mobile-journey-title">{{ copy.journey }}</h2>
+          <p>{{ copy.journeyNote }}</p>
         </div>
 
         <div class="mobile-journey-list" aria-label="Learning paths">
           <article v-for="item in mobileJourneyItems" :key="item.title" class="mobile-journey-card">
             <strong>{{ item.title }}</strong>
-            <small>{{ mobileCopy.comingSoon }}</small>
+            <small>{{ copy.comingSoon }}</small>
           </article>
         </div>
       </section>
 
       <button type="button" class="mobile-lucky-button" @click="openLuckyModule">
-        {{ mobileCopy.lucky }}
+        {{ copy.lucky }}
       </button>
     </section>
   </section>

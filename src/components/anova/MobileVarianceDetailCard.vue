@@ -70,16 +70,16 @@ const emit = defineEmits(["toggle-info"]);
     display: block;
     margin-top: var(--mobile-section-gap, 7px);
     padding: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--mobile-card-border, var(--bc-border-subtle, rgba(0, 0, 0, 0.08)));
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.62);
+    background: var(--mobile-card-bg, var(--bc-bg-glass, rgba(255, 255, 255, 0.62)));
     transition:
       background 220ms ease,
       border-color 220ms ease;
   }
 
   .mobile-node-detail.is-empty {
-    background: rgba(255, 255, 255, 0.22);
+    background: var(--panel, var(--bc-bg-surface, rgba(255, 255, 255, 0.22)));
   }
 
   .mobile-detail-title {
@@ -116,16 +116,16 @@ const emit = defineEmits(["toggle-info"]);
     min-width: 54px;
     margin-left: auto;
     padding: 0 9px;
-    border: 1px solid rgba(79, 86, 97, 0.18) !important;
-    background: rgba(255, 255, 255, 0.44) !important;
+    border: 1px solid var(--bc-border-strong, rgba(79, 86, 97, 0.18)) !important;
+    background: var(--bc-bg-input, rgba(255, 255, 255, 0.44)) !important;
     color: var(--accent, #4f5661) !important;
     font-size: 0.62rem;
     font-weight: 700;
   }
 
   .mobile-info-button.is-active {
-    background: rgba(79, 127, 211, 0.12) !important;
-    color: #315fba !important;
+    background: var(--bc-accent-soft, rgba(79, 127, 211, 0.12)) !important;
+    color: var(--bc-accent-strong, #315fba) !important;
   }
 
   .mobile-node-detail p {

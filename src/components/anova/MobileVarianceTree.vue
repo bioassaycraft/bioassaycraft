@@ -71,10 +71,10 @@ const segmentIsActive = (segment, activeIds) => activeIds.includes(segment.id);
     margin-top: 0;
     overflow: hidden;
     padding: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--mobile-card-border, var(--bc-border-subtle, rgba(0, 0, 0, 0.08)));
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.54);
-    box-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    background: var(--mobile-card-bg, var(--bc-bg-glass, rgba(255, 255, 255, 0.54)));
+    box-shadow: var(--mobile-shadow, var(--bc-shadow-card, 0 8px 22px rgba(23, 23, 23, 0.024)));
   }
 
   .mobile-section-head {
@@ -124,12 +124,12 @@ const segmentIsActive = (segment, activeIds) => activeIds.includes(segment.id);
     min-height: 40px;
     padding: 4px 1px;
     place-items: center;
-    color: color-mix(in srgb, var(--segment-color) 54%, #172033 46%);
+    color: color-mix(in srgb, var(--segment-color) 62%, var(--bc-text-primary, #172033) 38%);
     text-align: center;
     border: 1px solid color-mix(in srgb, var(--segment-color) 25%, transparent);
     border-radius: 0;
-    background: color-mix(in srgb, var(--segment-color) 12%, white 88%);
-    box-shadow: 0 6px 14px rgba(23, 23, 23, 0.02);
+    background: color-mix(in srgb, var(--segment-color) 12%, var(--bc-bg-surface-solid, white) 88%);
+    box-shadow: var(--bc-shadow-card, 0 6px 14px rgba(23, 23, 23, 0.02));
     transition:
       background 180ms ease,
       border-color 180ms ease,
@@ -159,7 +159,7 @@ const segmentIsActive = (segment, activeIds) => activeIds.includes(segment.id);
   }
 
   .mobile-ss-segment small {
-    color: color-mix(in srgb, var(--segment-color) 50%, #4f5661 50%);
+    color: color-mix(in srgb, var(--segment-color) 50%, var(--bc-text-secondary, #4f5661) 50%);
     font-family: var(--font-mono, ui-monospace, monospace);
     font-size: 0.5rem;
     font-variant-numeric: tabular-nums;
@@ -170,10 +170,10 @@ const segmentIsActive = (segment, activeIds) => activeIds.includes(segment.id);
   .mobile-ss-segment.is-active,
   .mobile-ss-segment.is-selected {
     border-color: color-mix(in srgb, var(--segment-color) 46%, transparent);
-    background: color-mix(in srgb, var(--segment-color) 18%, white 82%);
+    background: color-mix(in srgb, var(--segment-color) 18%, var(--bc-bg-surface-solid, white) 82%);
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-      0 8px 18px rgba(23, 23, 23, 0.04);
+      inset 0 0 0 1px color-mix(in srgb, var(--bc-bg-surface-solid, white) 55%, transparent),
+      var(--bc-shadow-card, 0 8px 18px rgba(23, 23, 23, 0.04));
   }
 
   .mobile-ss-segment.is-selected {

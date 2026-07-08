@@ -14,8 +14,9 @@ import {
   moduleOrder,
   stepOrder,
 } from "../lib/anova/explorer-data";
+import { useLocale } from "../utils/locale";
 
-const language = ref("zh");
+const { locale: language, setLocale } = useLocale();
 const activeModule = ref("single");
 const activeStep = ref("mean");
 const explorerRoot = ref(null);
@@ -153,7 +154,7 @@ const goToAdjacentStep = (direction) => {
 };
 
 const setLanguage = (lang) => {
-  language.value = lang;
+  setLocale(lang);
 };
 
 const regenerateData = () => {
@@ -213,33 +214,33 @@ const decisionLabel = (key) => copy.value.decisions[key] || key;
 
 const componentColor = (key) =>
   ({
-    total: "#70757d",
-    treatment: "#75838a",
-    regression: "#667f82",
-    preparation: "#6f7e8c",
-    intersection: "#787185",
-    nonlinearity: "#957852",
-    nonparallelism: "#766f86",
-    lackOfFit: "#a17875",
-    pureError: "#6f857b",
-    extra: "#8e7a54",
-    unconstrainedResidual: "#777b80",
-    constrainedResidual: "#6f7379",
-    specimen: "#6f7e8c",
-    deviationParallel: "#766f86",
-    residualII: "#777b80",
-    modelLof: "#a17875",
-    standardLof: "#a17875",
-    testLof: "#a17875",
-    error: "#6f857b",
-  })[key] || "#6e7278";
+    total: "var(--bc-text-secondary)",
+    treatment: "var(--bc-ss-treatment)",
+    regression: "var(--bc-ss-regression)",
+    preparation: "var(--bc-ss-preparation)",
+    intersection: "var(--bc-ss-interaction)",
+    nonlinearity: "var(--bc-ss-nonlinearity)",
+    nonparallelism: "var(--bc-ss-interaction)",
+    lackOfFit: "var(--bc-ss-nonlinearity)",
+    pureError: "var(--bc-ss-error)",
+    extra: "var(--bc-ss-extra)",
+    unconstrainedResidual: "var(--bc-ss-residual)",
+    constrainedResidual: "var(--bc-ss-residual)",
+    specimen: "var(--bc-ss-preparation)",
+    deviationParallel: "var(--bc-ss-interaction)",
+    residualII: "var(--bc-ss-residual)",
+    modelLof: "var(--bc-ss-nonlinearity)",
+    standardLof: "var(--bc-ss-nonlinearity)",
+    testLof: "var(--bc-ss-nonlinearity)",
+    error: "var(--bc-ss-error)",
+  })[key] || "var(--bc-text-secondary)";
 
 const groupColor = (key) =>
   ({
-    standard: "#2457b3",
-    test: "#a46f1c",
-    sample: "#171717",
-  })[key] || "#171717";
+    standard: "var(--bc-chart-line)",
+    test: "var(--bc-ss-extra)",
+    sample: "var(--bc-chart-point)",
+  })[key] || "var(--bc-chart-point)";
 
 const leafIdForRow = (rowKey, module) => {
   if (rowKey === "lackOfFit") {
@@ -442,29 +443,29 @@ const mobileAnovaKeyForNode = (node) => {
 
 const mobileNodeColor = (key, id) =>
   ({
-    total: "#303845",
-    treatment: "#59636f",
-    regression: "#4f7fd3",
-    preparation: "#4f7fd3",
-    intersection: "#7c78a3",
-    nonlinearity: "#d39444",
-    nonparallelism: "#7c78a3",
-    lackOfFit: "#d39444",
-    pureError: "#986fd0",
-    extra: "#a98442",
-    constrainedResidual: "#5ba08a",
-    unconstrainedResidual: "#5ba08a",
-    residualII: "#5ba08a",
-    modelLof: "#d39444",
-    error: "#986fd0",
+    total: "var(--bc-text-primary)",
+    treatment: "var(--bc-text-secondary)",
+    regression: "var(--bc-ss-regression)",
+    preparation: "var(--bc-ss-preparation)",
+    intersection: "var(--bc-ss-interaction)",
+    nonlinearity: "var(--bc-ss-nonlinearity)",
+    nonparallelism: "var(--bc-ss-interaction)",
+    lackOfFit: "var(--bc-ss-nonlinearity)",
+    pureError: "var(--bc-ss-error)",
+    extra: "var(--bc-ss-extra)",
+    constrainedResidual: "var(--bc-ss-residual)",
+    unconstrainedResidual: "var(--bc-ss-residual)",
+    residualII: "var(--bc-ss-residual)",
+    modelLof: "var(--bc-ss-nonlinearity)",
+    error: "var(--bc-ss-error)",
   })[key] ||
   {
-    residual: "#5ba08a",
-    lof: "#d39444",
-    lof1: "#5ba08a",
-    lof2: "#5ba08a",
-    lof3: "#5ba08a",
-    lof4: "#5ba08a",
+    residual: "var(--bc-ss-residual)",
+    lof: "var(--bc-ss-nonlinearity)",
+    lof1: "var(--bc-ss-residual)",
+    lof2: "var(--bc-ss-residual)",
+    lof3: "var(--bc-ss-residual)",
+    lof4: "var(--bc-ss-residual)",
   }[id] ||
   componentColor(key);
 
@@ -1731,15 +1732,21 @@ onBeforeUnmount(() => {
 <style scoped>
 .anova-explorer {
   --topbar-sticky-height: 48px;
-  --paper: var(--bc-bg, #f7f5f0);
-  --ink: var(--bc-text, #171717);
-  --muted: var(--bc-secondary, #6e7278);
-  --line: var(--bc-border, #d6d9de);
-  --soft-line: rgba(214, 217, 222, 0.58);
-  --panel: rgba(255, 255, 255, 0.28);
-  --panel-soft: rgba(255, 255, 255, 0.2);
-  --accent: #4f5661;
-  --accent-soft: rgba(79, 86, 97, 0.12);
+  --paper: var(--bc-bg-page);
+  --ink: var(--bc-text-primary);
+  --muted: var(--bc-text-secondary);
+  --line: var(--bc-border-default);
+  --soft-line: var(--bc-border-subtle);
+  --panel: var(--bc-bg-surface);
+  --panel-soft: var(--bc-bg-surface-elevated);
+  --field-bg: var(--bc-bg-input);
+  --selected-bg: var(--bc-bg-selected);
+  --accent: var(--bc-accent);
+  --accent-soft: var(--bc-accent-soft);
+  --accent-border: var(--bc-accent-border);
+  --focus-ring: var(--bc-focus-ring);
+  --card-shadow: var(--bc-shadow-card);
+  --danger: var(--bc-danger);
   width: min(1280px, calc(100% - var(--bc-container-inline, 48px)));
   min-height: 100svh;
   margin: 0 auto;
@@ -1870,11 +1877,11 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   width: 1px;
   height: 18px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--soft-line);
 }
 
 .morph-title {
-  color: rgba(23, 23, 23, 0.78);
+  color: var(--ink);
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
@@ -1902,7 +1909,7 @@ onBeforeUnmount(() => {
   min-height: 28px;
   padding: 0 10px;
   color: var(--accent);
-  border: 1px solid rgba(79, 86, 97, 0.32);
+  border: 1px solid var(--accent-border);
   border-radius: 7px;
   font-size: 0.68rem;
   font-weight: 500;
@@ -1969,7 +1976,7 @@ button {
 .language-switch button.is-active,
 .segmented-control button.is-active,
 .step-control button.is-active {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--selected-bg);
   color: var(--ink);
 }
 
@@ -1983,9 +1990,9 @@ button {
   align-items: end;
   margin: 0 calc(var(--bc-container-inline, 48px) / -2);
   padding: 6px calc(var(--bc-container-inline, 48px) / 2);
-  background: rgba(247, 245, 240, 0.92);
-  border-top: 1px solid rgba(214, 217, 222, 0.34);
-  border-bottom: 1px solid rgba(214, 217, 222, 0.34);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  border-top: 1px solid var(--soft-line);
+  border-bottom: 1px solid var(--soft-line);
   backdrop-filter: blur(14px);
 }
 
@@ -2010,7 +2017,7 @@ button {
 }
 
 .step-group .step-control {
-  background: rgba(255, 255, 255, 0.28);
+  background: var(--panel);
 }
 
 .step-group .step-control button {
@@ -2019,13 +2026,13 @@ button {
   align-items: center;
   min-height: 31px;
   padding: 0 10px;
-  color: #4c525b;
+  color: var(--muted);
   font-size: 0.68rem;
 }
 
 .step-group .step-control button.is-active {
   background: var(--accent);
-  color: var(--paper);
+  color: var(--bc-text-inverse);
 }
 
 .step-index {
@@ -2057,9 +2064,9 @@ button {
   align-items: center;
   margin-top: 8px;
   padding: 8px 10px;
-  border: 1px solid rgba(214, 217, 222, 0.48);
+  border: 1px solid var(--soft-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--panel);
 }
 
 .parameter-head {
@@ -2081,7 +2088,7 @@ button {
   min-height: 28px;
   padding: 0 9px;
   color: var(--accent);
-  border: 1px solid rgba(79, 86, 97, 0.32);
+  border: 1px solid var(--accent-border);
   border-radius: 7px;
   background: transparent;
   font-size: 0.66rem;
@@ -2104,7 +2111,7 @@ button {
   padding: 4px 7px;
   border: 1px solid var(--soft-line);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.24);
+  background: var(--field-bg);
   color: var(--ink);
   font-size: 0.76rem;
 }
@@ -2150,7 +2157,7 @@ button {
 }
 
 .ss-mode button.is-active {
-  background: rgba(255, 255, 255, 0.64);
+  background: var(--selected-bg);
   color: var(--ink);
 }
 
@@ -2175,7 +2182,7 @@ button {
 .insight-panel {
   min-width: 0;
   height: var(--teaching-panel-height);
-  border: 1px solid rgba(214, 217, 222, 0.68);
+  border: 1px solid var(--soft-line);
   border-radius: 8px;
   background: var(--panel);
 }
@@ -2246,7 +2253,7 @@ button {
 }
 
 .legend-line.residual {
-  background: #b34a42;
+  background: var(--danger);
 }
 
 .chart-wrap,
@@ -2307,7 +2314,7 @@ button {
   height: var(--formula-panel-height);
   align-content: start;
   padding: 9px 10px !important;
-  border: 1px solid rgba(79, 86, 97, 0.18);
+  border: 1px solid var(--accent-border);
   border-radius: 7px;
   background: var(--accent-soft);
   overflow: hidden;
@@ -2397,7 +2404,7 @@ button {
 }
 
 .current-change {
-  border-top-color: rgba(36, 86, 179, 0.22) !important;
+  border-top-color: var(--accent-border) !important;
 }
 
 .current-change dd {
@@ -2415,9 +2422,9 @@ button {
 .anova-table-wrap {
   margin-top: 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(214, 217, 222, 0.58);
+  border: 1px solid var(--soft-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--panel);
 }
 
 .anova-table-wrap p,
@@ -2504,15 +2511,15 @@ button {
 }
 
 :deep(.plot-bg) {
-  fill: rgba(255, 255, 255, 0.28);
-  stroke: rgba(214, 217, 222, 0.72);
+  fill: var(--panel);
+  stroke: var(--soft-line);
 }
 
 :deep(.x-axis path),
 :deep(.y-axis path),
 :deep(.x-axis line),
 :deep(.y-axis line) {
-  color: rgba(110, 114, 120, 0.42);
+  color: var(--bc-chart-grid);
 }
 
 :deep(.x-axis text),
@@ -2532,14 +2539,14 @@ button {
 }
 
 :deep(.residual-line) {
-  stroke: #b34a42;
+  stroke: var(--danger);
   stroke-width: 1.35;
   stroke-dasharray: 4 4;
   opacity: 0.58;
 }
 
 :deep(.observed-point) {
-  stroke: var(--paper);
+  stroke: var(--bc-bg-surface-solid);
   stroke-width: 1.4;
 }
 
@@ -2567,7 +2574,7 @@ button {
 
 .ss-segment rect {
   opacity: 0.7;
-  stroke: rgba(247, 245, 240, 0.54);
+  stroke: color-mix(in srgb, var(--paper) 72%, transparent);
   stroke-width: 0.45;
   transition:
     opacity 160ms ease,
@@ -2585,21 +2592,21 @@ button {
 }
 
 .ss-segment.is-highlighted rect {
-  filter: brightness(1.04) saturate(1.05) drop-shadow(0 0 4px rgba(80, 90, 105, 0.18));
+  filter: brightness(1.04) saturate(1.05) drop-shadow(0 0 4px var(--focus-ring));
   opacity: 0.88;
-  stroke: rgba(255, 255, 255, 0.56);
+  stroke: color-mix(in srgb, var(--bc-bg-surface-solid) 62%, transparent);
   stroke-width: 0.55;
 }
 
 .ss-segment.is-hovered rect {
-  filter: brightness(1.08) saturate(1.08) drop-shadow(0 0 6px rgba(80, 90, 105, 0.26));
+  filter: brightness(1.08) saturate(1.08) drop-shadow(0 0 6px var(--focus-ring));
   opacity: 0.96;
-  stroke: rgba(255, 255, 255, 0.72);
+  stroke: color-mix(in srgb, var(--bc-bg-surface-solid) 78%, transparent);
   stroke-width: 0.65;
 }
 
 .ss-segment text {
-  fill: rgba(255, 255, 255, 0.92);
+  fill: var(--bc-text-inverse);
   font-size: 0.37rem;
   font-weight: 400;
   pointer-events: none;
@@ -2678,9 +2685,9 @@ button {
     --mobile-header-control-font-size: 0.72rem;
     --mobile-header-control-font-weight: 650;
     --mobile-glass-blur: 16px;
-    --mobile-glass-bg: rgba(255, 255, 255, 0.48);
-    --mobile-glass-border: rgba(214, 217, 222, 0.54);
-    --mobile-glass-shadow: 0 8px 20px rgba(23, 23, 23, 0.026);
+    --mobile-glass-bg: var(--bc-bg-glass);
+    --mobile-glass-border: var(--bc-border-subtle);
+    --mobile-glass-shadow: var(--bc-shadow-card);
     --mobile-glass-radius: 14px;
     --mobile-header-control-border: var(--mobile-glass-border);
     --mobile-header-control-bg: var(--mobile-glass-bg);
@@ -2692,9 +2699,9 @@ button {
     --mobile-chart-aspect-ratio: 16 / 9;
     --mobile-bar-gap: 0px;
     --mobile-card-radius: 16px;
-    --mobile-card-border: rgba(0, 0, 0, 0.08);
-    --mobile-card-bg: rgba(255, 255, 255, 0.48);
-    --mobile-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    --mobile-card-border: var(--bc-border-subtle);
+    --mobile-card-bg: var(--bc-bg-glass);
+    --mobile-shadow: var(--bc-shadow-card);
     display: flex;
     flex-direction: column;
     width: min(100% - 32px, 1360px);
@@ -2749,6 +2756,7 @@ button {
     padding: 12px;
     border-radius: var(--mobile-card-radius);
     background: var(--mobile-card-bg);
+    border: 1px solid var(--mobile-card-border);
     box-shadow: var(--mobile-shadow);
   }
 
@@ -2778,7 +2786,7 @@ button {
     padding: 10px;
     border: 1px solid var(--mobile-card-border);
     border-radius: var(--mobile-card-radius);
-    background: rgba(255, 255, 255, 0.38);
+    background: var(--mobile-card-bg);
     box-shadow: var(--mobile-shadow);
   }
 
@@ -2803,7 +2811,7 @@ button {
 
   .parameter-strip label output {
     display: block;
-    color: var(--accent, #4f5661);
+    color: var(--accent);
     font-family: var(--font-mono, ui-monospace, monospace);
     font-size: 0.66rem;
     font-variant-numeric: tabular-nums;
@@ -2842,7 +2850,8 @@ button {
     margin-top: var(--mobile-section-gap);
     padding: 12px;
     border-radius: var(--mobile-card-radius);
-    background: rgba(255, 255, 255, 0.42);
+    background: var(--mobile-card-bg);
+    border: 1px solid var(--mobile-card-border);
     box-shadow: var(--mobile-shadow);
   }
 
@@ -2865,12 +2874,12 @@ button {
     display: block;
     margin: 0;
     padding: 7px 10px;
-    color: #315fba;
+    color: var(--accent);
     font-size: 0.68rem;
     line-height: 1.34;
-    border: 1px solid rgba(49, 95, 186, 0.16);
+    border: 1px solid var(--accent-border);
     border-radius: 12px;
-    background: rgba(49, 95, 186, 0.06);
+    background: var(--accent-soft);
   }
 
   .formula-panel {

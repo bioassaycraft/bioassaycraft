@@ -84,9 +84,9 @@ const emit = defineEmits(["previous", "next", "set-step"]);
   .mobile-step-actions button {
     min-height: 34px;
     padding: 0 10px;
-    border: 1px solid rgba(79, 86, 97, 0.2);
+    border: 1px solid var(--bc-border-strong, rgba(79, 86, 97, 0.2));
     border-radius: 11px;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--bc-bg-input, rgba(255, 255, 255, 0.5));
     color: var(--accent, #4f5661);
     font-size: 0.68rem;
     font-weight: 650;
@@ -94,15 +94,15 @@ const emit = defineEmits(["previous", "next", "set-step"]);
   }
 
   .mobile-step-actions button:not(:disabled) {
-    color: #243f77;
-    border-color: rgba(49, 95, 186, 0.22);
-    background: rgba(79, 127, 211, 0.08);
+    color: var(--bc-accent-strong, #243f77);
+    border-color: var(--bc-accent-border, rgba(49, 95, 186, 0.22));
+    background: var(--bc-accent-soft, rgba(79, 127, 211, 0.08));
   }
 
   .mobile-step-actions button:disabled {
     cursor: not-allowed;
-    color: rgba(79, 86, 97, 0.42);
-    border-color: rgba(79, 86, 97, 0.14);
+    color: color-mix(in srgb, var(--muted, #6e7278) 54%, transparent);
+    border-color: var(--bc-border-subtle, rgba(79, 86, 97, 0.14));
     background: transparent;
   }
 
@@ -142,7 +142,7 @@ const emit = defineEmits(["previous", "next", "set-step"]);
     left: 28px;
     right: 28px;
     height: 1px;
-    background: rgba(79, 86, 97, 0.16);
+    background: var(--bc-border-subtle, rgba(79, 86, 97, 0.16));
     content: "";
     transform: translateY(-50%);
   }
@@ -165,11 +165,11 @@ const emit = defineEmits(["previous", "next", "set-step"]);
   }
 
   .mobile-step-progress button.is-past {
-    color: #315fba;
+    color: var(--bc-accent-strong, #315fba);
   }
 
   .mobile-step-progress button.is-active {
-    color: white;
+    color: var(--bc-text-inverse, white);
   }
 
   .mobile-step-progress button span {
@@ -178,16 +178,16 @@ const emit = defineEmits(["previous", "next", "set-step"]);
     height: 24px;
     place-items: center;
     border-radius: 999px;
-    background: rgba(226, 229, 234, 0.9);
+    background: var(--bc-bg-selected, rgba(226, 229, 234, 0.9));
   }
 
   .mobile-step-progress button.is-active span {
-    background: #315fba;
-    box-shadow: 0 8px 18px rgba(49, 95, 186, 0.2);
+    background: var(--bc-accent-strong, #315fba);
+    box-shadow: var(--bc-glow-soft, 0 8px 18px rgba(49, 95, 186, 0.2));
   }
 
   .mobile-step-progress button.is-past span {
-    background: rgba(79, 127, 211, 0.16);
+    background: var(--bc-accent-soft, rgba(79, 127, 211, 0.16));
   }
 }
 </style>

@@ -112,9 +112,9 @@ const emit = defineEmits(["select-row", "toggle-full"]);
     display: block;
     margin-top: var(--mobile-section-gap, 7px);
     padding: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--mobile-card-border, var(--bc-border-subtle, rgba(0, 0, 0, 0.08)));
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.46);
+    background: var(--mobile-card-bg, var(--bc-bg-glass, rgba(255, 255, 255, 0.46)));
   }
 
   .mobile-section-head {
@@ -142,15 +142,15 @@ const emit = defineEmits(["select-row", "toggle-full"]);
     min-height: 30px;
     padding: 5px 9px;
     color: var(--ink, #171717);
-    border: 1px solid rgba(214, 217, 222, 0.54);
+    border: 1px solid var(--bc-border-subtle, rgba(214, 217, 222, 0.54));
     border-radius: 11px;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--bc-bg-input, rgba(255, 255, 255, 0.5));
     text-align: left;
   }
 
   .mobile-anova-summary button.is-selected {
-    border-color: rgba(49, 95, 186, 0.28);
-    background: rgba(79, 127, 211, 0.1);
+    border-color: var(--bc-accent-border, rgba(49, 95, 186, 0.28));
+    background: var(--bc-accent-soft, rgba(79, 127, 211, 0.1));
   }
 
   .mobile-summary-label {
@@ -186,9 +186,9 @@ const emit = defineEmits(["select-row", "toggle-full"]);
     width: 100%;
     min-height: 32px;
     margin-top: 8px;
-    border: 1px solid rgba(79, 86, 97, 0.22);
+    border: 1px solid var(--bc-border-strong, rgba(79, 86, 97, 0.22));
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.42);
+    background: var(--bc-bg-input, rgba(255, 255, 255, 0.42));
     color: var(--accent, #4f5661);
     font-size: 0.72rem;
     font-weight: 700;
@@ -208,9 +208,9 @@ const emit = defineEmits(["select-row", "toggle-full"]);
     padding: 10px;
     color: var(--ink, #171717);
     text-align: left;
-    border: 1px solid rgba(214, 217, 222, 0.6);
+    border: 1px solid var(--bc-border-subtle, rgba(214, 217, 222, 0.6));
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.58);
+    background: var(--bc-bg-input, rgba(255, 255, 255, 0.58));
     transition:
       border-color 180ms ease,
       background 180ms ease,
@@ -218,9 +218,9 @@ const emit = defineEmits(["select-row", "toggle-full"]);
   }
 
   .mobile-anova-card.is-selected {
-    border-color: rgba(49, 95, 186, 0.28);
-    background: rgba(79, 127, 211, 0.09);
-    box-shadow: 0 12px 28px rgba(23, 23, 23, 0.04);
+    border-color: var(--bc-accent-border, rgba(49, 95, 186, 0.28));
+    background: var(--bc-accent-soft, rgba(79, 127, 211, 0.09));
+    box-shadow: var(--bc-shadow-card, 0 12px 28px rgba(23, 23, 23, 0.04));
   }
 
   .mobile-anova-card span {

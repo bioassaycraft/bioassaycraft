@@ -160,7 +160,7 @@ const emit = defineEmits(["set-module", "set-language"]);
   }
 
   .mobile-header-language button.is-active {
-    background: rgba(255, 255, 255, 0.78);
+    background: var(--bc-bg-selected, rgba(255, 255, 255, 0.78));
     color: var(--ink, #171717);
   }
 
@@ -210,9 +210,9 @@ const emit = defineEmits(["set-module", "set-language"]);
   }
 
   .mobile-model-switch button.is-active {
-    background: rgba(255, 255, 255, 0.82);
+    background: var(--bc-bg-selected, rgba(255, 255, 255, 0.82));
     color: var(--ink, #171717);
-    box-shadow: 0 8px 18px rgba(23, 23, 23, 0.032);
+    box-shadow: var(--bc-shadow-card, 0 8px 18px rgba(23, 23, 23, 0.032));
   }
 
   .mobile-header-language button:focus-visible,
@@ -220,7 +220,7 @@ const emit = defineEmits(["set-module", "set-language"]);
   .mobile-model-switch button:focus-visible {
     outline: none;
     border-color: var(--accent, #4f5661);
-    box-shadow: 0 0 0 4px rgba(79, 86, 97, 0.12);
+    box-shadow: 0 0 0 4px var(--bc-focus-ring, rgba(79, 86, 97, 0.12));
   }
 }
 </style>

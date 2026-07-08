@@ -1,4 +1,7 @@
 <script setup>
+import { computed } from "vue";
+import { useLocale } from "../../utils/locale";
+
 defineProps({
   activeGroup: {
     type: String,
@@ -7,12 +10,26 @@ defineProps({
 });
 
 const emit = defineEmits(["activate-group", "clear-group"]);
+const { locale } = useLocale();
 
-const navItems = [
-  { id: "learn", label: "Learn", href: "#learn" },
-  { id: "journey", label: "Journey", href: "#journey" },
-  { id: "tools", label: "Tools", href: "#tools" },
-];
+const navLabels = {
+  en: {
+    learn: "Learn",
+    journey: "Journey",
+    tools: "Tools",
+  },
+  zh: {
+    learn: "学习",
+    journey: "旅程",
+    tools: "工具",
+  },
+};
+
+const navItems = computed(() => [
+  { id: "learn", label: navLabels[locale.value].learn, href: "#learn" },
+  { id: "journey", label: navLabels[locale.value].journey, href: "#journey" },
+  { id: "tools", label: navLabels[locale.value].tools, href: "#tools" },
+]);
 </script>
 
 <template>

@@ -108,18 +108,18 @@ onBeforeUnmount(clearOpenTimer);
 
 .bc-tooltip-trigger:focus-visible {
   border-radius: 4px;
-  box-shadow: 0 0 0 3px rgba(36, 86, 179, 0.14);
+  box-shadow: 0 0 0 3px var(--bc-focus-ring, rgba(36, 86, 179, 0.14));
 }
 
 .bc-tooltip {
   z-index: 100;
   max-width: min(280px, calc(100vw - 32px));
   padding: 7px 9px;
-  color: var(--bc-text, #171717);
-  background: rgba(247, 245, 240, 0.96);
-  border: 1px solid rgba(214, 217, 222, 0.78);
+  color: var(--bc-text-primary, #171717);
+  background: var(--bc-bg-surface-elevated, rgba(247, 245, 240, 0.96));
+  border: 1px solid var(--bc-border-subtle, rgba(214, 217, 222, 0.78));
   border-radius: 7px;
-  box-shadow: 0 12px 28px rgba(20, 25, 32, 0.08);
+  box-shadow: var(--bc-shadow-card-strong, 0 12px 28px rgba(20, 25, 32, 0.08));
   font-size: 0.72rem;
   line-height: 1.42;
   backdrop-filter: blur(12px);

@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
+import { useLocale } from "../utils/locale";
 import { animateElement, getNumberChangeKeyframes, numberChangeTransition } from "../utils/motion";
 import {
   concentrationUnits,
@@ -16,7 +17,7 @@ const fromUnitKey = ref("ngmL");
 const toUnitKey = ref("nmolL");
 const molecularWeightValue = ref("");
 const molecularWeightUnitKey = ref("kda");
-const language = ref("zh");
+const { locale: language, setLocale } = useLocale();
 const isHeaderMorphed = ref(false);
 const headerMorphTrigger = ref(null);
 const resultPanel = ref(null);
@@ -339,7 +340,7 @@ function applyPreset(preset) {
 }
 
 function setLanguage(nextLanguage) {
-  language.value = nextLanguage;
+  setLocale(nextLanguage);
 }
 
 function ensureOppositeTarget(nextUnitKey) {
@@ -924,15 +925,21 @@ onBeforeUnmount(() => {
 .converter-shell {
   --topbar-sticky-height: 48px;
   --shell-edge-space: 10px;
-  --paper: var(--bc-bg, #f7f5f0);
-  --ink: var(--bc-text, #171717);
-  --muted: var(--bc-secondary, #6e7278);
-  --line: var(--bc-border, #d6d9de);
-  --soft-line: rgba(214, 217, 222, 0.58);
-  --panel: rgba(255, 255, 255, 0.28);
-  --panel-soft: rgba(255, 255, 255, 0.2);
-  --accent: #4f5661;
-  --accent-soft: rgba(79, 86, 97, 0.12);
+  --paper: var(--bc-bg-page, #f7f5f0);
+  --ink: var(--bc-text-primary, #171717);
+  --muted: var(--bc-text-secondary, #6e7278);
+  --line: var(--bc-border-default, #d6d9de);
+  --soft-line: var(--bc-border-subtle, rgba(214, 217, 222, 0.58));
+  --panel: var(--bc-bg-surface, rgba(255, 255, 255, 0.28));
+  --panel-soft: var(--bc-bg-surface-elevated, rgba(255, 255, 255, 0.2));
+  --field-bg: var(--bc-bg-input, rgba(255, 255, 255, 0.24));
+  --field-bg-soft: var(--bc-bg-glass, rgba(255, 255, 255, 0.46));
+  --selected-bg: var(--bc-bg-selected, rgba(255, 255, 255, 0.72));
+  --accent: var(--bc-accent, #2457b3);
+  --accent-soft: var(--bc-accent-soft, rgba(36, 86, 179, 0.08));
+  --accent-border: var(--bc-accent-border, rgba(36, 86, 179, 0.32));
+  --focus-ring: var(--bc-focus-ring, rgba(36, 86, 179, 0.16));
+  --card-shadow: var(--bc-shadow-card, 0 8px 22px rgba(23, 23, 23, 0.024));
   display: flex;
   flex-direction: column;
   min-height: 100svh;
@@ -1060,13 +1067,13 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   width: 1px;
   height: 18px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--soft-line);
 }
 
 .morph-title {
   max-width: 0;
   overflow: hidden;
-  color: rgba(23, 23, 23, 0.78);
+  color: var(--ink);
   font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.2;
@@ -1104,7 +1111,7 @@ onBeforeUnmount(() => {
 .preset-row button,
 .language-switch button {
   min-height: 28px;
-  border: 1px solid rgba(79, 86, 97, 0.32);
+  border: 1px solid var(--accent-border);
   border-radius: 7px;
   background: transparent;
   color: var(--accent);
@@ -1135,7 +1142,7 @@ onBeforeUnmount(() => {
 }
 
 .language-switch button.is-active {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--selected-bg);
   color: var(--ink);
 }
 
@@ -1208,9 +1215,9 @@ onBeforeUnmount(() => {
   gap: 15px;
   min-width: 0;
   padding: 18px;
-  border: 1px solid rgba(214, 217, 222, 0.58);
+  border: 1px solid var(--soft-line);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--panel);
 }
 
 .workspace-title-row,
@@ -1284,7 +1291,7 @@ select {
   min-height: 32px;
   border: 1px solid var(--soft-line);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.24);
+  background: var(--field-bg);
   color: var(--ink);
   font: inherit;
   font-size: 0.76rem;
@@ -1312,7 +1319,7 @@ select:focus,
 .preset-row button:focus-visible,
 .back-link:focus-visible {
   border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(79, 86, 97, 0.12);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 .status-note {
@@ -1350,14 +1357,13 @@ select:focus,
   gap: 7px;
   margin: 0;
   padding: 19px 17px 17px;
-  border: 1px solid rgba(79, 86, 97, 0.18);
+  border: 1px solid var(--accent-border);
   border-radius: 7px;
-  background:
-    linear-gradient(135deg, rgba(79, 86, 97, 0.13), rgba(255, 255, 255, 0.18)), var(--accent-soft);
+  background: linear-gradient(135deg, var(--accent-soft), transparent), var(--accent-soft);
 }
 
 .result-primary.is-empty {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--panel);
 }
 
 .result-primary span {
@@ -1475,7 +1481,7 @@ select:focus,
   width: 3px;
   height: 3px;
   border-radius: 999px;
-  background: rgba(79, 86, 97, 0.52);
+  background: var(--muted);
   content: "";
 }
 
@@ -1515,17 +1521,17 @@ select:focus,
     --mobile-header-control-padding-x: 10px;
     --mobile-header-control-font-size: 0.72rem;
     --mobile-header-control-font-weight: 650;
-    --mobile-header-control-border: rgba(214, 217, 222, 0.54);
-    --mobile-header-control-bg: rgba(255, 255, 255, 0.48);
-    --mobile-header-control-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    --mobile-header-control-border: var(--bc-border-subtle);
+    --mobile-header-control-bg: var(--bc-bg-glass);
+    --mobile-header-control-shadow: var(--bc-shadow-card);
     --mobile-card-radius: 16px;
-    --mobile-card-bg: rgba(255, 255, 255, 0.48);
-    --mobile-card-border: rgba(0, 0, 0, 0.08);
-    --mobile-card-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    --mobile-card-bg: var(--bc-bg-glass);
+    --mobile-card-border: var(--bc-border-subtle);
+    --mobile-card-shadow: var(--bc-shadow-card);
     --mobile-glass-blur: 16px;
-    --mobile-glass-bg: rgba(255, 255, 255, 0.48);
-    --mobile-glass-border: rgba(214, 217, 222, 0.54);
-    --mobile-glass-shadow: 0 8px 20px rgba(23, 23, 23, 0.026);
+    --mobile-glass-bg: var(--bc-bg-glass);
+    --mobile-glass-border: var(--bc-border-subtle);
+    --mobile-glass-shadow: var(--bc-shadow-card);
     --mobile-glass-radius: 14px;
     --mobile-field-height: 38px;
   }
@@ -1606,9 +1612,9 @@ select:focus,
     height: var(--mobile-unit-control-height);
     min-height: var(--mobile-unit-control-height);
     padding: 0 24px 0 8px;
-    border: 1px solid rgba(214, 217, 222, 0.62);
+    border: 1px solid var(--soft-line);
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--field-bg-soft);
     color: var(--ink);
     font: inherit;
     font-size: 0.74rem;
@@ -1679,9 +1685,9 @@ select:focus,
     width: 100%;
     height: var(--mobile-field-height);
     min-height: var(--mobile-field-height);
-    border: 1px solid rgba(214, 217, 222, 0.62);
+    border: 1px solid var(--soft-line);
     border-radius: 11px;
-    background: rgba(255, 255, 255, 0.46);
+    background: var(--field-bg-soft);
     color: var(--ink);
     font: inherit;
     font-size: 0.78rem;
@@ -1704,7 +1710,7 @@ select:focus,
   .mobile-value-row input:focus {
     border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 4px rgba(79, 86, 97, 0.12);
+    box-shadow: 0 0 0 4px var(--focus-ring);
   }
 
   .mobile-preset-grid {
@@ -1720,17 +1726,17 @@ select:focus,
     min-width: 0;
     min-height: 42px;
     padding: 6px 4px;
-    border: 1px solid rgba(214, 217, 222, 0.62);
+    border: 1px solid var(--soft-line);
     border-radius: 11px;
-    background: rgba(255, 255, 255, 0.36);
+    background: var(--field-bg);
     color: var(--ink);
     text-align: center;
   }
 
   .mobile-preset-grid button.is-active,
   .preset-row button.is-active {
-    border-color: rgba(79, 86, 97, 0.46);
-    background: rgba(79, 86, 97, 0.12);
+    border-color: var(--accent-border);
+    background: var(--accent-soft);
   }
 
   .mobile-preset-grid strong {
@@ -1788,9 +1794,9 @@ select:focus,
     height: var(--mobile-field-height);
     min-height: var(--mobile-field-height);
     padding: 0 10px;
-    border: 1px solid rgba(214, 217, 222, 0.62);
+    border: 1px solid var(--soft-line);
     border-radius: 11px;
-    background: rgba(255, 255, 255, 0.46);
+    background: var(--field-bg-soft);
     color: var(--ink);
     font: inherit;
     font-family: var(--font-mono, ui-monospace, monospace);
@@ -1804,9 +1810,9 @@ select:focus,
     min-width: 0;
     place-items: center end;
     padding: 0 10px;
-    border: 1px solid rgba(214, 217, 222, 0.52);
+    border: 1px solid var(--soft-line);
     border-radius: 11px;
-    background: rgba(255, 255, 255, 0.34);
+    background: var(--field-bg);
     color: var(--muted);
     font-size: 0.74rem;
     font-weight: 700;
@@ -1826,11 +1832,11 @@ select:focus,
     min-height: var(--mobile-action-height);
     padding: 0;
     place-items: center;
-    border: 1px solid rgba(36, 87, 179, 0.28);
+    border: 1px solid var(--accent-border);
     border-radius: 11px;
-    background: rgba(36, 87, 179, 0.92);
-    color: #fff;
-    box-shadow: 0 8px 18px rgba(36, 87, 179, 0.14);
+    background: var(--accent);
+    color: var(--bc-text-inverse);
+    box-shadow: var(--bc-glow-soft);
     font-size: 0.74rem;
     font-weight: 760;
     line-height: 1;
@@ -1839,8 +1845,8 @@ select:focus,
   .mobile-calculate-button:focus-visible {
     outline: none;
     box-shadow:
-      0 8px 18px rgba(36, 87, 179, 0.14),
-      0 0 0 4px rgba(36, 87, 179, 0.16);
+      var(--bc-glow-soft),
+      0 0 0 4px var(--focus-ring);
   }
 
   .mobile-icon-button {
@@ -1850,11 +1856,11 @@ select:focus,
     min-height: var(--mobile-field-height);
     padding: 0;
     place-items: center;
-    border: 1px solid rgba(214, 217, 222, 0.62);
+    border: 1px solid var(--soft-line);
     border-radius: 11px;
-    background: rgba(255, 255, 255, 0.46);
+    background: var(--field-bg-soft);
     color: var(--accent);
-    box-shadow: 0 8px 18px rgba(23, 23, 23, 0.018);
+    box-shadow: var(--card-shadow);
     font-size: 0.92rem;
     font-weight: 700;
     line-height: 1;
@@ -1880,9 +1886,9 @@ select:focus,
     min-width: 0;
     min-height: 46px;
     padding: 0 10px;
-    border: 1px solid rgba(79, 86, 97, 0.16);
+    border: 1px solid var(--accent-border);
     border-radius: 11px;
-    background: rgba(79, 86, 97, 0.08);
+    background: var(--accent-soft);
     align-items: center;
   }
 
@@ -1935,9 +1941,9 @@ select:focus,
   .mobile-text-button {
     min-height: 26px;
     padding: 0 8px;
-    border: 1px solid rgba(214, 217, 222, 0.58);
+    border: 1px solid var(--soft-line);
     border-radius: 9px;
-    background: rgba(255, 255, 255, 0.34);
+    background: var(--field-bg);
     color: var(--accent);
     font-size: 0.64rem;
     font-weight: 700;
@@ -1956,9 +1962,9 @@ select:focus,
     min-width: 0;
     min-height: 42px;
     padding: 7px 8px;
-    border: 1px solid rgba(214, 217, 222, 0.56);
+    border: 1px solid var(--soft-line);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.34);
+    background: var(--field-bg);
     color: var(--ink);
     text-align: left;
   }

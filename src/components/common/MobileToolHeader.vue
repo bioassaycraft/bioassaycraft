@@ -193,7 +193,7 @@ const emit = defineEmits(["select", "set-language"]);
     width: 0;
     height: 0;
     pointer-events: none;
-    border-top: 4px solid rgba(79, 86, 97, 0.66);
+    border-top: 4px solid var(--muted, rgba(79, 86, 97, 0.66));
     border-right: 4px solid transparent;
     border-left: 4px solid transparent;
     content: "";
@@ -219,7 +219,7 @@ const emit = defineEmits(["select", "set-language"]);
   }
 
   .mobile-header-language button.is-active {
-    background: rgba(255, 255, 255, 0.78);
+    background: var(--bc-bg-selected, rgba(255, 255, 255, 0.78));
     color: var(--ink, #171717);
   }
 
@@ -245,7 +245,7 @@ const emit = defineEmits(["select", "set-language"]);
   .mobile-header-language button:focus-visible,
   .mobile-header-home:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 4px rgba(79, 86, 97, 0.12);
+    box-shadow: 0 0 0 4px var(--bc-focus-ring, rgba(79, 86, 97, 0.12));
   }
 
   .mobile-header-select:focus-within,
