@@ -35,6 +35,40 @@ const emit = defineEmits(["select", "set-language"]);
 
 <template>
   <section class="mobile-tool-header" :aria-label="ariaLabel">
+    <div class="mobile-brand-row">
+      <a class="mobile-brand-link" href="/" aria-label="BioassayCraft home">
+        <img class="mobile-brand-mark" src="/assets/brand/logo.svg" alt="" aria-hidden="true" />
+        <span class="mobile-brand-name">BioassayCraft</span>
+      </a>
+
+      <div class="mobile-header-actions">
+        <div class="mobile-header-language" :aria-label="languageLabel">
+          <button
+            type="button"
+            :class="{ 'is-active': language === 'zh' }"
+            @click="emit('set-language', 'zh')"
+          >
+            中文
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': language === 'en' }"
+            @click="emit('set-language', 'en')"
+          >
+            EN
+          </button>
+        </div>
+
+        <a class="mobile-header-home" href="/" :aria-label="homeLabel">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4.75 11.2 12 5l7.25 6.2" />
+            <path d="M6.8 10.4v8.1h10.4v-8.1" />
+            <path d="M10 18.5v-4.2h4v4.2" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
     <label class="mobile-header-select">
       <span>{{ selectorLabel }}</span>
       <select :value="selectedValue" @change="emit('select', $event.target.value)">
@@ -43,33 +77,6 @@ const emit = defineEmits(["select", "set-language"]);
         </option>
       </select>
     </label>
-
-    <div class="mobile-header-actions">
-      <div class="mobile-header-language" :aria-label="languageLabel">
-        <button
-          type="button"
-          :class="{ 'is-active': language === 'zh' }"
-          @click="emit('set-language', 'zh')"
-        >
-          中文
-        </button>
-        <button
-          type="button"
-          :class="{ 'is-active': language === 'en' }"
-          @click="emit('set-language', 'en')"
-        >
-          EN
-        </button>
-      </div>
-
-      <a class="mobile-header-home" href="/" :aria-label="homeLabel">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4.75 11.2 12 5l7.25 6.2" />
-          <path d="M6.8 10.4v8.1h10.4v-8.1" />
-          <path d="M10 18.5v-4.2h4v4.2" />
-        </svg>
-      </a>
-    </div>
   </section>
 </template>
 
@@ -80,26 +87,68 @@ const emit = defineEmits(["select", "set-language"]);
 
 @media (max-width: 768px) {
   .mobile-tool-header {
-    position: fixed;
-    top: var(--mobile-safe-top, 12px);
-    left: 50%;
-    z-index: 70;
     display: grid;
-    grid-template-columns: var(--mobile-header-select-width, 108px) auto;
-    gap: var(--mobile-section-gap, 7px);
-    align-items: center;
-    width: min(100% - 32px, 1360px);
-    min-height: var(--mobile-header-control-height, var(--mobile-control-height, 36px));
+    gap: var(--mobile-sticky-gap, 8px);
+    width: 100%;
     padding: 0;
     background: transparent;
     backdrop-filter: none;
-    transform: translateX(-50%);
+  }
+
+  .mobile-brand-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+    min-height: var(--mobile-header-control-height, var(--mobile-control-height, 36px));
+  }
+
+  .mobile-brand-link {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    color: var(--ink, #171717);
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .mobile-brand-mark {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    opacity: 0.86;
+    object-fit: contain;
+  }
+
+  .mobile-brand-name {
+    min-width: 0;
+    margin-left: 8px;
+    overflow: hidden;
+    font-size: 0.8rem;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-header-actions {
+    display: inline-flex;
+    gap: var(--mobile-sticky-gap, 8px);
+    align-items: center;
+    justify-self: end;
+    min-width: 0;
   }
 
   .mobile-header-select {
     position: relative;
     display: block;
     min-width: 0;
+    min-height: var(--mobile-control-height, 36px);
+    padding: 0;
+    border: 1px solid var(--mobile-glass-border, rgba(214, 217, 222, 0.54));
+    border-radius: var(--mobile-glass-radius, 14px);
+    background: var(--mobile-glass-bg, rgba(255, 255, 255, 0.48));
+    box-shadow: var(--mobile-glass-shadow, 0 8px 20px rgba(23, 23, 23, 0.026));
+    backdrop-filter: blur(var(--mobile-glass-blur, 16px));
   }
 
   .mobile-header-select > span {
@@ -108,46 +157,6 @@ const emit = defineEmits(["select", "set-language"]);
     height: 1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
-  }
-
-  .mobile-header-select select {
-    appearance: none;
-    width: var(--mobile-header-select-width, 108px);
-    height: var(--mobile-header-control-height, var(--mobile-control-height, 36px));
-    min-height: var(--mobile-header-control-height, var(--mobile-control-height, 36px));
-    padding: 0 26px 0 var(--mobile-header-control-padding-x, 10px);
-    color: var(--ink, #171717);
-    border: 1px solid var(--mobile-header-control-border, rgba(214, 217, 222, 0.54));
-    border-radius: var(--mobile-header-control-radius, 11px);
-    background: var(--mobile-header-control-bg, rgba(255, 255, 255, 0.48));
-    box-shadow: var(--mobile-header-control-shadow, none);
-    backdrop-filter: blur(var(--mobile-glass-blur, 16px));
-    font: inherit;
-    font-size: var(--mobile-header-control-font-size, 0.72rem);
-    font-weight: var(--mobile-header-control-font-weight, 650);
-    line-height: 1;
-  }
-
-  .mobile-header-select::after {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    width: 0;
-    height: 0;
-    pointer-events: none;
-    border-top: 4px solid rgba(79, 86, 97, 0.66);
-    border-right: 4px solid transparent;
-    border-left: 4px solid transparent;
-    content: "";
-    transform: translateY(-35%);
-  }
-
-  .mobile-header-actions {
-    display: inline-flex;
-    gap: var(--mobile-section-gap, 7px);
-    align-items: center;
-    justify-self: end;
-    min-width: 0;
   }
 
   .mobile-header-language,
@@ -159,6 +168,36 @@ const emit = defineEmits(["select", "set-language"]);
     background: var(--mobile-header-control-bg, rgba(255, 255, 255, 0.48));
     box-shadow: var(--mobile-header-control-shadow, none);
     backdrop-filter: blur(var(--mobile-glass-blur, 16px));
+  }
+
+  .mobile-header-select select {
+    appearance: none;
+    width: 100%;
+    height: var(--mobile-control-height, 36px);
+    min-height: var(--mobile-control-height, 36px);
+    padding: 0 30px 0 var(--mobile-header-control-padding-x, 10px);
+    color: var(--ink, #171717);
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    font: inherit;
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
+    line-height: 1;
+  }
+
+  .mobile-header-select::after {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    border-top: 4px solid rgba(79, 86, 97, 0.66);
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+    content: "";
+    transform: translateY(-35%);
   }
 
   .mobile-header-language {
@@ -206,8 +245,13 @@ const emit = defineEmits(["select", "set-language"]);
   .mobile-header-language button:focus-visible,
   .mobile-header-home:focus-visible {
     outline: none;
-    border-color: var(--accent, #4f5661);
     box-shadow: 0 0 0 4px rgba(79, 86, 97, 0.12);
+  }
+
+  .mobile-header-select:focus-within,
+  .mobile-header-language:focus-within,
+  .mobile-header-home:focus-visible {
+    border-color: var(--accent, #4f5661);
   }
 }
 </style>

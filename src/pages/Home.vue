@@ -5,6 +5,8 @@ const emit = defineEmits(["activate-group", "clear-group"]);
 
 const heroProgress = ref(0);
 const hasScrolled = ref(false);
+const mobileLanguage = ref("en");
+const luckyStorageKey = "bioassaycraft:mobile-home:lucky-history";
 
 const journeyItems = [
   {
@@ -71,6 +73,107 @@ const learnItems = [
   },
 ];
 
+const mobileLearnItems = [
+  {
+    title: "ANOVA Explorer",
+    subtitle: "Interactive ANOVA visualization",
+    status: "Ready",
+    ready: true,
+    href: "/learn/anova-explorer/",
+    luckyKey: "anova-explorer",
+    weight: 1,
+  },
+  {
+    title: "Validation Explorer",
+    subtitle: "Method validation learning",
+    status: "Coming Soon",
+    ready: false,
+  },
+];
+
+const mobileToolItems = [
+  {
+    title: "Unit Converter",
+    subtitle: "Scientific concentration conversion",
+    status: "Ready",
+    ready: true,
+    href: "/tools/converter/",
+    luckyKey: "unit-converter",
+    weight: 1,
+  },
+  {
+    title: "Validation Calculator",
+    subtitle: "Validation utilities",
+    status: "Coming Soon",
+    ready: false,
+  },
+];
+
+const mobileJourneyItems = [
+  {
+    title: "Bioassay Development",
+    type: "Learning Path",
+    status: "Coming Soon",
+  },
+  {
+    title: "Bioassay Validation",
+    type: "Learning Path",
+    status: "Coming Soon",
+  },
+  {
+    title: "Bioassay Maintenance",
+    type: "Learning Path",
+    status: "Coming Soon",
+  },
+];
+
+const mobileHomeGroups = [
+  {
+    key: "learn",
+    items: mobileLearnItems,
+  },
+  {
+    key: "tools",
+    items: mobileToolItems,
+  },
+];
+
+const mobileHomeCopy = {
+  en: {
+    languageLabel: "Language",
+    learn: "Learn",
+    learnNote: "Explore interactive learning modules.",
+    tools: "Tools",
+    toolsNote: "Scientific utilities.",
+    journey: "Journey",
+    journeyNote: "Structured learning paths.",
+    ready: "Ready",
+    comingSoon: "Coming Soon",
+    lucky: "I'm Feeling Lucky!",
+  },
+  zh: {
+    languageLabel: "语言",
+    learn: "学习",
+    learnNote: "探索交互式学习模块",
+    tools: "工具",
+    toolsNote: "常用科学计算工具",
+    journey: "旅程",
+    journeyNote: "结构化学习路径",
+    ready: "已就绪",
+    comingSoon: "即将推出",
+    lucky: "I'm Feeling Lucky!",
+  },
+};
+
+const mobileCopy = computed(() => mobileHomeCopy[mobileLanguage.value]);
+
+const mobileStatusLabel = (item) =>
+  item.ready ? mobileCopy.value.ready : mobileCopy.value.comingSoon;
+
+const mobileGroupTitle = (group) => mobileCopy.value[group.key];
+
+const mobileGroupNote = (group) => mobileCopy.value[`${group.key}Note`];
+
 let scrollFrame = null;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -127,6 +230,67 @@ const heroTitleStyle = computed(() => {
     transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
   };
 });
+
+const readyMobileDestinations = computed(() =>
+  mobileHomeGroups.flatMap((group) =>
+    group.items
+      .filter((item) => item.ready && item.href)
+      .map((item) => ({
+        ...item,
+        group: group.key,
+        luckyKey: item.luckyKey || item.href,
+        weight: Math.max(1, Number(item.weight) || 1),
+      })),
+  ),
+);
+
+const readLuckyHistory = () => {
+  try {
+    const raw = window.localStorage.getItem(luckyStorageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(Boolean).slice(0, 6) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLuckyHistory = (nextKey, previousHistory) => {
+  try {
+    window.localStorage.setItem(
+      luckyStorageKey,
+      JSON.stringify([nextKey, ...previousHistory.filter((key) => key !== nextKey)].slice(0, 6)),
+    );
+  } catch {
+    // localStorage may be unavailable in private or restricted browsing contexts.
+  }
+};
+
+const chooseWeightedDestination = (items) => {
+  const total = items.reduce((sum, item) => sum + item.weight, 0);
+  let cursor = Math.random() * total;
+  return (
+    items.find((item) => {
+      cursor -= item.weight;
+      return cursor <= 0;
+    }) || items[0]
+  );
+};
+
+const openLuckyModule = () => {
+  const destinations = readyMobileDestinations.value;
+  if (!destinations.length) return;
+
+  const history = readLuckyHistory();
+  const lastKey = history[0];
+  const candidates =
+    destinations.length > 1
+      ? destinations.filter((item) => item.luckyKey !== lastKey)
+      : destinations;
+  const destination = chooseWeightedDestination(candidates);
+
+  writeLuckyHistory(destination.luckyKey, history);
+  window.location.href = destination.href;
+};
 
 onMounted(() => {
   updateScrollState();
@@ -214,6 +378,84 @@ onBeforeUnmount(() => {
           <small>{{ tool.note }}</small>
         </a>
       </div>
+    </section>
+
+    <section class="mobile-home-hub" aria-label="BioassayCraft mobile home">
+      <header class="mobile-home-header">
+        <div class="mobile-home-brand">
+          <img src="/assets/brand/logo.svg" alt="" aria-hidden="true" />
+          <span>BioassayCraft</span>
+        </div>
+
+        <div class="mobile-header-language" :aria-label="mobileCopy.languageLabel">
+          <button
+            type="button"
+            :class="{ 'is-active': mobileLanguage === 'zh' }"
+            @click="mobileLanguage = 'zh'"
+          >
+            中文
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': mobileLanguage === 'en' }"
+            @click="mobileLanguage = 'en'"
+          >
+            EN
+          </button>
+        </div>
+      </header>
+
+      <section
+        v-for="group in mobileHomeGroups"
+        :id="`mobile-${group.key}`"
+        :key="group.key"
+        class="mobile-home-section"
+        :aria-labelledby="`mobile-${group.key}-title`"
+      >
+        <div class="mobile-section-heading">
+          <h2 :id="`mobile-${group.key}-title`">{{ mobileGroupTitle(group) }}</h2>
+          <p>{{ mobileGroupNote(group) }}</p>
+        </div>
+
+        <div class="mobile-card-rail" :aria-label="`${mobileGroupTitle(group)} modules`">
+          <component
+            :is="item.ready && item.href ? 'a' : 'article'"
+            v-for="item in group.items"
+            :key="item.title"
+            class="mobile-hub-card"
+            :class="{ 'is-ready': item.ready }"
+            :href="item.ready && item.href ? item.href : undefined"
+            :aria-disabled="!item.ready ? 'true' : undefined"
+          >
+            <span class="mobile-card-status" :class="{ 'is-ready': item.ready }">
+              <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}
+            </span>
+            <strong>{{ item.title }}</strong>
+          </component>
+        </div>
+      </section>
+
+      <section
+        id="mobile-journey"
+        class="mobile-home-section mobile-journey-section"
+        aria-labelledby="mobile-journey-title"
+      >
+        <div class="mobile-section-heading">
+          <h2 id="mobile-journey-title">{{ mobileCopy.journey }}</h2>
+          <p>{{ mobileCopy.journeyNote }}</p>
+        </div>
+
+        <div class="mobile-journey-list" aria-label="Learning paths">
+          <article v-for="item in mobileJourneyItems" :key="item.title" class="mobile-journey-card">
+            <strong>{{ item.title }}</strong>
+            <small>{{ mobileCopy.comingSoon }}</small>
+          </article>
+        </div>
+      </section>
+
+      <button type="button" class="mobile-lucky-button" @click="openLuckyModule">
+        {{ mobileCopy.lucky }}
+      </button>
     </section>
   </section>
 </template>

@@ -493,48 +493,50 @@ onBeforeUnmount(() => {
   <div class="converter-shell">
     <main class="concentration-converter" :class="{ 'is-header-morphed': isHeaderMorphed }">
       <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
-      <MobileToolHeader
-        class="converter-mobile-header"
-        :aria-label="copy.mobileControlsLabel"
-        :selector-label="copy.unitConverter"
-        :options="mobileToolOptions"
-        selected-value="unitConverter"
-        :language="language"
-        :language-label="copy.languageLabel"
-        :home-label="copy.home"
-        @set-language="setLanguage"
-      />
-      <section class="mobile-unit-state-bar" aria-label="Mobile unit conversion direction">
-        <label>
-          <span>{{ copy.currentUnit }}</span>
-          <select :value="fromUnitKey" @change="setCurrentUnit($event.target.value)">
-            <option v-for="unit in concentrationUnits" :key="unit.key" :value="unit.key">
-              {{ unit.label }}
-            </option>
-          </select>
-        </label>
-        <button
-          type="button"
-          class="mobile-icon-button mobile-swap-button"
-          :aria-label="copy.swapUnits"
-          @click="swapUnits"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 7h10" />
-            <path d="m14 4 3 3-3 3" />
-            <path d="M17 17H7" />
-            <path d="m10 14-3 3 3 3" />
-          </svg>
-        </button>
-        <label>
-          <span>{{ copy.targetUnit }}</span>
-          <select :value="toUnitKey" @change="setTargetUnit($event.target.value)">
-            <option v-for="unit in mobileTargetUnits" :key="unit.key" :value="unit.key">
-              {{ unit.label }}
-            </option>
-          </select>
-        </label>
-      </section>
+      <div class="mobile-sticky-header" aria-label="Concentration Converter mobile navigation">
+        <MobileToolHeader
+          class="converter-mobile-header"
+          :aria-label="copy.mobileControlsLabel"
+          :selector-label="copy.unitConverter"
+          :options="mobileToolOptions"
+          selected-value="unitConverter"
+          :language="language"
+          :language-label="copy.languageLabel"
+          :home-label="copy.home"
+          @set-language="setLanguage"
+        />
+        <section class="mobile-unit-state-bar" aria-label="Mobile unit conversion direction">
+          <label>
+            <span>{{ copy.currentUnit }}</span>
+            <select :value="fromUnitKey" @change="setCurrentUnit($event.target.value)">
+              <option v-for="unit in concentrationUnits" :key="unit.key" :value="unit.key">
+                {{ unit.label }}
+              </option>
+            </select>
+          </label>
+          <button
+            type="button"
+            class="mobile-icon-button mobile-swap-button"
+            :aria-label="copy.swapUnits"
+            @click="swapUnits"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 7h10" />
+              <path d="m14 4 3 3-3 3" />
+              <path d="M17 17H7" />
+              <path d="m10 14-3 3 3 3" />
+            </svg>
+          </button>
+          <label>
+            <span>{{ copy.targetUnit }}</span>
+            <select :value="toUnitKey" @change="setTargetUnit($event.target.value)">
+              <option v-for="unit in mobileTargetUnits" :key="unit.key" :value="unit.key">
+                {{ unit.label }}
+              </option>
+            </select>
+          </label>
+        </section>
+      </div>
       <header class="tool-topbar">
         <div class="header-inner">
           <a class="brand-link" href="/" aria-label="BioassayCraft home">
@@ -1196,6 +1198,10 @@ onBeforeUnmount(() => {
   display: none;
 }
 
+.mobile-sticky-header {
+  display: none;
+}
+
 .workspace-pane {
   display: flex;
   flex-direction: column;
@@ -1493,16 +1499,11 @@ select:focus,
     --mobile-safe-top: max(env(safe-area-inset-top), 12px);
     --converter-mobile-header-height: 36px;
     --converter-mobile-unit-switcher-height: 64px;
-    --converter-mobile-fixed-gap: 12px;
-    --converter-mobile-section-gap: var(--converter-mobile-fixed-gap);
+    --converter-mobile-section-gap: 8px;
     --converter-mobile-unit-action-width: 30px;
-    --converter-mobile-content-offset: calc(
-      var(--mobile-safe-top) + var(--converter-mobile-header-height) +
-        var(--converter-mobile-fixed-gap) + var(--converter-mobile-unit-switcher-height) +
-        var(--converter-mobile-fixed-gap)
-    );
     --mobile-control-gap: 8px;
     --mobile-section-gap: var(--mobile-control-gap);
+    --mobile-sticky-gap: 8px;
     --mobile-control-height: 36px;
     --mobile-unit-state-height: var(--converter-mobile-unit-switcher-height);
     --mobile-unit-control-height: 30px;
@@ -1521,11 +1522,16 @@ select:focus,
     --mobile-card-bg: rgba(255, 255, 255, 0.48);
     --mobile-card-border: rgba(0, 0, 0, 0.08);
     --mobile-card-shadow: 0 8px 22px rgba(23, 23, 23, 0.024);
+    --mobile-glass-blur: 16px;
+    --mobile-glass-bg: rgba(255, 255, 255, 0.48);
+    --mobile-glass-border: rgba(214, 217, 222, 0.54);
+    --mobile-glass-shadow: 0 8px 20px rgba(23, 23, 23, 0.026);
+    --mobile-glass-radius: 14px;
     --mobile-field-height: 38px;
   }
 
   .converter-shell {
-    --topbar-sticky-height: var(--converter-mobile-content-offset);
+    --topbar-sticky-height: 0px;
   }
 
   .concentration-converter {
@@ -1533,7 +1539,7 @@ select:focus,
   }
 
   .concentration-converter {
-    padding-top: var(--topbar-sticky-height);
+    padding-top: 0;
     padding-bottom: 20px;
   }
 
@@ -1547,21 +1553,29 @@ select:focus,
     display: none;
   }
 
+  .mobile-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 70;
+    display: grid;
+    gap: var(--mobile-sticky-gap);
+    width: 100%;
+    margin-bottom: var(--mobile-sticky-gap);
+    padding-top: var(--mobile-safe-top);
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
   .mobile-unit-state-bar {
-    position: fixed;
-    top: calc(
-      var(--mobile-safe-top) + var(--converter-mobile-header-height) +
-        var(--converter-mobile-fixed-gap)
-    );
-    left: 50%;
-    z-index: 69;
     display: grid;
     grid-template-columns:
       minmax(0, 1fr) var(--converter-mobile-unit-action-width)
       minmax(0, 1fr);
     gap: var(--mobile-section-gap);
     align-items: end;
-    width: min(100% - 32px, 1360px);
+    width: 100%;
     min-height: var(--mobile-unit-state-height);
     padding: 8px;
     border: 1px solid var(--mobile-card-border);
@@ -1569,7 +1583,6 @@ select:focus,
     background: var(--mobile-card-bg);
     box-shadow: var(--mobile-card-shadow);
     backdrop-filter: blur(16px);
-    transform: translateX(-50%);
   }
 
   .mobile-unit-state-bar label {

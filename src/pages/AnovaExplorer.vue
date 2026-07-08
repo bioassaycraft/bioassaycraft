@@ -138,25 +138,7 @@ const mobileShellStyle = computed(() =>
 );
 
 const updateMobileContentTop = () => {
-  if (typeof window === "undefined") return;
-  if (!window.matchMedia("(max-width: 768px)").matches || !explorerRoot.value) {
-    mobileContentTop.value = 0;
-    return;
-  }
-
-  const headerParts = [
-    explorerRoot.value.querySelector(".mobile-top-controls"),
-    explorerRoot.value.querySelector(".mobile-view-switch"),
-    explorerRoot.value.querySelector(".mobile-step-card"),
-  ].filter(Boolean);
-
-  if (!headerParts.length) return;
-
-  const rootTop = explorerRoot.value.getBoundingClientRect().top;
-  const headerBottom = Math.max(...headerParts.map((part) => part.getBoundingClientRect().bottom));
-  const styles = window.getComputedStyle(explorerRoot.value);
-  const gap = Number.parseFloat(styles.getPropertyValue("--mobile-section-gap")) || 8;
-  mobileContentTop.value = Math.ceil(headerBottom - rootTop + gap);
+  mobileContentTop.value = 0;
 };
 
 const setModule = (module) => {
@@ -1356,20 +1338,33 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <MobileTopControls
-      :copy="copy"
-      :active-module="activeModule"
-      :module-order="moduleOrder"
-      :language="language"
-      @set-module="setModule"
-      @set-language="setLanguage"
-    />
+    <div class="mobile-sticky-header" aria-label="ANOVA Explorer mobile navigation">
+      <MobileTopControls
+        :copy="copy"
+        :active-module="activeModule"
+        :module-order="moduleOrder"
+        :language="language"
+        @set-module="setModule"
+        @set-language="setLanguage"
+      />
 
-    <MobileSegmentedNavigation
-      :copy="copy"
-      :active-view="mobileView"
-      @set-view="mobileView = $event"
-    />
+      <MobileSegmentedNavigation
+        :copy="copy"
+        :active-view="mobileView"
+        @set-view="mobileView = $event"
+      />
+
+      <MobileStepController
+        :copy="copy"
+        :steps="moduleSteps"
+        :active-step="activeStep"
+        :active-step-index="activeStepIndex"
+        :step-name="mobileStepName"
+        @previous="goToAdjacentStep(-1)"
+        @next="goToAdjacentStep(1)"
+        @set-step="activeStep = $event"
+      />
+    </div>
 
     <section class="module-sticky" aria-label="ANOVA Explorer module switcher">
       <div class="control-group module-group">
@@ -1402,17 +1397,6 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </section>
-
-    <MobileStepController
-      :copy="copy"
-      :steps="moduleSteps"
-      :active-step="activeStep"
-      :active-step-index="activeStepIndex"
-      :step-name="mobileStepName"
-      @previous="goToAdjacentStep(-1)"
-      @next="goToAdjacentStep(1)"
-      @set-step="activeStep = $event"
-    />
 
     <section class="teaching-grid" aria-label="ANOVA interactive teaching workspace">
       <div class="visual-panel chart-panel">
@@ -2003,6 +1987,10 @@ button {
   border-top: 1px solid rgba(214, 217, 222, 0.34);
   border-bottom: 1px solid rgba(214, 217, 222, 0.34);
   backdrop-filter: blur(14px);
+}
+
+.mobile-sticky-header {
+  display: none;
 }
 
 .control-group {
@@ -2699,6 +2687,7 @@ button {
     --mobile-header-control-shadow: var(--mobile-glass-shadow);
     --mobile-section-gap: var(--mobile-gap-md);
     --mobile-header-gap: var(--mobile-section-gap);
+    --mobile-sticky-gap: 8px;
     --mobile-slider-height: 24px;
     --mobile-chart-aspect-ratio: 16 / 9;
     --mobile-bar-gap: 0px;
@@ -2709,26 +2698,12 @@ button {
     display: flex;
     flex-direction: column;
     width: min(100% - 32px, 1360px);
-    padding-top: var(
-      --mobile-content-top,
-      calc(
-        var(--mobile-safe-top) + var(--mobile-control-height) + var(--mobile-switch-height) +
-          var(--mobile-step-height) + var(--mobile-section-gap) + var(--mobile-section-gap) +
-          var(--mobile-section-gap)
-      )
-    );
+    padding-top: 0;
     padding-bottom: 24px;
   }
 
   .anova-explorer.is-mobile-decomposition {
-    padding-top: var(
-      --mobile-content-top,
-      calc(
-        var(--mobile-safe-top) + var(--mobile-control-height) + var(--mobile-switch-height) +
-          var(--mobile-step-height) + var(--mobile-section-gap) + var(--mobile-section-gap) +
-          var(--mobile-section-gap)
-      )
-    );
+    padding-top: 0;
   }
 
   .explorer-topbar {
@@ -2745,6 +2720,21 @@ button {
 
   .step-group {
     display: none;
+  }
+
+  .mobile-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 70;
+    display: grid;
+    gap: var(--mobile-sticky-gap, 8px);
+    width: 100%;
+    margin-bottom: var(--mobile-sticky-gap, 8px);
+    padding-top: var(--mobile-safe-top);
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .teaching-grid {

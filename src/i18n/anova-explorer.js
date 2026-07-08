@@ -87,7 +87,7 @@ export const anovaCopy = {
       fitView: "拟合图",
       decompositionView: "方差分解",
       modulesShort: {
-        single: "线性",
+        single: "直线",
         sra: "SRA",
         pla: "PLA",
         fourpl: "4PL",

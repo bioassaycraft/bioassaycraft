@@ -62,17 +62,9 @@ const emit = defineEmits(["previous", "next", "set-step"]);
 
 @media (max-width: 768px) {
   .mobile-step-card {
-    position: fixed;
-    top: calc(
-      var(--mobile-safe-top, 12px) + var(--mobile-control-height, 36px) +
-        var(--mobile-switch-height, 36px) + var(--mobile-header-gap, 7px) +
-        var(--mobile-header-gap, 7px)
-    );
-    left: 50%;
-    z-index: 66;
     display: grid;
     gap: 8px;
-    width: min(100% - 32px, 1360px);
+    width: 100%;
     min-height: var(--mobile-step-height, 88px);
     padding: 9px 10px;
     border: 1px solid var(--mobile-glass-border, rgba(214, 217, 222, 0.54));
@@ -80,7 +72,6 @@ const emit = defineEmits(["previous", "next", "set-step"]);
     background: var(--mobile-glass-bg, rgba(255, 255, 255, 0.48));
     box-shadow: var(--mobile-glass-shadow, 0 8px 20px rgba(23, 23, 23, 0.026));
     backdrop-filter: blur(var(--mobile-glass-blur, 16px));
-    transform: translateX(-50%);
   }
 
   .mobile-step-actions {
