@@ -28,6 +28,10 @@ defineProps({
     type: String,
     default: "Home",
   },
+  showSelector: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const emit = defineEmits(["select", "set-language"]);
@@ -37,7 +41,13 @@ const emit = defineEmits(["select", "set-language"]);
   <section class="mobile-tool-header" :aria-label="ariaLabel">
     <div class="mobile-brand-row">
       <a class="mobile-brand-link" href="/" aria-label="BioassayCraft home">
-        <img class="mobile-brand-mark" src="/assets/brand/logo-dark.svg" data-theme-logo alt="" aria-hidden="true" />
+        <img
+          class="mobile-brand-mark"
+          src="/assets/brand/logo-dark.svg"
+          data-theme-logo
+          alt=""
+          aria-hidden="true"
+        />
         <span class="mobile-brand-name">BioassayCraft</span>
       </a>
 
@@ -69,7 +79,7 @@ const emit = defineEmits(["select", "set-language"]);
       </div>
     </div>
 
-    <label class="mobile-header-select">
+    <label v-if="showSelector" class="mobile-header-select">
       <span>{{ selectorLabel }}</span>
       <select :value="selectedValue" @change="emit('select', $event.target.value)">
         <option v-for="option in options" :key="option.value" :value="option.value">

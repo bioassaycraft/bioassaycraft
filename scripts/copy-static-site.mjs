@@ -8,6 +8,7 @@ const entries = ["assets", "learn", "journeys", "tools", "simulators", "lessons"
 const viteManagedRoutes = new Set([
   join(root, "learn", "anova-explorer"),
   join(root, "tools", "converter"),
+  join(root, "tools", "specification-limit-calculator"),
 ]);
 
 await mkdir(dist, { recursive: true });

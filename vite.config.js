@@ -10,6 +10,7 @@ export default defineConfig({
         main: "index.html",
         anovaExplorer: "learn/anova-explorer/index.html",
         concentrationConverter: "tools/converter/index.html",
+        specificationLimitCalculator: "tools/specification-limit-calculator/index.html",
       },
     },
   },

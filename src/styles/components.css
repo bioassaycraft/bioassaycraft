@@ -406,7 +406,7 @@ h2 {
 
   .mobile-home-hub {
     --mobile-home-inline: 16px;
-    --mobile-home-gap: 20px;
+    --mobile-home-gap: 22px;
     --mobile-home-card-radius: 18px;
     --mobile-home-glass: var(--app-glass);
     --mobile-home-border: var(--app-rule-subtle);
@@ -431,10 +431,8 @@ h2 {
     box-sizing: border-box;
     min-width: 0;
     margin: 0;
-    padding:
-      max(env(safe-area-inset-top), 18px)
-      max(var(--mobile-home-inline), env(safe-area-inset-right))
-      12px
+    padding: max(env(safe-area-inset-top), 18px)
+      max(var(--mobile-home-inline), env(safe-area-inset-right)) 12px
       max(var(--mobile-home-inline), env(safe-area-inset-left));
     color: var(--app-text);
     background: color-mix(in srgb, var(--app-bg) 88%, transparent);
@@ -504,7 +502,7 @@ h2 {
 
   .mobile-home-section {
     display: grid;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
   }
 
@@ -565,10 +563,10 @@ h2 {
   }
 
   .mobile-hub-card {
-    align-content: end;
-    gap: 9px;
-    min-height: 126px;
-    padding: 14px;
+    align-content: center;
+    gap: 11px;
+    min-height: 110px;
+    padding: 13px 14px 15px;
     border-radius: var(--mobile-home-card-radius);
     scroll-snap-align: start;
   }
@@ -605,14 +603,26 @@ h2 {
   .mobile-journey-card strong {
     position: relative;
     z-index: 1;
-    overflow-wrap: anywhere;
     font-size: 0.92rem;
     font-weight: 680;
     line-height: 1.18;
   }
 
-  .mobile-hub-card span:not(.mobile-card-status),
-  .mobile-journey-card span,
+  .mobile-card-title-line {
+    display: block;
+    color: inherit;
+    font: inherit;
+    overflow-wrap: normal;
+  }
+
+  .mobile-journey-card strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-hub-card span:not(.mobile-card-status, .mobile-card-title-line),
+  .mobile-journey-card span:not(.mobile-card-title-line),
   .mobile-journey-card small {
     position: relative;
     z-index: 1;
@@ -623,6 +633,7 @@ h2 {
   }
 
   .mobile-journey-section {
+    margin-top: 4px;
     padding-bottom: 8px;
   }
 

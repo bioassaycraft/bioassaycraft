@@ -29,9 +29,14 @@ const journeyItems = [
 
 const tools = [
   {
-    title: "Conc. Converter",
+    title: "Unit Converter",
     note: "Mass ↔ molar.",
     href: "/tools/converter/",
+  },
+  {
+    title: "Specification Limit Calculator",
+    note: "Internal specifications.",
+    href: "/tools/specification-limit-calculator/",
   },
   {
     title: "Sample Size Calculator",
@@ -77,6 +82,7 @@ const learnItems = [
 const mobileLearnItems = [
   {
     title: "ANOVA Explorer",
+    titleLines: ["ANOVA", "Explorer"],
     subtitle: "Interactive ANOVA visualization",
     status: "Ready",
     ready: true,
@@ -86,6 +92,7 @@ const mobileLearnItems = [
   },
   {
     title: "Validation Explorer",
+    titleLines: ["Validation", "Explorer"],
     subtitle: "Method validation learning",
     status: "Coming Soon",
     ready: false,
@@ -95,6 +102,7 @@ const mobileLearnItems = [
 const mobileToolItems = [
   {
     title: "Unit Converter",
+    titleLines: ["Unit", "Converter"],
     subtitle: "Scientific concentration conversion",
     status: "Ready",
     ready: true,
@@ -103,7 +111,18 @@ const mobileToolItems = [
     weight: 1,
   },
   {
+    title: "Specification Limit Calculator",
+    titleLines: ["Specification", "Limit Calculator"],
+    subtitle: "Specification limit workflow",
+    status: "Ready",
+    ready: true,
+    href: "/tools/specification-limit-calculator/",
+    luckyKey: "spec-limit-calculator",
+    weight: 1,
+  },
+  {
     title: "Validation Calculator",
+    titleLines: ["Validation", "Calculator"],
     subtitle: "Validation utilities",
     status: "Coming Soon",
     ready: false,
@@ -430,7 +449,14 @@ onBeforeUnmount(() => {
             <span class="mobile-card-status" :class="{ 'is-ready': item.ready }">
               <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}
             </span>
-            <strong>{{ item.title }}</strong>
+            <strong>
+              <template v-if="item.titleLines">
+                <span v-for="line in item.titleLines" :key="line" class="mobile-card-title-line">
+                  {{ line }}
+                </span>
+              </template>
+              <template v-else>{{ item.title }}</template>
+            </strong>
           </component>
         </div>
       </section>
