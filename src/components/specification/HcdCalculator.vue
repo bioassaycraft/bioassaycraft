@@ -40,7 +40,6 @@ const copyMap = {
     parametersTitle: "HCD Parameters",
     whoLimit: "WHO Residual DNA Limit",
     whoDefault: "10 ng/dose",
-    convertedWhoLimit: "Converted Limit",
     safetyTitle: "Safety Factor",
     safetyNote: "Internal control margin, not a regulatory requirement.",
     custom: "Custom",
@@ -94,7 +93,6 @@ const copyMap = {
     parametersTitle: "HCD 参数",
     whoLimit: "WHO 残留 DNA 限度",
     whoDefault: "10 ng/dose",
-    convertedWhoLimit: "换算后限度",
     safetyTitle: "安全系数",
     safetyNote: "内部控制余量，不是法规要求。",
     custom: "自定义",
@@ -306,20 +304,6 @@ onMounted(() => {
             min="0"
             step="any"
             inputmode="decimal"
-          />
-        </label>
-
-        <label class="field-block">
-          <span>{{ copy.convertedWhoLimit }}</span>
-          <input
-            class="numeric-input"
-            type="text"
-            :value="
-              convertedWhoLimit === null
-                ? '--'
-                : `${formatEndotoxinNumber(convertedWhoLimit)} pg/dose`
-            "
-            readonly
           />
         </label>
 

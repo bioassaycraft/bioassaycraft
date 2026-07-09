@@ -83,6 +83,7 @@ const mobileLearnItems = [
   {
     title: "ANOVA Explorer",
     titleLines: ["ANOVA", "Explorer"],
+    zhTitleLines: ["探索", "方差分析"],
     subtitle: "Interactive ANOVA visualization",
     status: "Ready",
     ready: true,
@@ -103,6 +104,7 @@ const mobileToolItems = [
   {
     title: "Unit Converter",
     titleLines: ["Unit", "Converter"],
+    zhTitleLines: ["单位", "转换器"],
     subtitle: "Scientific concentration conversion",
     status: "Ready",
     ready: true,
@@ -113,6 +115,7 @@ const mobileToolItems = [
   {
     title: "Specification Limit Calculator",
     titleLines: ["Specification", "Limit Calculator"],
+    zhTitleLines: ["质量标准", "限度计算器"],
     subtitle: "Specification limit workflow",
     status: "Ready",
     ready: true,
@@ -192,6 +195,9 @@ const mobileStatusLabel = (item) => (item.ready ? copy.value.ready : copy.value.
 const mobileGroupTitle = (group) => copy.value[group.key];
 
 const mobileGroupNote = (group) => copy.value[`${group.key}Note`];
+
+const mobileCardTitleLines = (item) =>
+  language.value === "zh" && item.zhTitleLines ? item.zhTitleLines : item.titleLines;
 
 let scrollFrame = null;
 
@@ -450,8 +456,12 @@ onBeforeUnmount(() => {
               <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}
             </span>
             <strong>
-              <template v-if="item.titleLines">
-                <span v-for="line in item.titleLines" :key="line" class="mobile-card-title-line">
+              <template v-if="mobileCardTitleLines(item)">
+                <span
+                  v-for="line in mobileCardTitleLines(item)"
+                  :key="line"
+                  class="mobile-card-title-line"
+                >
                   {{ line }}
                 </span>
               </template>

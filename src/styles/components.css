@@ -553,6 +553,8 @@ h2 {
   .mobile-journey-card {
     position: relative;
     display: grid;
+    align-content: end;
+    --mobile-card-content-bottom: calc(var(--mobile-card-min-height, 120px) / 8);
     min-width: 0;
     color: var(--app-text);
     border: 1px solid var(--mobile-home-border);
@@ -563,10 +565,10 @@ h2 {
   }
 
   .mobile-hub-card {
-    align-content: center;
+    --mobile-card-min-height: 110px;
     gap: 11px;
-    min-height: 110px;
-    padding: 13px 14px 15px;
+    min-height: var(--mobile-card-min-height);
+    padding: 13px 14px var(--mobile-card-content-bottom);
     border-radius: var(--mobile-home-card-radius);
     scroll-snap-align: start;
   }
@@ -605,7 +607,7 @@ h2 {
     z-index: 1;
     font-size: 0.92rem;
     font-weight: 680;
-    line-height: 1.18;
+    line-height: 1.25;
   }
 
   .mobile-card-title-line {
@@ -645,10 +647,10 @@ h2 {
   }
 
   .mobile-journey-card {
-    align-content: end;
+    --mobile-card-min-height: 138px;
     gap: 10px;
-    min-height: 138px;
-    padding: 16px;
+    min-height: var(--mobile-card-min-height);
+    padding: 16px 16px var(--mobile-card-content-bottom);
     border-radius: 20px;
   }
 
