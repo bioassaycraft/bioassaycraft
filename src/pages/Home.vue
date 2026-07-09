@@ -383,7 +383,7 @@ onBeforeUnmount(() => {
     <section class="mobile-home-hub" aria-label="BioassayCraft mobile home">
       <header class="mobile-home-header">
         <div class="mobile-home-brand">
-          <img src="/assets/brand/logo.svg" alt="" aria-hidden="true" />
+          <img src="/assets/brand/logo-dark.svg" data-theme-logo alt="" aria-hidden="true" />
           <span>BioassayCraft</span>
         </div>
 

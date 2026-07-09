@@ -415,31 +415,44 @@ h2 {
     gap: var(--mobile-home-gap);
     width: 100%;
     min-height: 100svh;
-    padding: max(env(safe-area-inset-top), 18px) 0
-      calc(92px + max(env(safe-area-inset-bottom), 14px));
-    overflow-x: hidden;
+    padding: 0 0 calc(92px + max(env(safe-area-inset-bottom), 14px));
   }
 
   .mobile-home-header {
+    position: sticky;
+    top: 0;
+    z-index: 35;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
     align-items: center;
-    width: calc(100% - (var(--mobile-home-inline) * 2));
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     min-width: 0;
-    margin: 0 var(--mobile-home-inline);
+    margin: 0;
+    padding:
+      max(env(safe-area-inset-top), 18px)
+      max(var(--mobile-home-inline), env(safe-area-inset-right))
+      12px
+      max(var(--mobile-home-inline), env(safe-area-inset-left));
     color: var(--app-text);
+    background: color-mix(in srgb, var(--app-bg) 88%, transparent);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
     font-weight: 680;
   }
 
   .mobile-home-brand {
     display: inline-flex;
-    gap: 10px;
+    flex: 1;
+    gap: 8px;
     align-items: center;
     min-width: 0;
   }
 
   .mobile-home-brand img {
+    flex: 0 0 auto;
     width: 29px;
     height: 29px;
     object-fit: contain;
@@ -447,10 +460,10 @@ h2 {
   }
 
   .mobile-home-brand span {
-    overflow: hidden;
-    font-size: 1.12rem;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 1rem;
     line-height: 1;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 

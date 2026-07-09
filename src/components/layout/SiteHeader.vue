@@ -35,7 +35,7 @@ const navItems = computed(() => [
 <template>
   <header class="site-header">
     <a class="brand-link" href="/" aria-label="BioassayCraft home">
-      <img class="brand-mark" src="/assets/brand/logo.svg" alt="" aria-hidden="true" />
+      <img class="brand-mark" src="/assets/brand/logo-dark.svg" data-theme-logo alt="" aria-hidden="true" />
       <span class="brand-name">bioassaycraft</span>
     </a>
     <nav class="site-nav" aria-label="App preview navigation">

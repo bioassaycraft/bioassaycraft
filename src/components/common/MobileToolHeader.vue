@@ -37,7 +37,7 @@ const emit = defineEmits(["select", "set-language"]);
   <section class="mobile-tool-header" :aria-label="ariaLabel">
     <div class="mobile-brand-row">
       <a class="mobile-brand-link" href="/" aria-label="BioassayCraft home">
-        <img class="mobile-brand-mark" src="/assets/brand/logo.svg" alt="" aria-hidden="true" />
+        <img class="mobile-brand-mark" src="/assets/brand/logo-dark.svg" data-theme-logo alt="" aria-hidden="true" />
         <span class="mobile-brand-name">BioassayCraft</span>
       </a>
 
