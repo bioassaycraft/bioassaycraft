@@ -39,6 +39,11 @@ const tools = [
     href: "/tools/specification-limit-calculator/",
   },
   {
+    title: "Validation CI Calculator",
+    note: "Coming Soon.",
+    href: "/tools/validation-ci-calculator/",
+  },
+  {
     title: "Sample Size Calculator",
     note: "Runs from assumptions.",
     href: "/tools/validation-sample-size-calculator/",
@@ -60,6 +65,10 @@ const learnItems = [
     title: "ANOVA Explorer",
     detail: "Variance decomposition and model reasoning.",
     href: "/learn/anova-explorer/",
+  },
+  {
+    title: "CI Explorer",
+    detail: "Confidence intervals and statistical decisions.",
   },
   {
     title: "中国药典",
@@ -92,6 +101,14 @@ const mobileLearnItems = [
     weight: 1,
   },
   {
+    title: "CI Explorer",
+    titleLines: ["CI", "Explorer"],
+    zhTitleLines: ["探索", "置信区间"],
+    subtitle: "Interactive confidence interval visualization",
+    status: "Coming Soon",
+    ready: false,
+  },
+  {
     title: "Validation Explorer",
     titleLines: ["Validation", "Explorer"],
     subtitle: "Method validation learning",
@@ -122,6 +139,15 @@ const mobileToolItems = [
     href: "/tools/specification-limit-calculator/",
     luckyKey: "spec-limit-calculator",
     weight: 1,
+  },
+  {
+    title: "Validation CI Calculator",
+    titleLines: ["Validation CI", "Calculator"],
+    zhTitleLines: ["方法验证", "CI 计算器"],
+    subtitle: "Confidence interval decisions",
+    status: "Coming Soon",
+    ready: false,
+    href: "/tools/validation-ci-calculator/",
   },
   {
     title: "Validation Calculator",
@@ -444,13 +470,13 @@ onBeforeUnmount(() => {
 
         <div class="mobile-card-rail" :aria-label="`${mobileGroupTitle(group)} modules`">
           <component
-            :is="item.ready && item.href ? 'a' : 'article'"
+            :is="item.href ? 'a' : 'article'"
             v-for="item in group.items"
             :key="item.title"
             class="mobile-hub-card"
             :class="{ 'is-ready': item.ready }"
-            :href="item.ready && item.href ? item.href : undefined"
-            :aria-disabled="!item.ready ? 'true' : undefined"
+            :href="item.href || undefined"
+            :aria-disabled="!item.href ? 'true' : undefined"
           >
             <span class="mobile-card-status" :class="{ 'is-ready': item.ready }">
               <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}

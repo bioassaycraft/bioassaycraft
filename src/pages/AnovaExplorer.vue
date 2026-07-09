@@ -7,6 +7,7 @@ import MobileStepController from "../components/anova/MobileStepController.vue";
 import MobileTopControls from "../components/anova/MobileTopControls.vue";
 import MobileVarianceDetailCard from "../components/anova/MobileVarianceDetailCard.vue";
 import MobileVarianceTree from "../components/anova/MobileVarianceTree.vue";
+import ToolTopbar from "../components/common/ToolTopbar.vue";
 import { anovaCopy } from "../i18n/anova-explorer";
 import {
   createAnovaScenes,
@@ -1298,40 +1299,14 @@ onBeforeUnmount(() => {
     :style="mobileShellStyle"
   >
     <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
-    <header class="explorer-topbar">
-      <div class="header-inner">
-        <a class="brand-link" href="/" aria-label="BioassayCraft home">
-          <span class="header-brand-group">
-            <img class="brand-mark" src="/assets/brand/logo-dark.svg" data-theme-logo alt="" aria-hidden="true" />
-            <span class="brand-name">bioassaycraft</span>
-            <span class="morph-compact-group">
-              <span class="morph-divider" aria-hidden="true"></span>
-              <span class="morph-title">{{ copy.title }}</span>
-            </span>
-          </span>
-        </a>
-        <div class="topbar-spacer" aria-hidden="true"></div>
-        <div class="topbar-actions">
-          <div class="language-switch" :aria-label="copy.languageLabel">
-            <button
-              type="button"
-              :class="{ 'is-active': language === 'zh' }"
-              @click="setLanguage('zh')"
-            >
-              中文
-            </button>
-            <button
-              type="button"
-              :class="{ 'is-active': language === 'en' }"
-              @click="setLanguage('en')"
-            >
-              English
-            </button>
-          </div>
-          <a class="back-link" href="/">{{ copy.home }}</a>
-        </div>
-      </div>
-    </header>
+    <ToolTopbar
+      :title="copy.title"
+      :language="language"
+      :language-label="copy.languageLabel"
+      :home-label="copy.home"
+      :is-morphed="isHeaderMorphed"
+      @set-language="setLanguage"
+    />
 
     <section class="explorer-header" aria-labelledby="anova-explorer-title">
       <div>
@@ -1764,157 +1739,6 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.explorer-topbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  min-height: var(--topbar-sticky-height);
-  background: color-mix(in srgb, var(--paper) 90%, transparent);
-  backdrop-filter: blur(14px);
-}
-
-.header-inner {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  width: min(1280px, calc(100% - var(--bc-container-inline, 48px)));
-  min-height: var(--topbar-sticky-height);
-  margin: 0 auto;
-}
-
-.topbar-spacer {
-  min-width: 0;
-}
-
-.topbar-actions {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  justify-self: end;
-  min-width: max-content;
-}
-
-.brand-link,
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  color: var(--ink);
-  text-decoration: none;
-}
-
-.brand-link {
-  font-weight: 600;
-}
-
-.header-brand-group {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.brand-mark {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  opacity: 0.84;
-  object-fit: contain;
-}
-
-.brand-name {
-  display: inline-block;
-  margin-left: 9px;
-  font-size: 0.76rem;
-  line-height: 1;
-  opacity: 0.82;
-  white-space: nowrap;
-  transform: translateY(0);
-  transition:
-    opacity 220ms ease,
-    max-width 260ms ease,
-    margin-left 260ms ease,
-    transform 260ms ease;
-  max-width: 120px;
-  overflow: hidden;
-}
-
-.is-header-morphed .brand-name {
-  max-width: 0;
-  margin-left: 0;
-  opacity: 0;
-  transform: translateY(-2px);
-}
-
-.morph-compact-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: 0;
-  margin-left: 0;
-  overflow: hidden;
-  transition:
-    margin-left 260ms ease,
-    max-width 280ms ease;
-}
-
-.is-header-morphed .morph-compact-group {
-  max-width: 260px;
-  margin-left: 10px;
-}
-
-.morph-divider,
-.morph-title {
-  opacity: 0;
-  transform: translateY(3px);
-  transition:
-    opacity 280ms ease,
-    transform 280ms ease;
-}
-
-.morph-divider {
-  flex: 0 0 auto;
-  width: 1px;
-  height: 18px;
-  background: var(--soft-line);
-}
-
-.morph-title {
-  color: var(--ink);
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  max-width: 0;
-  overflow: hidden;
-  transition:
-    opacity 280ms ease,
-    transform 280ms ease,
-    max-width 280ms ease;
-}
-
-.is-header-morphed .morph-title {
-  max-width: 220px;
-}
-
-.is-header-morphed .morph-divider,
-.is-header-morphed .morph-title {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.back-link {
-  min-height: 28px;
-  padding: 0 10px;
-  color: var(--accent);
-  border: 1px solid var(--accent-border);
-  border-radius: 7px;
-  font-size: 0.68rem;
-  font-weight: 500;
-}
-
 .explorer-header {
   padding: 4px 0 5px;
 }
@@ -1940,7 +1764,6 @@ button {
   cursor: pointer;
 }
 
-.language-switch,
 .segmented-control,
 .step-control {
   display: flex;
@@ -1951,7 +1774,6 @@ button {
   background: var(--panel-soft);
 }
 
-.language-switch button,
 .segmented-control button,
 .step-control button {
   min-height: 28px;
@@ -1964,16 +1786,11 @@ button {
   white-space: nowrap;
 }
 
-.language-switch button {
-  padding: 0 9px;
-}
-
 .segmented-control button,
 .step-control button {
   padding: 0 8px;
 }
 
-.language-switch button.is-active,
 .segmented-control button.is-active,
 .step-control button.is-active {
   background: var(--selected-bg);
@@ -2702,6 +2519,7 @@ button {
     --mobile-card-border: var(--bc-border-subtle);
     --mobile-card-bg: var(--bc-bg-glass);
     --mobile-shadow: var(--bc-shadow-card);
+    --topbar-sticky-height: 0px;
     display: flex;
     flex-direction: column;
     width: min(100% - 32px, 1360px);
@@ -2713,15 +2531,15 @@ button {
     padding-top: 0;
   }
 
-  .explorer-topbar {
-    display: none;
-  }
-
   .explorer-header {
     display: none;
   }
 
   .module-sticky {
+    display: none;
+  }
+
+  .tool-topbar {
     display: none;
   }
 
