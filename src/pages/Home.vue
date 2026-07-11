@@ -29,14 +29,14 @@ const journeyItems = [
 
 const tools = [
   {
-    title: "Unit Converter",
-    note: "Mass ↔ molar.",
-    href: "/tools/converter/",
-  },
-  {
     title: "Specification Limit Calculator",
     note: "Internal specifications.",
     href: "/tools/specification-limit-calculator/",
+  },
+  {
+    title: "Unit Converter",
+    note: "Mass ↔ molar.",
+    href: "/tools/converter/",
   },
   {
     title: "Validation CI Calculator",
@@ -69,6 +69,7 @@ const learnItems = [
   {
     title: "CI Explorer",
     detail: "Confidence intervals and statistical decisions.",
+    href: "/learn/ci-explorer/",
   },
   {
     title: "中国药典",
@@ -105,8 +106,11 @@ const mobileLearnItems = [
     titleLines: ["CI", "Explorer"],
     zhTitleLines: ["探索", "置信区间"],
     subtitle: "Interactive confidence interval visualization",
-    status: "Coming Soon",
-    ready: false,
+    status: "Ready",
+    ready: true,
+    href: "/learn/ci-explorer/",
+    luckyKey: "ci-explorer",
+    weight: 1,
   },
   {
     title: "Validation Explorer",
@@ -119,17 +123,6 @@ const mobileLearnItems = [
 
 const mobileToolItems = [
   {
-    title: "Unit Converter",
-    titleLines: ["Unit", "Converter"],
-    zhTitleLines: ["单位", "转换器"],
-    subtitle: "Scientific concentration conversion",
-    status: "Ready",
-    ready: true,
-    href: "/tools/converter/",
-    luckyKey: "unit-converter",
-    weight: 1,
-  },
-  {
     title: "Specification Limit Calculator",
     titleLines: ["Specification", "Limit Calculator"],
     zhTitleLines: ["质量标准", "限度计算器"],
@@ -138,6 +131,17 @@ const mobileToolItems = [
     ready: true,
     href: "/tools/specification-limit-calculator/",
     luckyKey: "spec-limit-calculator",
+    weight: 1,
+  },
+  {
+    title: "Unit Converter",
+    titleLines: ["Unit", "Converter"],
+    zhTitleLines: ["单位", "转换器"],
+    subtitle: "Scientific concentration conversion",
+    status: "Ready",
+    ready: true,
+    href: "/tools/converter/",
+    luckyKey: "unit-converter",
     weight: 1,
   },
   {

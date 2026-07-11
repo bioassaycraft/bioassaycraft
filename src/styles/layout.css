@@ -22,6 +22,23 @@ a {
   color: inherit;
 }
 
+a,
+button,
+summary,
+input,
+select,
+textarea,
+label,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
 .back-link {
   justify-content: center;
   min-width: 108px;

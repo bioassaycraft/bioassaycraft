@@ -1,5 +1,19 @@
 # BioassayCraft Agent Notes
 
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in the BioassayCraft GitHub repository. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The repository uses the default five-role engineering skill label vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+BioassayCraft uses a single-context domain documentation layout. See `docs/agents/domain.md`.
+
 ## Interaction and Motion Rules
 
 - When page elements enter, exit, switch, expand, collapse, update numbers, or change state, prefer the shared motion utilities in `src/utils/motion.js` instead of writing one-off transitions.

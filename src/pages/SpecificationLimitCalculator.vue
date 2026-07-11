@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
@@ -7,7 +7,6 @@ import EndotoxinCalculator from "../components/specification/EndotoxinCalculator
 import HcdCalculator from "../components/specification/HcdCalculator.vue";
 import ProductInformationCard from "../components/specification/ProductInformationCard.vue";
 import { useLocale } from "../utils/locale";
-import { animateElement, getPanelEnterKeyframes, panelTransition } from "../utils/motion";
 
 const { locale: language, setLocale } = useLocale();
 const activeModuleId = ref("endotoxin");
@@ -108,16 +107,7 @@ function updateProductInformation({ key, value }) {
   };
 }
 
-async function animateContentSwitch() {
-  await nextTick();
-  animateElement(contentPanel.value, getPanelEnterKeyframes(6), panelTransition);
-}
-
-watch(activeModuleId, animateContentSwitch);
-
 onMounted(() => {
-  animateContentSwitch();
-
   if ("IntersectionObserver" in window && headerMorphTrigger.value) {
     headerMorphObserver = new IntersectionObserver(
       ([entry]) => {
@@ -334,7 +324,7 @@ onBeforeUnmount(() => {
 
 .module-switcher button:active,
 .inline-module-switcher button:active {
-  background: var(--accent-soft);
+  background: transparent;
 }
 
 .module-switcher button.is-active,
