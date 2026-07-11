@@ -1,0 +1,1295 @@
+<script setup>
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import BcTooltip from "../common/BcTooltip.vue";
+import {
+  chiSquarePdf,
+  meanConfidenceIntervalFromSummary,
+  standardDeviationUpperLimitFromSummary,
+  studentTPdf,
+} from "../../lib/ci/statistics.ts";
+
+const props = defineProps({ language: { type: String, required: true } });
+
+const DEFAULTS = Object.freeze({ n: "6", mean: "100", sd: "10", confidence: 0.95 });
+const scenario = ref("");
+const basisOpen = ref(false);
+const formulaOpen = ref(false);
+const inputs = ref({ ...DEFAULTS });
+const variabilityInputs = ref({ ...DEFAULTS });
+const touched = ref({ n: false, mean: false, sd: false });
+const mobileHeaderOffset = ref(null);
+let mobileHeaderObserver = null;
+
+const text = {
+  zh: {
+    heading: "选择一个应用场景",
+    intro: "从一个具体问题出发，观察样本信息如何逐步变成区间估计。",
+    select: "请选择应用场景",
+    scenarios: { mean: "均值的置信区间", variability: "变异的置信区间", ratio: "比值的置信区间" },
+    soon: "即将推出",
+    soonBody: "该场景的统计规则尚未实现。可先探索其他场景。",
+    basisTitle: "分布依据：t 分布",
+    basisBody:
+      "很多独立的小影响共同作用时，测量结果常常近似围绕真实均值呈正态波动。但实际计算中，我们通常不知道总体的真实波动，只能用样本标准差来估计。由于这个估计本身也不确定，因此需要使用尾部更宽的 t 分布。样本量越大，这部分额外不确定性越小，t 分布也越接近正态分布。",
+    chartTitle: "t 分布临界值",
+    chartDesc: "当前 t 分布、中央覆盖区域、两侧尾部与临界值的图形说明。",
+    confidence: "置信水平",
+    confidenceNote: "均值的置信区间通常使用双侧区间，因此未覆盖的概率平均分配到两侧。",
+    sampleTitle: "样本信息",
+    n: "样本量 n（决定 t 分布）",
+    mean: "样本均值",
+    sd: "样本标准差",
+    nError: "请输入 2–10000 之间的整数。",
+    meanError: "请输入有效的有限数值。",
+    sdError: "请输入大于或等于 0 的有限数值。",
+    zeroSd: "当前输入表示所有观测值完全相同。",
+    formulaTitle: "置信区间是怎样得到的？",
+    formulaSummary: "查看四步计算",
+    df: "自由度",
+    se: "标准误",
+    me: "误差范围",
+    ci: "置信区间",
+    resultTitle: "均值的置信区间",
+    confidenceIntervalLabel: "置信区间",
+    lower: "下限",
+    center: "样本均值",
+    upper: "上限",
+    width: "区间宽度",
+    interpretation: (c, l, u) => `根据当前样本数据，均值的 ${c} 置信区间为 ${l}–${u}。`,
+    coverage: (c) =>
+      `${c} 描述的是这套区间估计方法的长期覆盖率，而不是说真实均值有 ${c} 的概率位于这个已经计算出的固定区间内。`,
+    tips: {
+      mean: "改变均值：区间整体移动，宽度不变。",
+      sd: "增大标准差会使标准误增加，区间变宽。",
+      n: "增大样本量会降低标准误，区间通常变窄。",
+      confidence: "提高置信水平会增大临界值，使区间变宽。",
+    },
+    variability: {
+      basisTitle: "分布依据：卡方分布",
+      basisBody:
+        "当测量结果近似正态分布时，样本方差经过标准化后服从卡方分布。样本量决定自由度 df = n − 1；自由度较低时分布右偏更明显。这里使用左侧临界值计算总体标准差的单侧上限。",
+      sampleTitle: "样本信息",
+      n: "样本量 n（决定卡方分布）",
+      chartTitle: "卡方分布临界值",
+      chartDesc: "当前卡方分布、左侧未覆盖区域与单侧临界值的图形说明。",
+      resultLabel: "SD 置信上限",
+      confidenceSuffix: "置信上限",
+      formulaTitle: "SD 置信上限是怎样得到的？",
+      formulaSummary: "查看三步计算",
+      coverage: (c) =>
+        `${c} 描述的是这个上限估计方法的长期覆盖率。若重复抽样，按此规则构造的上限会在长期中以约 ${c} 的比例覆盖总体 SD。`,
+      rsdNote:
+        "为什么适用卡方分布：正态总体的样本方差标准化后服从卡方分布，因此可由其左侧临界值构造 SD 的上限。若需要 RSD 置信上限，可用 SD 置信上限除以样本均值作近似；RSD 本身没有一个同样直接、通用的单独分布公式。",
+    },
+  },
+  en: {
+    heading: "Choose an application",
+    intro:
+      "Start with a practical question and follow how sample information becomes an interval estimate.",
+    select: "Select an application",
+    scenarios: {
+      mean: "CI for a mean",
+      variability: "CI for variability",
+      ratio: "CI for a ratio",
+    },
+    soon: "Coming soon",
+    soonBody:
+      "The statistical rules for this application are not implemented yet. Explore other scenarios first.",
+    basisTitle: "Distribution basis: t-distribution",
+    basisBody:
+      "Measurements often fluctuate approximately normally around a true mean when many small independent effects act together. In practice, population variability is usually unknown, so we estimate it with the sample standard deviation. That estimate is uncertain too, which gives the t-distribution its wider tails. As the sample grows, this extra uncertainty shrinks and the t-distribution approaches the normal distribution.",
+    chartTitle: "t-distribution critical value",
+    chartDesc:
+      "t-distribution showing the central coverage, both tails, and current critical values.",
+    confidence: "Confidence level",
+    confidenceNote:
+      "A two-sided interval splits the uncovered probability equally between both tails.",
+    sampleTitle: "Sample information",
+    n: "Sample size n (sets the t-distribution)",
+    mean: "Sample mean",
+    sd: "Sample standard deviation",
+    nError: "Enter an integer from 2 to 10000.",
+    meanError: "Enter a valid finite number.",
+    sdError: "Enter a finite number greater than or equal to 0.",
+    zeroSd: "The current input represents observations that are all identical.",
+    formulaTitle: "How is the interval calculated?",
+    formulaSummary: "View the four calculation steps",
+    df: "Degrees of freedom",
+    se: "Standard error",
+    me: "Margin of error",
+    ci: "Confidence interval",
+    resultTitle: "Confidence interval for the mean",
+    confidenceIntervalLabel: "confidence interval",
+    lower: "Lower",
+    center: "Sample mean",
+    upper: "Upper",
+    width: "Interval width",
+    interpretation: (c, l, u) =>
+      `Based on the current sample, the ${c} confidence interval for the mean is ${l}–${u}.`,
+    coverage: (c) =>
+      `The ${c} confidence level describes the long-run coverage of the interval procedure. It does not mean that the fixed interval already calculated has a ${c} probability of containing the true mean.`,
+    tips: {
+      mean: "Changing the mean moves the whole interval without changing its width.",
+      sd: "A larger standard deviation increases the standard error and widens the interval.",
+      n: "A larger sample reduces the standard error and usually narrows the interval.",
+      confidence: "Higher confidence increases the critical value and widens the interval.",
+    },
+    variability: {
+      basisTitle: "Distribution basis: chi-square distribution",
+      basisBody:
+        "When measurements are approximately normally distributed, the standardized sample variance follows a chi-square distribution. Sample size sets df = n − 1; lower degrees of freedom make the distribution more right-skewed. The left critical value is used here to calculate a one-sided upper limit for the population standard deviation.",
+      sampleTitle: "Sample information",
+      n: "Sample size n (sets the chi-square distribution)",
+      chartTitle: "Chi-square critical value",
+      chartDesc:
+        "Chi-square distribution showing the uncovered left tail and current one-sided critical value.",
+      resultLabel: "Upper SD confidence limit",
+      confidenceSuffix: "upper confidence limit",
+      formulaTitle: "How is the upper SD limit calculated?",
+      formulaSummary: "View the three calculation steps",
+      coverage: (c) =>
+        `The ${c} level describes the long-run coverage of this upper-limit procedure. Across repeated samples, limits constructed this way cover the population SD about ${c} of the time.`,
+      rsdNote:
+        "Why chi-square applies: for a normal population, the standardized sample variance follows a chi-square distribution, so its left critical value gives an SD upper limit. For an RSD upper limit, divide the SD upper limit by the sample mean as an approximation; RSD has no equally direct, universal standalone distribution formula.",
+    },
+  },
+};
+
+const copy = computed(() => text[props.language]);
+const scenarioStyle = computed(() =>
+  mobileHeaderOffset.value === null
+    ? undefined
+    : { "--application-sticky-top": `${mobileHeaderOffset.value}px` },
+);
+const parsed = computed(() => ({
+  n: Number(inputs.value.n),
+  mean: Number(inputs.value.mean),
+  sd: Number(inputs.value.sd),
+}));
+const errors = computed(() => ({
+  n: !Number.isInteger(parsed.value.n) || parsed.value.n < 2 || parsed.value.n > 10000,
+  mean: inputs.value.mean.trim() === "" || !Number.isFinite(parsed.value.mean),
+  sd: inputs.value.sd.trim() === "" || !Number.isFinite(parsed.value.sd) || parsed.value.sd < 0,
+}));
+const valid = computed(() => !errors.value.n && !errors.value.mean && !errors.value.sd);
+const result = computed(() =>
+  valid.value
+    ? meanConfidenceIntervalFromSummary({
+        ...parsed.value,
+        confidenceLevel: inputs.value.confidence,
+      })
+    : null,
+);
+const confidenceLabel = computed(() => `${(inputs.value.confidence * 100).toFixed(1)}%`);
+const variabilityParsed = computed(() => ({
+  n: Number(variabilityInputs.value.n),
+  mean: Number(variabilityInputs.value.mean),
+  sd: Number(variabilityInputs.value.sd),
+}));
+const variabilityValid = computed(
+  () =>
+    Number.isInteger(variabilityParsed.value.n) &&
+    variabilityParsed.value.n >= 2 &&
+    variabilityParsed.value.n <= 10000 &&
+    Number.isFinite(variabilityParsed.value.mean) &&
+    Number.isFinite(variabilityParsed.value.sd) &&
+    variabilityParsed.value.sd >= 0,
+);
+const variabilityResult = computed(() =>
+  variabilityValid.value
+    ? standardDeviationUpperLimitFromSummary({
+        ...variabilityParsed.value,
+        confidenceLevel: variabilityInputs.value.confidence,
+      })
+    : null,
+);
+const variabilityConfidenceLabel = computed(
+  () => `${(variabilityInputs.value.confidence * 100).toFixed(1)}%`,
+);
+
+const precision = computed(() => {
+  if (!result.value) return 2;
+  const scale = Math.max(Math.abs(result.value.mean), Math.abs(result.value.marginOfError));
+  const width = Math.abs(result.value.upper - result.value.lower);
+  if ((scale > 0 && (scale >= 1e7 || scale < 1e-4)) || (width > 0 && width < 1e-4)) return -1;
+  if (width === 0) return Math.min(6, Math.max(2, Math.ceil(-Math.log10(Math.max(scale, 1))) + 3));
+  return Math.min(6, Math.max(0, Math.ceil(-Math.log10(width)) + 2));
+});
+function format(value, digits = precision.value) {
+  if (!Number.isFinite(value)) return "—";
+  if (digits < 0) return value.toExponential(3);
+  return new Intl.NumberFormat(props.language === "zh" ? "zh-CN" : "en-US", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  }).format(Math.abs(value) < 1e-14 ? 0 : value);
+}
+
+const tChart = computed(() => {
+  if (!result.value) return null;
+  const width = 700,
+    height = 480,
+    left = 38,
+    right = 18,
+    top = 62,
+    bottom = 70;
+  const limit = Math.min(18, Math.max(4, result.value.criticalValue * 1.3));
+  const count = 180;
+  const values = Array.from({ length: count + 1 }, (_, i) => {
+    const x = -limit + (2 * limit * i) / count;
+    return { x, y: studentTPdf(x, result.value.df) };
+  });
+  const maxY = Math.max(...values.map((d) => d.y)) * 1.08;
+  const sx = (x) => left + ((x + limit) / (2 * limit)) * (width - left - right);
+  const sy = (y) => height - bottom - (y / maxY) * (height - top - bottom);
+  const line = values
+    .map((d, i) => `${i ? "L" : "M"}${sx(d.x).toFixed(2)},${sy(d.y).toFixed(2)}`)
+    .join(" ");
+  const areaFor = (filter) => {
+    const points = values.filter(filter);
+    if (!points.length) return "";
+    return (
+      `M${sx(points[0].x)},${height - bottom} ` +
+      points.map((d) => `L${sx(d.x).toFixed(2)},${sy(d.y).toFixed(2)}`).join(" ") +
+      ` L${sx(points.at(-1).x)},${height - bottom} Z`
+    );
+  };
+  const critical = result.value.criticalValue;
+  return {
+    width,
+    height,
+    baseline: height - bottom,
+    sx,
+    line,
+    central: areaFor((d) => Math.abs(d.x) <= critical),
+    leftTail: areaFor((d) => d.x <= -critical),
+    rightTail: areaFor((d) => d.x >= critical),
+    critical,
+  };
+});
+
+const chiChart = computed(() => {
+  if (!variabilityResult.value) return null;
+  const width = 700,
+    height = 480,
+    left = 38,
+    right = 18,
+    top = 62,
+    bottom = 70;
+  const critical = variabilityResult.value.criticalValue;
+  const limit = Math.max(
+    critical * 3.2,
+    variabilityResult.value.df + 4 * Math.sqrt(2 * variabilityResult.value.df),
+    8,
+  );
+  const values = Array.from({ length: 220 }, (_, index) => {
+    const x = (limit * index) / 219;
+    return { x, y: chiSquarePdf(x, variabilityResult.value.df) };
+  });
+  const maxY = Math.max(...values.map((point) => point.y)) * 1.12;
+  const sx = (x) => left + (x / limit) * (width - left - right);
+  const sy = (y) => height - bottom - (y / maxY) * (height - top - bottom);
+  const path = values
+    .map(
+      (point, index) => `${index ? "L" : "M"}${sx(point.x).toFixed(2)},${sy(point.y).toFixed(2)}`,
+    )
+    .join(" ");
+  const area = (points) =>
+    `M${sx(points[0].x)},${height - bottom} ${points
+      .map((point) => `L${sx(point.x).toFixed(2)},${sy(point.y).toFixed(2)}`)
+      .join(" ")} L${sx(points.at(-1).x)},${height - bottom} Z`;
+  const leftTail = values.filter((point) => point.x <= critical);
+  const covered = values.filter((point) => point.x >= critical);
+  return {
+    baseline: height - bottom,
+    sx,
+    path,
+    critical,
+    leftArea: area(leftTail),
+    coveredArea: area(covered),
+  };
+});
+
+function markChanged() {
+  return undefined;
+}
+function resetTransientState() {
+  basisOpen.value = false;
+  formulaOpen.value = false;
+  touched.value = { n: false, mean: false, sd: false };
+}
+watch(scenario, resetTransientState);
+
+function updateMobileHeaderOffset() {
+  const header = document.querySelector(".ci-mobile-sticky-header");
+  if (!header) return;
+  mobileHeaderOffset.value = Math.round(header.getBoundingClientRect().bottom + 8);
+}
+
+onMounted(() => {
+  updateMobileHeaderOffset();
+  const header = document.querySelector(".ci-mobile-sticky-header");
+  if (header && typeof ResizeObserver !== "undefined") {
+    mobileHeaderObserver = new ResizeObserver(updateMobileHeaderOffset);
+    mobileHeaderObserver.observe(header);
+  }
+  window.addEventListener("resize", updateMobileHeaderOffset);
+});
+
+onBeforeUnmount(() => {
+  mobileHeaderObserver?.disconnect();
+  window.removeEventListener("resize", updateMobileHeaderOffset);
+});
+</script>
+
+<template>
+  <section class="advanced-applications">
+    <header class="advanced-heading">
+      <h2>{{ copy.heading }}</h2>
+      <p>{{ copy.intro }}</p>
+    </header>
+    <label class="scenario-field" :style="scenarioStyle">
+      <span>{{ copy.heading }}</span>
+      <select v-model="scenario">
+        <option value="" disabled>{{ copy.select }}</option>
+        <option v-for="(label, id) in copy.scenarios" :key="id" :value="id">{{ label }}</option>
+      </select>
+    </label>
+
+    <div v-if="scenario === 'ratio'" class="ci-card soon-card" role="status">
+      <span>{{ copy.soon }}</span>
+      <h3>{{ copy.scenarios[scenario] }}</h3>
+      <p>{{ copy.soonBody }}</p>
+    </div>
+
+    <div v-else-if="scenario === 'mean'" class="mean-flow">
+      <details
+        :open="basisOpen"
+        class="ci-card basis-card"
+        @toggle="basisOpen = $event.currentTarget.open"
+      >
+        <summary :aria-expanded="basisOpen">
+          <span
+            ><strong>{{ copy.basisTitle }}</strong></span
+          >
+        </summary>
+        <div class="basis-copy">
+          <p>{{ copy.basisBody }}</p>
+          <p class="display-formula"><i>t</i> = (<span>x̄</span> − μ) / (<i>s</i> / √<i>n</i>)</p>
+          <p class="formula-note"><span>df = n − 1</span></p>
+        </div>
+      </details>
+
+      <section class="ci-card sample-card">
+        <h3>{{ copy.sampleTitle }}</h3>
+        <div class="sample-fields">
+          <label class="sample-size-field">
+            <span>{{ copy.n }}</span>
+            <input
+              v-model="inputs.n"
+              type="text"
+              inputmode="numeric"
+              :aria-invalid="touched.n && errors.n"
+              aria-describedby="n-message"
+              @input="markChanged('n')"
+              @blur="touched.n = true"
+            />
+            <small v-if="touched.n && errors.n" id="n-message" class="field-error">{{
+              copy.nError
+            }}</small>
+          </label>
+          <div class="sample-measure-row">
+            <label v-for="field in ['mean', 'sd']" :key="field">
+              <span>{{ copy[field] }}</span>
+              <input
+                v-model="inputs[field]"
+                type="text"
+                inputmode="decimal"
+                :aria-invalid="touched[field] && errors[field]"
+                :aria-describedby="`${field}-message`"
+                @input="markChanged(field)"
+                @blur="touched[field] = true"
+              />
+              <small
+                v-if="touched[field] && errors[field]"
+                :id="`${field}-message`"
+                class="field-error"
+                >{{ copy[`${field}Error`] }}</small
+              >
+              <small
+                v-else-if="field === 'sd' && valid && parsed.sd === 0"
+                :id="`${field}-message`"
+                >{{ copy.zeroSd }}</small
+              >
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="ci-card t-chart-card">
+        <h3>{{ copy.chartTitle }}</h3>
+        <svg v-if="tChart" viewBox="0 0 700 520" role="img" :aria-label="copy.chartDesc">
+          <title>{{ copy.chartTitle }}</title>
+          <desc>{{ copy.chartDesc }}</desc>
+          <path :d="tChart.leftTail" class="tail-area" />
+          <path :d="tChart.rightTail" class="tail-area" />
+          <path :d="tChart.central" class="central-area" />
+          <line x1="38" :y1="tChart.baseline" x2="682" :y2="tChart.baseline" class="chart-axis" />
+          <line
+            :x1="tChart.sx(0)"
+            y1="76"
+            :x2="tChart.sx(0)"
+            :y2="tChart.baseline"
+            class="center-line"
+          />
+          <line
+            :x1="tChart.sx(-tChart.critical)"
+            y1="92"
+            :x2="tChart.sx(-tChart.critical)"
+            :y2="tChart.baseline"
+            class="critical-line"
+          />
+          <line
+            :x1="tChart.sx(tChart.critical)"
+            y1="92"
+            :x2="tChart.sx(tChart.critical)"
+            :y2="tChart.baseline"
+            class="critical-line"
+          />
+          <path :d="tChart.line" class="density-line" />
+          <text :x="tChart.sx(0)" y="42" text-anchor="middle" class="coverage-label">1 − α</text>
+          <text x="74" :y="tChart.baseline - 44" text-anchor="middle" class="tail-label">
+            α / 2
+          </text>
+          <text x="626" :y="tChart.baseline - 44" text-anchor="middle" class="tail-label">
+            α / 2
+          </text>
+          <text
+            :x="tChart.sx(-tChart.critical)"
+            :y="tChart.baseline + 28"
+            text-anchor="middle"
+            class="critical-label"
+          >
+            −t*
+          </text>
+          <text
+            :x="tChart.sx(tChart.critical)"
+            :y="tChart.baseline + 28"
+            text-anchor="middle"
+            class="critical-label"
+          >
+            +t*
+          </text>
+          <text x="38" y="508" class="chart-meta">
+            df = {{ result.df }} · t* = {{ format(result.criticalValue, 4) }}
+          </text>
+        </svg>
+      </section>
+
+      <section v-if="result" class="ci-card result-card">
+        <p class="interval-line">
+          <span>{{ copy.confidenceIntervalLabel }}：</span
+          ><strong>[{{ format(result.lower) }}, {{ format(result.upper) }}]</strong>
+        </p>
+      </section>
+
+      <section class="ci-card confidence-card">
+        <p class="confidence-line">
+          <strong>{{ confidenceLabel }}</strong
+          ><span>{{ copy.confidenceIntervalLabel }}</span>
+        </p>
+        <input
+          v-model.number="inputs.confidence"
+          type="range"
+          min="0.8"
+          max="0.999"
+          step="0.001"
+          :aria-label="copy.confidence"
+          :aria-valuetext="confidenceLabel"
+          @input="markChanged('confidence')"
+        />
+        <div class="quick-levels">
+          <button
+            v-for="level in [0.9, 0.95, 0.99]"
+            :key="level"
+            type="button"
+            :class="{ active: inputs.confidence === level }"
+            :aria-pressed="inputs.confidence === level"
+            @click="
+              inputs.confidence = level;
+              markChanged('confidence');
+            "
+          >
+            {{ level * 100 }}%
+          </button>
+        </div>
+        <dl v-if="result" class="derived-grid">
+          <div>
+            <dt>α</dt>
+            <dd>{{ result.alpha.toFixed(3) }}</dd>
+          </div>
+          <div>
+            <dt>α / 2</dt>
+            <dd>{{ (result.alpha / 2).toFixed(3) }}</dd>
+          </div>
+          <div>
+            <dt>1 − α / 2</dt>
+            <dd>{{ result.probability.toFixed(3) }}</dd>
+          </div>
+          <div>
+            <dt><BcTooltip content="t(1 − α/2, df)">t*</BcTooltip></dt>
+            <dd>{{ format(result.criticalValue, 4) }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <details
+        v-if="result"
+        :open="formulaOpen"
+        class="ci-card formula-card"
+        @toggle="formulaOpen = $event.currentTarget.open"
+      >
+        <summary :aria-expanded="formulaOpen">
+          <span
+            ><strong>{{ copy.formulaTitle }}</strong
+            ><small>{{ copy.formulaSummary }}</small></span
+          >
+        </summary>
+        <p class="display-formula">
+          x̄ ± t<sub>1 − α/2, n − 1</sub> ×
+          <span class="fraction"><span>s</span><span>√n</span></span>
+        </p>
+        <ol class="formula-steps">
+          <li>
+            <span>1 · {{ copy.df }}</span
+            ><strong>df = {{ result.n }} − 1 = {{ result.df }}</strong>
+          </li>
+          <li>
+            <span>2 · {{ copy.se }}</span
+            ><strong
+              >SE = {{ format(result.sd) }} / √{{ result.n }} = {{ format(result.se) }}</strong
+            >
+          </li>
+          <li>
+            <span>3 · {{ copy.me }}</span
+            ><strong
+              >{{ copy.me }} = {{ format(result.criticalValue, 4) }} × {{ format(result.se) }} =
+              {{ format(result.marginOfError) }}</strong
+            >
+          </li>
+          <li>
+            <span>4 · {{ copy.ci }}</span
+            ><strong>CI = [{{ format(result.lower) }}, {{ format(result.upper) }}]</strong>
+          </li>
+        </ol>
+        <p class="coverage-copy">{{ copy.coverage(confidenceLabel) }}</p>
+      </details>
+    </div>
+
+    <div v-else-if="scenario === 'variability'" class="mean-flow variability-flow">
+      <details
+        :open="basisOpen"
+        class="ci-card basis-card"
+        @toggle="basisOpen = $event.currentTarget.open"
+      >
+        <summary :aria-expanded="basisOpen">
+          <span
+            ><strong>{{ copy.variability.basisTitle }}</strong></span
+          >
+        </summary>
+        <div class="basis-copy">
+          <p>{{ copy.variability.basisBody }}</p>
+          <p class="display-formula">χ² = (<i>n</i> − 1)<i>s</i>² / σ²</p>
+          <p class="formula-note"><span>df = n − 1</span></p>
+        </div>
+      </details>
+
+      <section class="ci-card sample-card">
+        <h3>{{ copy.variability.sampleTitle }}</h3>
+        <div class="sample-fields">
+          <label class="sample-size-field"
+            ><span>{{ copy.variability.n }}</span
+            ><input
+              v-model="variabilityInputs.n"
+              type="text"
+              inputmode="numeric"
+              @input="markChanged"
+          /></label>
+          <div class="sample-measure-row">
+            <label
+              ><span>{{ copy.mean }}</span
+              ><input
+                v-model="variabilityInputs.mean"
+                type="text"
+                inputmode="decimal"
+                @input="markChanged"
+            /></label>
+            <label
+              ><span>{{ copy.sd }}</span
+              ><input
+                v-model="variabilityInputs.sd"
+                type="text"
+                inputmode="decimal"
+                @input="markChanged"
+            /></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="ci-card t-chart-card">
+        <h3>{{ copy.variability.chartTitle }}</h3>
+        <svg
+          v-if="chiChart"
+          viewBox="0 0 700 520"
+          role="img"
+          :aria-label="copy.variability.chartDesc"
+        >
+          <title>{{ copy.variability.chartTitle }}</title>
+          <desc>{{ copy.variability.chartDesc }}</desc>
+          <path :d="chiChart.leftArea" class="tail-area" />
+          <path :d="chiChart.coveredArea" class="central-area" />
+          <line
+            x1="38"
+            :y1="chiChart.baseline"
+            x2="682"
+            :y2="chiChart.baseline"
+            class="chart-axis"
+          />
+          <line
+            :x1="chiChart.sx(chiChart.critical)"
+            y1="92"
+            :x2="chiChart.sx(chiChart.critical)"
+            :y2="chiChart.baseline"
+            class="critical-line"
+          />
+          <path :d="chiChart.path" class="density-line" />
+          <text x="80" y="170" text-anchor="middle" class="tail-label">α</text>
+          <text x="420" y="92" text-anchor="middle" class="coverage-label">1 − α</text>
+          <text
+            :x="chiChart.sx(chiChart.critical)"
+            :y="chiChart.baseline + 28"
+            text-anchor="middle"
+            class="critical-label"
+          >
+            χ²α
+          </text>
+          <text x="38" y="508" class="chart-meta">
+            df = {{ variabilityResult.df }} · χ²α = {{ format(variabilityResult.criticalValue, 4) }}
+          </text>
+        </svg>
+      </section>
+
+      <section v-if="variabilityResult" class="ci-card result-card">
+        <p class="interval-line">
+          <span>{{ copy.variability.resultLabel }}：</span
+          ><strong>{{ format(variabilityResult.upperSd) }}</strong>
+        </p>
+      </section>
+
+      <section class="ci-card confidence-card">
+        <p class="confidence-line">
+          <strong>{{ variabilityConfidenceLabel }}</strong
+          ><span>{{ copy.variability.confidenceSuffix }}</span>
+        </p>
+        <input
+          v-model.number="variabilityInputs.confidence"
+          type="range"
+          min="0.8"
+          max="0.999"
+          step="0.001"
+          :aria-label="copy.confidence"
+          :aria-valuetext="variabilityConfidenceLabel"
+          @input="markChanged"
+        />
+        <div class="quick-levels">
+          <button
+            v-for="level in [0.9, 0.95, 0.99]"
+            :key="level"
+            type="button"
+            :class="{ active: variabilityInputs.confidence === level }"
+            :aria-pressed="variabilityInputs.confidence === level"
+            @click="variabilityInputs.confidence = level"
+          >
+            {{ level * 100 }}%
+          </button>
+        </div>
+        <dl v-if="variabilityResult" class="derived-grid">
+          <div>
+            <dt>α</dt>
+            <dd>{{ variabilityResult.alpha.toFixed(3) }}</dd>
+          </div>
+          <div>
+            <dt>df</dt>
+            <dd>{{ variabilityResult.df }}</dd>
+          </div>
+          <div>
+            <dt>χ²α</dt>
+            <dd>{{ format(variabilityResult.criticalValue, 4) }}</dd>
+          </div>
+          <div>
+            <dt>s²</dt>
+            <dd>{{ format(variabilityResult.sd ** 2) }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <details
+        v-if="variabilityResult"
+        :open="formulaOpen"
+        class="ci-card formula-card"
+        @toggle="formulaOpen = $event.currentTarget.open"
+      >
+        <summary :aria-expanded="formulaOpen">
+          <span
+            ><strong>{{ copy.variability.formulaTitle }}</strong
+            ><small>{{ copy.variability.formulaSummary }}</small></span
+          >
+        </summary>
+        <p class="display-formula">
+          σ<sub>upper</sub> = √((<i>n</i> − 1)<i>s</i>² / χ²<sub>α, df</sub>)
+        </p>
+        <ol class="formula-steps">
+          <li>
+            <span>1 · {{ copy.df }}</span
+            ><strong>df = {{ variabilityResult.n }} − 1 = {{ variabilityResult.df }}</strong>
+          </li>
+          <li>
+            <span>2 · χ²α</span
+            ><strong>χ²α = {{ format(variabilityResult.criticalValue, 4) }}</strong>
+          </li>
+          <li>
+            <span>3 · {{ copy.variability.resultLabel }}</span
+            ><strong
+              >√({{ variabilityResult.df }} × {{ format(variabilityResult.sd) }}² /
+              {{ format(variabilityResult.criticalValue, 4) }}) =
+              {{ format(variabilityResult.upperSd) }}</strong
+            >
+          </li>
+        </ol>
+        <p class="coverage-copy">{{ copy.variability.coverage(variabilityConfidenceLabel) }}</p>
+        <p class="coverage-copy rsd-note">{{ copy.variability.rsdNote }}</p>
+      </details>
+    </div>
+  </section>
+</template>
+
+<style scoped>
+.advanced-applications,
+.mean-flow {
+  display: grid;
+  gap: 14px;
+}
+.advanced-heading {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
+.advanced-heading h2,
+.advanced-heading p,
+.ci-card h3,
+.ci-card p {
+  margin: 0;
+}
+.advanced-heading h2 {
+  font-size: clamp(1.35rem, 2.2vw, 2.1rem);
+}
+.advanced-heading p,
+.ci-card p,
+.ci-card small {
+  color: var(--muted);
+  line-height: 1.58;
+}
+.scenario-field {
+  position: sticky;
+  top: calc(var(--topbar-sticky-height, 60px) + 12px);
+  z-index: 30;
+  align-self: start;
+  display: grid;
+  gap: 7px;
+  max-width: 520px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.scenario-field select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 1rem;
+}
+.scenario-field select:focus {
+  outline: none;
+}
+.scenario-field select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-border);
+}
+.ci-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--app-card-shadow);
+}
+.soon-card {
+  display: grid;
+  gap: 9px;
+}
+.soon-card > span {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.basis-card {
+  padding: 0;
+}
+.basis-card summary,
+.formula-card summary {
+  display: flex;
+  min-height: 76px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.basis-card summary::-webkit-details-marker,
+.formula-card summary::-webkit-details-marker {
+  display: none;
+}
+.basis-card summary > span,
+.formula-card summary > span {
+  display: grid;
+  gap: 5px;
+}
+.basis-card summary::after,
+.formula-card summary::after {
+  align-self: center;
+  margin-left: auto;
+  content: "＋";
+  color: var(--accent);
+}
+.basis-card[open] summary::after,
+.formula-card[open] summary::after {
+  content: "−";
+}
+.basis-copy {
+  padding: 0 16px 18px;
+  border-top: 1px solid var(--soft-line);
+}
+.basis-copy p {
+  margin-top: 14px;
+}
+.display-formula {
+  overflow-x: auto;
+  color: var(--ink) !important;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(0.9rem, 2vw, 1.08rem);
+  white-space: nowrap;
+}
+.formula-note span {
+  font-family: "IBM Plex Mono", monospace;
+}
+.t-chart-card,
+.confidence-card,
+.sample-card,
+.result-card {
+  display: grid;
+  gap: 14px;
+}
+.sample-card h3,
+.t-chart-card > h3 {
+  font-size: 0.9rem;
+}
+.t-chart-card svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 7/5;
+}
+.central-area {
+  fill: var(--selected-bg);
+}
+.tail-area {
+  fill: color-mix(in srgb, var(--muted) 12%, transparent);
+}
+.density-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.chart-axis,
+.center-line {
+  stroke: var(--soft-line);
+}
+.center-line {
+  stroke-dasharray: 4 5;
+}
+.critical-line {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.coverage-label,
+.critical-label,
+.chart-meta,
+.tail-label {
+  fill: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+}
+.coverage-label,
+.critical-label {
+  fill: var(--accent);
+  font-weight: 700;
+}
+.confidence-line,
+.interval-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.confidence-line > strong {
+  color: var(--accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.55rem;
+  white-space: nowrap;
+}
+.interval-line {
+  color: var(--ink) !important;
+  font-family: "IBM Plex Mono", monospace;
+}
+.interval-line strong {
+  font-size: 1.15rem;
+}
+.confidence-card > input {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.quick-levels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+.quick-levels button {
+  min-height: 44px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 650;
+}
+.quick-levels button.active {
+  border-color: var(--accent-border);
+  background: var(--selected-bg);
+  color: var(--ink);
+}
+.derived-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.derived-grid div {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 7px;
+  background: var(--panel-soft);
+}
+dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+dd {
+  margin: 5px 0 0;
+  color: var(--ink);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+.sample-fields {
+  display: grid;
+  gap: 12px;
+}
+.sample-measure-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.sample-fields label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.sample-fields input {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 0 11px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--ink);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+}
+.sample-fields input[aria-invalid="true"] {
+  border-color: var(--bc-danger, #b24b4b);
+}
+.field-error {
+  color: var(--bc-danger, #b24b4b) !important;
+}
+.formula-card {
+  padding: 0;
+}
+.formula-card > .display-formula,
+.formula-steps {
+  margin: 0 16px 16px;
+}
+.fraction {
+  display: inline-grid;
+  vertical-align: middle;
+  text-align: center;
+}
+.fraction > span:first-child {
+  border-bottom: 1px solid currentColor;
+}
+.formula-steps {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.formula-steps li {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border-radius: 7px;
+  background: var(--panel-soft);
+}
+.formula-steps li span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.formula-steps strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+.coverage-copy {
+  margin: 0 16px 16px !important;
+  border-top: 1px solid var(--soft-line);
+  padding-top: 12px;
+  font-size: 0.78rem;
+}
+@media (min-width: 1024px) {
+  .sample-card {
+    max-width: 560px;
+  }
+}
+@media (max-width: 767px) {
+  .advanced-applications,
+  .mean-flow {
+    gap: 8px;
+  }
+  .advanced-heading {
+    display: none;
+  }
+  .scenario-field {
+    position: sticky;
+    top: var(--application-sticky-top, 100px);
+    z-index: 60;
+    align-self: start;
+    max-width: none;
+  }
+  .scenario-field select {
+    appearance: none;
+    min-height: var(--mobile-switch-height, 36px);
+    height: var(--mobile-switch-height, 36px);
+    padding: 0 36px 0 12px;
+    border-color: var(--mobile-glass-border, rgba(214, 217, 222, 0.54));
+    border-radius: 14px;
+    background: var(--mobile-glass-bg, rgba(255, 255, 255, 0.48));
+    box-shadow: var(--mobile-glass-shadow, 0 8px 20px rgba(23, 23, 23, 0.026));
+    backdrop-filter: blur(var(--mobile-glass-blur, 16px));
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
+    line-height: 1;
+  }
+  .scenario-field::after {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid var(--muted);
+    border-bottom: 1.5px solid var(--muted);
+    content: "";
+    pointer-events: none;
+    transform: translateY(-65%) rotate(45deg);
+  }
+  .scenario-field > span {
+    display: none;
+  }
+  .ci-card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .soon-card {
+    gap: 8px;
+  }
+  .soon-card > span,
+  .soon-card h3 {
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
+  }
+  .soon-card h3 {
+    line-height: 1.25;
+  }
+  .soon-card p {
+    font-size: 0.66rem;
+  }
+  .basis-card,
+  .formula-card {
+    padding: 0;
+  }
+  .basis-card summary {
+    min-height: calc(var(--mobile-switch-height, 36px) - 2px);
+    height: calc(var(--mobile-switch-height, 36px) - 2px);
+    box-sizing: border-box;
+    align-items: center;
+    padding: 0 12px;
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
+    line-height: 1;
+  }
+  .basis-card summary strong {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  .formula-card summary {
+    min-height: 66px;
+    padding: 11px 12px;
+  }
+  .basis-copy {
+    padding: 0 12px 14px;
+  }
+  .basis-copy p {
+    font-size: 0.66rem;
+  }
+  .basis-copy .display-formula {
+    font-size: 0.72rem;
+  }
+  .sample-card,
+  .t-chart-card,
+  .confidence-card,
+  .result-card {
+    gap: 8px;
+  }
+  .sample-card h3,
+  .t-chart-card > h3 {
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
+  }
+  .sample-fields,
+  .sample-measure-row {
+    gap: 6px;
+  }
+  .sample-fields label {
+    gap: 4px;
+    font-size: 0.66rem;
+    font-weight: 500;
+  }
+  .sample-size-field {
+    grid-template-columns: minmax(0, 1fr) 86px;
+    align-items: center;
+    column-gap: 8px !important;
+  }
+  .sample-size-field small {
+    grid-column: 1 / -1;
+  }
+  .sample-fields input {
+    min-height: 36px;
+    padding: 0 8px;
+    border-radius: 9px;
+    font-size: 0.66rem;
+  }
+  .t-chart-card svg {
+    aspect-ratio: 16 / 10;
+  }
+  .t-chart-card svg text {
+    font-size: 22px;
+  }
+  .t-chart-card svg .chart-meta {
+    font-size: 22px;
+  }
+  .interval-line {
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
+  }
+  .interval-line strong {
+    font-size: inherit;
+  }
+  .confidence-line {
+    font-size: 0.9rem;
+    font-weight: var(--mobile-header-control-font-weight, 650);
+  }
+  .confidence-line > strong {
+    font-size: inherit;
+  }
+  .confidence-line > span {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  .confidence-card > input {
+    min-height: 36px;
+  }
+  .quick-levels button {
+    min-height: 36px;
+    font-size: 0.72rem;
+  }
+  .derived-grid div {
+    padding: 8px;
+  }
+  .derived-grid dt {
+    font-size: 0.66rem;
+  }
+  .derived-grid dd {
+    margin-top: 3px;
+    font-size: 0.72rem;
+  }
+  .formula-card summary strong {
+    font-size: 0.72rem;
+    font-weight: 650;
+  }
+  .formula-card summary small,
+  .formula-steps li span {
+    font-size: 0.66rem;
+  }
+  .formula-card > .display-formula {
+    font-size: 0.72rem;
+  }
+  .formula-steps strong {
+    font-size: 0.72rem;
+  }
+  .coverage-copy {
+    margin: 0 12px 14px !important;
+    padding-top: 10px;
+    font-size: 0.66rem;
+  }
+  .derived-grid {
+    gap: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+</style>

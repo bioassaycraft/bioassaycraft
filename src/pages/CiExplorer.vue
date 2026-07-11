@@ -3,6 +3,7 @@ import { scaleLinear } from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MobileStepController from "../components/anova/MobileStepController.vue";
 import BcTooltip from "../components/common/BcTooltip.vue";
+import AdvancedApplications from "../components/ci/AdvancedApplications.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import {
@@ -21,7 +22,6 @@ const { locale: language, setLocale } = useLocale();
 const specificationLower = 97.5;
 const specificationUpper = 102.5;
 const sections = ["intuition", "applications", "questions"];
-const confidenceOptions = [0.9, 0.95, 0.99];
 const intuitionStepIds = ["knownTruth", "unknownTruth", "decision", "intervalEstimate"];
 
 const pageRoot = ref(null);
@@ -40,12 +40,6 @@ const statisticsOpen = ref(false);
 const calculationOpen = ref(false);
 const highlightedSample = ref(null);
 const highlightedFormula = ref("");
-const selectedApplication = ref("mean");
-const appN = ref(12);
-const appSpread = ref(8);
-const appConfidence = ref(0.95);
-const appSeed = ref(88);
-const expandedQuestions = ref(new Set());
 
 let scrollFrame = null;
 
@@ -193,55 +187,25 @@ const copyByLanguage = {
     toolEntry: "Use this pattern before moving to validation-specific CI tools.",
     comingSoon:
       "Coming soon. This page will not show a placeholder calculator until the statistical rules are implemented and tested.",
-    questionsTitle: "Questions worth asking",
-    questionsSubtitle: "New questions emerge once confidence intervals are used in practice.",
-    thinkingCues: "Thinking cues",
+    questionsIntro: [
+      "There are only questions here. The answers have not been written yet.",
+      "Please think carefully.",
+    ],
     questionsList: [
+      ["Q01", "With only one measurement result, can a confidence interval still be produced?"],
+      ["Q02", "Does a larger sample size always make a confidence interval visibly narrower?"],
+      ["Q03", "When should we focus on a two-sided interval, and when on a one-sided upper limit?"],
       [
-        "Q01",
-        "In a 95% confidence interval, does 95% belong to the parameter, the interval, or repeated experiments?",
-        ["coverage", "repetition", "random interval"],
+        "Q04",
+        "How can a confidence interval for the mean be calculated when bioassay data are not normally distributed?",
       ],
-      [
-        "Q02",
-        "Why can two overlapping 95% CIs still be consistent with a statistical difference?",
-        ["comparison", "standard error", "contrast"],
-      ],
-      [
-        "Q03",
-        "Why does a larger sample size not always make a CI visibly narrower?",
-        ["variance", "t critical", "scale"],
-      ],
-      ["Q04", "Why can a Fieller CI become unbounded?", ["ratio", "denominator", "geometry"]],
       [
         "Q05",
-        "Is a bootstrap CI always more reliable than a parametric CI?",
-        ["resampling", "assumptions", "small sample"],
+        "For a bioassay, how does confidence-interval calculation differ from other methods?",
       ],
       [
         "Q06",
-        "Does a CI still mean anything when the model is wrong?",
-        ["model error", "coverage", "diagnostics"],
-      ],
-      [
-        "Q07",
-        "Why do different software packages sometimes report different CIs?",
-        ["defaults", "degrees of freedom", "method"],
-      ],
-      [
-        "Q08",
-        "How do weighted fitting and heteroscedasticity change CIs?",
-        ["weights", "variance model", "effective information"],
-      ],
-      [
-        "Q09",
-        "Why is a point estimate inside specification insufficient to prove the population parameter is acceptable?",
-        ["uncertainty", "boundary", "decision rule"],
-      ],
-      [
-        "Q10",
-        "In bioassay, when should we care about two-sided CIs versus one-sided confidence limits?",
-        ["direction", "risk", "regulatory context"],
+        "If a reportable bioassay result is combined from several results, some fail the quality standard, and the combined reportable result meets it, is the result acceptable?",
       ],
     ],
   },
@@ -385,31 +349,16 @@ const copyByLanguage = {
     sensitivityNote: "CI half-width = t* × s / √n",
     toolEntry: "在进入验证特定 CI 工具前，可以先用这个结构理解计算链。",
     comingSoon: "即将推出。在统计规则完成实现与测试前，这里不会显示伪计算器。",
-    questionsTitle: "继续追问",
-    questionsSubtitle: "当你开始使用置信区间，新的问题才真正出现。",
-    thinkingCues: "思考线索",
+    questionsIntro: ["这里只有问题，暂时没写答案。", "请仔细思考。"],
     questionsList: [
+      ["Q01", "只进行了一次检测，一个检测结果，也可以产生置信区间吗？"],
+      ["Q02", "样本量增加后，置信区间一定明显收窄吗？"],
+      ["Q03", "什么时候关注双侧区间？什么时候关注单侧上限？"],
+      ["Q04", "Bioassay 数据不服从正态分布，怎么计算均值的置信区间？"],
+      ["Q05", "对于 Bioassay，结果的置信区间计算和其他方法有什么不同？"],
       [
-        "Q01",
-        "95% 置信区间中的 95%，究竟属于参数、区间，还是重复实验？",
-        ["覆盖率", "重复实验", "随机区间"],
-      ],
-      ["Q02", "为什么两个 95% CI 重叠，仍可能存在统计学差异？", ["比较", "标准误", "对比量"]],
-      ["Q03", "为什么样本量增加后，CI 不一定按直觉明显收窄？", ["方差", "t 临界值", "尺度"]],
-      ["Q04", "Fieller CI 为什么可能出现无界区间？", ["比值", "分母", "几何"]],
-      ["Q05", "Bootstrap CI 一定比参数法 CI 更可靠吗？", ["重采样", "假设", "小样本"]],
-      ["Q06", "当模型错误时，CI 仍然有意义吗？", ["模型误差", "覆盖率", "诊断"]],
-      ["Q07", "为什么不同软件会给出不同的 CI？", ["默认设置", "自由度", "方法"]],
-      ["Q08", "加权拟合和异方差会如何改变 CI？", ["权重", "方差模型", "有效信息"]],
-      [
-        "Q09",
-        "为什么点估计符合质量标准，仍不足以证明总体参数符合标准？",
-        ["不确定性", "边界", "判定规则"],
-      ],
-      [
-        "Q10",
-        "在 Bioassay 中，什么时候应关注双侧 CI，什么时候更关注单侧置信限？",
-        ["方向", "风险", "法规语境"],
+        "Q06",
+        "如果 Bioassay 可报告结果是由多个结果合并计算获得，其中有的结果不满足质量标准，可报告结果满足质量标准，那结果合格吗？",
       ],
     ],
   },
@@ -476,53 +425,6 @@ const mainStats = computed(() => [
       : copy.value.notApplicable,
   },
 ]);
-
-const appSample = computed(() =>
-  generateTeachingSample({
-    seed: appSeed.value,
-    count: appN.value,
-    populationMean: 100,
-    targetBias: 2,
-    targetSpread: appSpread.value,
-  }),
-);
-const appValues = computed(() => appSample.value.values);
-const appCi = computed(() => confidenceInterval(appValues.value, appConfidence.value));
-const appTicks = computed(() =>
-  appValues.value.map((value, index) => ({
-    id: index + 1,
-    value,
-    y: 70 + (index % 7) * 10,
-  })),
-);
-const appSensitivity = computed(() => {
-  return [3, 6, 12, 24, 50, 100].map((n) => {
-    const values = generateTeachingSample({
-      seed: appSeed.value,
-      count: n,
-      populationMean: 100,
-      targetBias: 2,
-      targetSpread: appSpread.value,
-    }).values;
-    const interval = confidenceInterval(values, appConfidence.value);
-    return { n, width: interval.marginOfError * 2 };
-  });
-});
-const appXScale = computed(() => {
-  const values = [...appValues.value, appCi.value.lower, appCi.value.upper, appCi.value.mean];
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(8, max - min);
-  return scaleLinear()
-    .domain([min - span * 0.16, max + span * 0.16])
-    .range([56, 664]);
-});
-
-const selectedApplicationCopy = computed(
-  () =>
-    copy.value.applications.find((application) => application.id === selectedApplication.value) ??
-    copy.value.applications[0],
-);
 
 const chartDomain = computed(() => {
   const values = [...sampleValues.value, sampleMean.value];
@@ -702,21 +604,6 @@ function regenerate() {
   targetBias.value = Number(((random() - 0.5) * 8).toFixed(2));
   spread.value = Number((random() * 2).toFixed(2));
   highlightedFormula.value = "";
-}
-
-function setAppConfidence(level) {
-  appConfidence.value = level;
-  highlightedFormula.value = "critical";
-}
-
-function toggleQuestion(id) {
-  const next = new Set(expandedQuestions.value);
-  if (next.has(id)) {
-    next.delete(id);
-  } else {
-    next.add(id);
-  }
-  expandedQuestions.value = next;
 }
 
 function requestScrollState() {
@@ -1299,242 +1186,23 @@ watch(intuitionStep, () => {
         </template>
 
         <template v-else-if="activeSection === 'applications'">
-          <section class="applications-shell">
-            <div class="section-heading">
-              <h2>{{ copy.applicationsTitle }}</h2>
-              <p>{{ copy.applicationsSubtitle }}</p>
-            </div>
-
-            <div class="application-layout">
-              <aside class="application-picker">
-                <select v-model="selectedApplication" :aria-label="copy.applicationsTitle">
-                  <option
-                    v-for="application in copy.applications"
-                    :key="application.id"
-                    :value="application.id"
-                  >
-                    {{ application.title }}
-                  </option>
-                </select>
-                <button
-                  v-for="application in copy.applications"
-                  :key="application.id"
-                  type="button"
-                  :class="{ 'is-active': selectedApplication === application.id }"
-                  @click="selectedApplication = application.id"
-                >
-                  <span>{{ application.title }}</span>
-                  <small>{{ application.status }}</small>
-                </button>
-              </aside>
-
-              <article class="application-content">
-                <template v-if="selectedApplication === 'mean'">
-                  <div class="application-title">
-                    <h3>{{ copy.meanAppTitle }}</h3>
-                    <p>{{ copy.meanAppWhy }}</p>
-                  </div>
-
-                  <div class="mean-app-grid">
-                    <div class="visual-workspace">
-                      <svg
-                        class="sampling-svg compact-axis"
-                        viewBox="0 0 720 250"
-                        role="img"
-                        :aria-label="copy.meanAppTitle"
-                      >
-                        <line x1="56" y1="188" x2="664" y2="188" class="axis-line"></line>
-                        <line
-                          :x1="appXScale(appCi.lower)"
-                          y1="164"
-                          :x2="appXScale(appCi.upper)"
-                          y2="164"
-                          class="ci-line"
-                        ></line>
-                        <line
-                          :x1="appXScale(appCi.lower)"
-                          y1="150"
-                          :x2="appXScale(appCi.lower)"
-                          y2="178"
-                          class="ci-cap"
-                        ></line>
-                        <line
-                          :x1="appXScale(appCi.upper)"
-                          y1="150"
-                          :x2="appXScale(appCi.upper)"
-                          y2="178"
-                          class="ci-cap"
-                        ></line>
-                        <line
-                          :x1="appXScale(appCi.mean)"
-                          y1="68"
-                          :x2="appXScale(appCi.mean)"
-                          y2="194"
-                          class="sample-mean-line"
-                        ></line>
-                        <g v-for="point in appTicks" :key="point.id" class="sample-rug">
-                          <line
-                            :x1="appXScale(point.value)"
-                            :y1="point.y"
-                            :x2="appXScale(point.value)"
-                            :y2="point.y + 42"
-                          ></line>
-                        </g>
-                        <text
-                          :x="appXScale(appCi.mean)"
-                          y="54"
-                          class="sample-mean-label"
-                          text-anchor="middle"
-                        >
-                          x̄ {{ formatNumber(appCi.mean) }}
-                        </text>
-                        <text
-                          :x="appXScale(appCi.lower)"
-                          y="140"
-                          class="ci-endpoint"
-                          text-anchor="middle"
-                        >
-                          {{ formatNumber(appCi.lower) }}
-                        </text>
-                        <text
-                          :x="appXScale(appCi.upper)"
-                          y="140"
-                          class="ci-endpoint"
-                          text-anchor="middle"
-                        >
-                          {{ formatNumber(appCi.upper) }}
-                        </text>
-                      </svg>
-                    </div>
-
-                    <aside class="control-panel">
-                      <label class="range-control">
-                        <span>
-                          <span>{{ copy.sampleSize }}</span>
-                          <strong>{{ appN }}</strong>
-                        </span>
-                        <input v-model.number="appN" type="range" min="3" max="100" step="1" />
-                      </label>
-                      <label class="range-control">
-                        <span>
-                          <span>{{ copy.spread }}</span>
-                          <strong>{{ formatNumber(appSpread) }}</strong>
-                        </span>
-                        <input
-                          v-model.number="appSpread"
-                          type="range"
-                          min="1"
-                          max="20"
-                          step="0.5"
-                        />
-                      </label>
-                      <div class="confidence-control">
-                        <span>{{ copy.confidenceLevel }}</span>
-                        <div>
-                          <button
-                            v-for="level in confidenceOptions"
-                            :key="level"
-                            type="button"
-                            :class="{ 'is-active': appConfidence === level }"
-                            @click="setAppConfidence(level)"
-                          >
-                            {{ formatPercent(level) }}
-                          </button>
-                        </div>
-                      </div>
-                      <button type="button" class="quiet-button" @click="appSeed += 1">
-                        {{ copy.regenerate }}
-                      </button>
-                    </aside>
-                  </div>
-
-                  <div class="desktop-application-details">
-                    <section>
-                      <h4>{{ copy.applicationShell.formula }}</h4>
-                      <div class="formula-stack">
-                        <p>x̄ = {{ formatNumber(appCi.mean) }}</p>
-                        <p>s = {{ formatNumber(appCi.sd) }}</p>
-                        <p>SE = s / √n = {{ formatNumber(appCi.se) }}</p>
-                        <p>df = {{ appCi.df }}</p>
-                        <p>t* = {{ formatNumber(appCi.criticalValue, 3) }}</p>
-                        <p>
-                          CI = [{{ formatNumber(appCi.lower) }}, {{ formatNumber(appCi.upper) }}]
-                        </p>
-                      </div>
-                    </section>
-                    <section>
-                      <h4>{{ copy.sensitivity }}</h4>
-                      <p>{{ copy.sensitivityNote }}</p>
-                      <svg class="sensitivity-svg" viewBox="0 0 320 120" aria-hidden="true">
-                        <polyline
-                          :points="
-                            appSensitivity
-                              .map(
-                                (point, index) =>
-                                  `${22 + index * 54},${104 - Math.min(86, point.width * 4)}`,
-                              )
-                              .join(' ')
-                          "
-                        ></polyline>
-                        <circle
-                          v-for="(point, index) in appSensitivity"
-                          :key="point.n"
-                          :cx="22 + index * 54"
-                          :cy="104 - Math.min(86, point.width * 4)"
-                          r="3.5"
-                        ></circle>
-                      </svg>
-                    </section>
-                    <section>
-                      <h4>{{ copy.applicationShell.tool }}</h4>
-                      <p>{{ copy.toolEntry }}</p>
-                    </section>
-                  </div>
-                </template>
-
-                <template v-else>
-                  <div class="coming-soon-card">
-                    <span>{{ selectedApplicationCopy.status }}</span>
-                    <h3>{{ selectedApplicationCopy.title }}</h3>
-                    <p>{{ copy.comingSoon }}</p>
-                    <ol>
-                      <li>{{ copy.applicationShell.why }}</li>
-                      <li>{{ copy.applicationShell.data }}</li>
-                      <li>{{ copy.applicationShell.visual }}</li>
-                      <li>{{ copy.applicationShell.formula }}</li>
-                      <li>{{ copy.applicationShell.meaning }}</li>
-                      <li>{{ copy.applicationShell.tool }}</li>
-                    </ol>
-                  </div>
-                </template>
-              </article>
-            </div>
-          </section>
+          <AdvancedApplications :language="language" />
         </template>
 
         <template v-else>
           <section class="questions-shell">
-            <div class="section-heading">
-              <h2>{{ copy.questionsTitle }}</h2>
-              <p>{{ copy.questionsSubtitle }}</p>
-            </div>
+            <article class="question-intro">
+              <p>{{ copy.questionsIntro[0] }}<br />{{ copy.questionsIntro[1] }}</p>
+            </article>
             <div class="question-grid">
               <article
                 v-for="question in copy.questionsList"
                 :key="question[0]"
                 class="question-card"
               >
-                <button
-                  type="button"
-                  :aria-expanded="expandedQuestions.has(question[0])"
-                  @click="toggleQuestion(question[0])"
-                >
+                <div class="question-row">
                   <span>{{ question[0] }}</span>
                   <strong>{{ question[1] }}</strong>
-                </button>
-                <div v-if="expandedQuestions.has(question[0])" class="cue-list">
-                  <small>{{ copy.thinkingCues }}</small>
-                  <span v-for="cue in question[2]" :key="cue">{{ cue }}</span>
                 </div>
               </article>
             </div>
@@ -1713,6 +1381,7 @@ input:focus-visible {
 .application-content,
 .coming-soon-card,
 .desktop-application-details section,
+.question-intro,
 .question-card {
   border: 1px solid var(--soft-line);
   border-radius: 8px;
@@ -2209,11 +1878,28 @@ input:focus-visible {
   gap: 10px;
 }
 
+.questions-shell {
+  display: grid;
+  gap: 10px;
+}
+
+.question-intro {
+  padding: 14px;
+}
+
+.question-intro p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
 .question-card {
   overflow: hidden;
 }
 
-.question-card button {
+.question-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
@@ -2221,20 +1907,17 @@ input:focus-visible {
   width: 100%;
   min-height: 56px;
   padding: 12px;
-  border: 0;
-  background: transparent;
   color: var(--ink);
   text-align: left;
-  cursor: pointer;
 }
 
-.question-card button span {
+.question-row span {
   color: var(--accent);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.75rem;
 }
 
-.question-card button strong {
+.question-row strong {
   font-size: 0.9rem;
   line-height: 1.45;
 }
@@ -2452,12 +2135,20 @@ input:focus-visible {
   .application-content,
   .coming-soon-card,
   .desktop-application-details section,
+  .question-intro,
   .question-card,
   .mobile-stat-card,
   .unknown-card,
   .contrast-card,
   .decision-class {
     border-radius: var(--mobile-glass-radius, 14px);
+  }
+
+  .question-intro p,
+  .question-row strong,
+  .question-row span {
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
   }
 
   .visual-workspace,
@@ -2750,7 +2441,7 @@ input:focus-visible {
   .mobile-section-tabs button[aria-pressed="true"] {
     border: 0;
     outline: none;
-    background: rgba(255, 255, 255, 0.82);
+    background: var(--bc-bg-selected, rgba(255, 255, 255, 0.78));
     color: var(--ink, #171717);
     box-shadow: var(--bc-shadow-card, 0 8px 18px rgba(23, 23, 23, 0.032));
   }
@@ -2763,10 +2454,6 @@ input:focus-visible {
     box-shadow:
       var(--bc-shadow-card, 0 8px 18px rgba(23, 23, 23, 0.032)),
       0 0 0 4px rgba(79, 86, 97, 0.12);
-  }
-
-  :global([data-theme="dark"]) .mobile-section-tabs button.is-active {
-    background: rgba(48, 54, 61, 0.88);
   }
 
   .axis-tick text:nth-of-type(n + 4) {

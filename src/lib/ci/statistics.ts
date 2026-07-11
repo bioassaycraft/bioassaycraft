@@ -15,6 +15,25 @@ export type IntervalResult = {
   level: number;
 };
 
+export type MeanIntervalInputs = {
+  n: number;
+  mean: number;
+  sd: number;
+  confidenceLevel: number;
+};
+
+export type StandardDeviationUpperLimitResult = {
+  n: number;
+  df: number;
+  mean: number;
+  sd: number;
+  confidenceLevel: number;
+  alpha: number;
+  criticalValue: number;
+  upperVariance: number;
+  upperSd: number;
+};
+
 export type PopulationPoint = {
   id: number;
   value: number;
@@ -325,6 +344,118 @@ export function regularizedIncompleteBeta(x: number, a: number, b: number) {
   return 1 - (front * betaContinuedFraction(b, a, 1 - x)) / b;
 }
 
+function regularizedGammaP(a: number, x: number) {
+  if (a <= 0 || x < 0 || !Number.isFinite(a) || !Number.isFinite(x)) {
+    throw new RangeError("invalid gamma parameters");
+  }
+  if (x === 0) return 0;
+
+  const logFront = -x + a * Math.log(x) - logGamma(a);
+  const epsilon = 3e-14;
+  const fpMin = 1e-30;
+
+  if (x < a + 1) {
+    let term = 1 / a;
+    let sum = term;
+    let ap = a;
+    for (let index = 1; index <= 200; index += 1) {
+      ap += 1;
+      term *= x / ap;
+      sum += term;
+      if (Math.abs(term) < Math.abs(sum) * epsilon) break;
+    }
+    return sum * Math.exp(logFront);
+  }
+
+  let b = x + 1 - a;
+  let c = 1 / fpMin;
+  let d = 1 / Math.max(b, fpMin);
+  let h = d;
+  for (let index = 1; index <= 200; index += 1) {
+    const an = -index * (index - a);
+    b += 2;
+    d = an * d + b;
+    if (Math.abs(d) < fpMin) d = fpMin;
+    c = b + an / c;
+    if (Math.abs(c) < fpMin) c = fpMin;
+    d = 1 / d;
+    const delta = d * c;
+    h *= delta;
+    if (Math.abs(delta - 1) < epsilon) break;
+  }
+  return 1 - Math.exp(logFront) * h;
+}
+
+export function chiSquarePdf(value: number, df: number) {
+  if (!Number.isFinite(value) || !Number.isFinite(df) || value < 0 || df <= 0) {
+    throw new RangeError("value must be non-negative and df must be greater than 0");
+  }
+  if (value === 0) return df < 2 ? Number.POSITIVE_INFINITY : df === 2 ? 0.5 : 0;
+  const halfDf = df / 2;
+  return Math.exp((halfDf - 1) * Math.log(value) - value / 2 - halfDf * Math.log(2) - logGamma(halfDf));
+}
+
+export function chiSquareCdf(value: number, df: number) {
+  if (!Number.isFinite(value) || !Number.isFinite(df) || value < 0 || df <= 0) {
+    throw new RangeError("value must be non-negative and df must be greater than 0");
+  }
+  return regularizedGammaP(df / 2, value / 2);
+}
+
+export function chiSquareQuantile(probability: number, df: number) {
+  if (probability <= 0 || probability >= 1 || !Number.isFinite(probability)) {
+    throw new RangeError("probability must be between 0 and 1");
+  }
+  if (!Number.isFinite(df) || df <= 0) throw new RangeError("df must be greater than 0");
+
+  let low = 0;
+  let high = Math.max(1, df + normalQuantile(probability) * Math.sqrt(2 * df));
+  while (chiSquareCdf(high, df) < probability) {
+    high *= 2;
+    if (high > 1e8) throw new RangeError("failed to bracket chi-square quantile");
+  }
+  for (let index = 0; index < 90; index += 1) {
+    const midpoint = (low + high) / 2;
+    if (chiSquareCdf(midpoint, df) < probability) low = midpoint;
+    else high = midpoint;
+  }
+  return (low + high) / 2;
+}
+
+export function standardDeviationUpperLimitFromSummary({
+  n,
+  mean: sampleMean,
+  sd: sampleSd,
+  confidenceLevel,
+}: MeanIntervalInputs): StandardDeviationUpperLimitResult {
+  if (!Number.isInteger(n) || n < 2 || n > 10000) {
+    throw new RangeError("n must be an integer between 2 and 10000");
+  }
+  if (!Number.isFinite(sampleMean)) throw new RangeError("mean must be finite");
+  if (!Number.isFinite(sampleSd) || sampleSd < 0) {
+    throw new RangeError("sd must be finite and non-negative");
+  }
+  if (confidenceLevel < 0.8 || confidenceLevel > 0.999 || !Number.isFinite(confidenceLevel)) {
+    throw new RangeError("confidenceLevel must be between 0.8 and 0.999");
+  }
+
+  const df = n - 1;
+  const alpha = 1 - confidenceLevel;
+  const criticalValue = chiSquareQuantile(alpha, df);
+  const upperVariance = (df * sampleSd ** 2) / criticalValue;
+  return {
+    n,
+    df,
+    mean: sampleMean,
+    sd: sampleSd,
+    confidenceLevel,
+    alpha,
+    criticalValue,
+    upperVariance,
+    upperSd: Math.sqrt(upperVariance),
+  };
+}
+
 export function studentTCdf(t: number, df: number) {
   if (!Number.isFinite(t) || !Number.isFinite(df) || df <= 0) {
     throw new RangeError("t and df must be finite, with df > 0");
@@ -334,6 +465,15 @@ export function studentTCdf(t: number, df: number) {
   const x = df / (df + t ** 2);
   const ib = regularizedIncompleteBeta(x, df / 2, 0.5);
   return t > 0 ? 1 - 0.5 * ib : 0.5 * ib;
+}
+
+export function studentTPdf(t: number, df: number) {
+  if (!Number.isFinite(t) || !Number.isFinite(df) || df <= 0) {
+    throw new RangeError("t and df must be finite, with df > 0");
+  }
+
+  const logCoefficient = logGamma((df + 1) / 2) - logGamma(df / 2) - 0.5 * Math.log(df * Math.PI);
+  return Math.exp(logCoefficient - ((df + 1) / 2) * Math.log1p((t * t) / df));
 }
 
 export function studentTQuantile(probability: number, df: number) {
@@ -372,6 +512,48 @@ export function tCritical(confidenceLevel = 0.95, df = 1) {
   }
 
   return studentTQuantile(1 - (1 - confidenceLevel) / 2, df);
+}
+
+export function meanConfidenceIntervalFromSummary({
+  n,
+  mean: sampleMean,
+  sd: sampleSd,
+  confidenceLevel,
+}: MeanIntervalInputs): IntervalResult {
+  if (!Number.isInteger(n) || n < 2 || n > 10000) {
+    throw new RangeError("n must be an integer between 2 and 10000");
+  }
+  if (!Number.isFinite(sampleMean)) throw new RangeError("mean must be finite");
+  if (!Number.isFinite(sampleSd) || sampleSd < 0) {
+    throw new RangeError("sd must be finite and non-negative");
+  }
+  if (confidenceLevel < 0.8 || confidenceLevel > 0.999 || !Number.isFinite(confidenceLevel)) {
+    throw new RangeError("confidenceLevel must be between 0.8 and 0.999");
+  }
+
+  const df = n - 1;
+  const alpha = 1 - confidenceLevel;
+  const probability = 1 - alpha / 2;
+  const criticalValue = tCritical(confidenceLevel, df);
+  const se = sampleSd / Math.sqrt(n);
+  const marginOfError = criticalValue * se;
+
+  return {
+    n,
+    df,
+    mean: sampleMean,
+    sd: sampleSd,
+    se,
+    confidenceLevel,
+    alpha,
+    probability,
+    criticalValue,
+    critical: criticalValue,
+    marginOfError,
+    lower: sampleMean - marginOfError,
+    upper: sampleMean + marginOfError,
+    level: confidenceLevel,
+  };
 }
 
 export function confidenceInterval(values: number[], confidenceLevel = 0.95): IntervalResult {

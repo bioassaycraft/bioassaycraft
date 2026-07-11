@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   classifyIntervalAgainstSpecification,
+  chiSquarePdf,
+  chiSquareQuantile,
   confidenceInterval,
   createFixedPopulation,
   cv,
@@ -10,13 +12,16 @@ import {
   geometricCV,
   geometricMean,
   mean,
+  meanConfidenceIntervalFromSummary,
   predictionInterval,
   samplePopulation,
   sampleStandardDeviation,
   sampleVariance,
+  standardDeviationUpperLimitFromSummary,
   sd,
   standardError,
   studentTQuantile,
+  studentTPdf,
   tCritical,
 } from "../src/lib/ci/statistics.ts";
 
@@ -112,6 +117,37 @@ describe("ci statistics", () => {
     closeTo(tCritical(0.95, 5), 2.570581835636314, 1e-7);
     closeTo(tCritical(0.99, 5), 4.032142983557536, 1e-7);
     closeTo(tCritical(0.95, 1), 12.706204736432095, 1e-6);
+  });
+
+  it("calculates mean intervals from summary inputs", () => {
+    const result = meanConfidenceIntervalFromSummary({
+      n: 6,
+      mean: 100,
+      sd: 10,
+      confidenceLevel: 0.95,
+    });
+    closeTo(result.criticalValue, 2.570581835636314, 1e-7);
+    closeTo(result.se, 10 / Math.sqrt(6));
+    closeTo(tCritical(0.95, 10), 2.2281388519649385, 1e-7);
+    closeTo(tCritical(0.95, 30), 2.0422724563012373, 1e-7);
+    closeTo(studentTPdf(0, 5), 0.3796066898224944, 1e-10);
+  });
+
+  it("calculates chi-square critical values and an upper SD confidence limit", () => {
+    closeTo(chiSquareQuantile(0.05, 5), 1.1454762260617697, 1e-7);
+    closeTo(chiSquareQuantile(0.95, 5), 11.070497693516351, 1e-7);
+    closeTo(chiSquarePdf(5, 5), 0.12204152134938741, 1e-10);
+
+    const result = standardDeviationUpperLimitFromSummary({
+      n: 6,
+      mean: 100,
+      sd: 10,
+      confidenceLevel: 0.95,
+    });
+    assert.equal(result.df, 5);
+    closeTo(result.alpha, 0.05);
+    closeTo(result.criticalValue, 1.1454762260617697, 1e-7);
+    closeTo(result.upperSd, 20.892574629617258, 1e-7);
   });
 
   it("returns a t-based confidence interval with full calculation metadata", () => {
