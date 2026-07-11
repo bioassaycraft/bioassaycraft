@@ -1285,6 +1285,7 @@ onBeforeUnmount(() => {
 .rsd-notice {
   color: var(--muted);
   font-size: 0.82rem;
+  line-height: 1.58;
 }
 .rsd-result-card h3,
 .recommendation-card h3 {
@@ -1558,7 +1559,9 @@ onBeforeUnmount(() => {
   .recommendation-card small,
   .method-copy > p,
   .chart-note,
-  .references-list { font-size: 0.66rem; }
+  .references-list,
+  .rsd-notice,
+  .field-error { font-size: 0.66rem; }
   .method-copy { padding: 0 12px 14px; }
   .rsd-results div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .rsd-flow .sample-size-field {
