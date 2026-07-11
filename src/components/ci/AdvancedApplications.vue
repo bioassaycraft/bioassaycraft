@@ -4,9 +4,19 @@ import BcTooltip from "../common/BcTooltip.vue";
 import {
   chiSquarePdf,
   meanConfidenceIntervalFromSummary,
-  standardDeviationUpperLimitFromSummary,
+  standardDeviationConfidenceIntervalFromSummary,
   studentTPdf,
 } from "../../lib/ci/statistics.ts";
+import {
+  calculateExactRsdCI,
+  calculateMckayRsdCI,
+  calculateNaiveRsdCI,
+  calculateObservedRsd,
+  calculateVangelRsdCI,
+  getRsdRecommendation,
+  validateRsdInput,
+} from "../../lib/ci/rsd-confidence.ts";
+import { loadNoncentralTCdf } from "../../lib/ci/noncentral-t.ts";
 
 const props = defineProps({ language: { type: String, required: true } });
 
@@ -15,17 +25,24 @@ const scenario = ref("");
 const basisOpen = ref(false);
 const formulaOpen = ref(false);
 const inputs = ref({ ...DEFAULTS });
-const variabilityInputs = ref({ ...DEFAULTS });
+const variabilityInputs = ref({ n: DEFAULTS.n, sd: DEFAULTS.sd, confidence: DEFAULTS.confidence });
+const rsdInputs = ref({ ...DEFAULTS });
+const exactRsdResult = ref(null);
+const exactRsdLoading = ref(false);
+const methodOpen = ref({ naive: false, mckay: false, vangel: false, exact: false });
+const recommendationOpen = ref(false);
+const referencesOpen = ref(false);
 const touched = ref({ n: false, mean: false, sd: false });
 const mobileHeaderOffset = ref(null);
 let mobileHeaderObserver = null;
+let exactRsdRequest = 0;
 
 const text = {
   zh: {
     heading: "选择一个应用场景",
     intro: "从一个具体问题出发，观察样本信息如何逐步变成区间估计。",
     select: "请选择应用场景",
-    scenarios: { mean: "均值的置信区间", variability: "变异的置信区间", ratio: "比值的置信区间" },
+    scenarios: { mean: "均值的置信区间", variability: "SD 的置信区间", rsd: "RSD 的置信区间", ratio: "比值的置信区间" },
     soon: "即将推出",
     soonBody: "该场景的统计规则尚未实现。可先探索其他场景。",
     basisTitle: "分布依据：t 分布",
@@ -67,19 +84,17 @@ const text = {
     variability: {
       basisTitle: "分布依据：卡方分布",
       basisBody:
-        "当测量结果近似正态分布时，样本方差经过标准化后服从卡方分布。样本量决定自由度 df = n − 1；自由度较低时分布右偏更明显。这里使用左侧临界值计算总体标准差的单侧上限。",
+        "当测量结果近似正态分布时，样本方差经过标准化后服从卡方分布。样本量决定自由度 df = n − 1；自由度较低时分布右偏更明显。双侧区间使用两个卡方临界值来表达总体标准差的不确定性。",
       sampleTitle: "样本信息",
       n: "样本量 n（决定卡方分布）",
       chartTitle: "卡方分布临界值",
-      chartDesc: "当前卡方分布、左侧未覆盖区域与单侧临界值的图形说明。",
-      resultLabel: "SD 置信上限",
-      confidenceSuffix: "置信上限",
-      formulaTitle: "SD 置信上限是怎样得到的？",
+      chartDesc: "当前卡方分布、中央覆盖区域、两侧尾部与临界值的图形说明。",
+      resultLabel: "SD 的置信区间",
+      confidenceSuffix: "置信区间",
+      formulaTitle: "SD 的置信区间是怎样得到的？",
       formulaSummary: "查看三步计算",
       coverage: (c) =>
-        `${c} 描述的是这个上限估计方法的长期覆盖率。若重复抽样，按此规则构造的上限会在长期中以约 ${c} 的比例覆盖总体 SD。`,
-      rsdNote:
-        "为什么适用卡方分布：正态总体的样本方差标准化后服从卡方分布，因此可由其左侧临界值构造 SD 的上限。若需要 RSD 置信上限，可用 SD 置信上限除以样本均值作近似；RSD 本身没有一个同样直接、通用的单独分布公式。",
+        `${c} 描述的是这套 SD 区间估计方法的长期覆盖率。该方法假设原始数据近似正态；仅凭汇总统计量无法检验这一假设。`,
     },
   },
   en: {
@@ -89,7 +104,8 @@ const text = {
     select: "Select an application",
     scenarios: {
       mean: "CI for a mean",
-      variability: "CI for variability",
+      variability: "CI for SD",
+      rsd: "CI for RSD",
       ratio: "CI for a ratio",
     },
     soon: "Coming soon",
@@ -137,25 +153,64 @@ const text = {
     variability: {
       basisTitle: "Distribution basis: chi-square distribution",
       basisBody:
-        "When measurements are approximately normally distributed, the standardized sample variance follows a chi-square distribution. Sample size sets df = n − 1; lower degrees of freedom make the distribution more right-skewed. The left critical value is used here to calculate a one-sided upper limit for the population standard deviation.",
+        "When measurements are approximately normally distributed, the standardized sample variance follows a chi-square distribution. Sample size sets df = n − 1; lower degrees of freedom make the distribution more right-skewed. A two-sided interval uses two chi-square critical values to express uncertainty in the population standard deviation.",
       sampleTitle: "Sample information",
       n: "Sample size n (sets the chi-square distribution)",
       chartTitle: "Chi-square critical value",
       chartDesc:
-        "Chi-square distribution showing the uncovered left tail and current one-sided critical value.",
-      resultLabel: "Upper SD confidence limit",
-      confidenceSuffix: "upper confidence limit",
-      formulaTitle: "How is the upper SD limit calculated?",
+        "Chi-square distribution showing central coverage, both tails, and current critical values.",
+      resultLabel: "Confidence Interval for SD",
+      confidenceSuffix: "confidence interval",
+      formulaTitle: "How is the SD interval calculated?",
       formulaSummary: "View the three calculation steps",
       coverage: (c) =>
-        `The ${c} level describes the long-run coverage of this upper-limit procedure. Across repeated samples, limits constructed this way cover the population SD about ${c} of the time.`,
-      rsdNote:
-        "Why chi-square applies: for a normal population, the standardized sample variance follows a chi-square distribution, so its left critical value gives an SD upper limit. For an RSD upper limit, divide the SD upper limit by the sample mean as an approximation; RSD has no equally direct, universal standalone distribution formula.",
+        `The ${c} level describes the long-run coverage of this SD interval procedure. It assumes approximately normal raw data; normality cannot be assessed from summary statistics alone.`,
+    },
+  },
+};
+
+const rsdText = {
+  zh: {
+    basisTitle: "分布与方法依据：卡方分布与非中心 t 分布",
+    basisBody: "RSD 是标准差与均值的比值，因此它的置信区间不能只考虑标准差的变化。朴素区间、McKay 和 Vangel 方法主要借助卡方分布构造近似区间；精确方法进一步利用非中心 t 分布，同时处理均值和标准差的不确定性。",
+    sampleTitle: "样本信息", n: "样本量 n", mean: "样本均值", sd: "样本标准差",
+    chartTitle: "卡方分布临界值", chartNote: "Naive、McKay 和 Vangel 方法使用这些卡方临界值；精确方法还需使用非中心 t 分布。",
+    resultTitle: "RSD 的置信区间", observed: "Observed RSD", unavailable: "无法计算", confidence: "置信区间",
+    recommendation: "推荐等级", recommendedMethod: "推荐方法为：", assumption: "本推荐假设原始数据近似正态，且 RSD 适用于该测量尺度。仅凭汇总统计量无法检验正态性。",
+    meanInvalid: "当前样本均值不大于 0，常规 RSD 缺少稳定且直观的解释，因此暂不计算置信区间。",
+    meanRisk: "当前均值相对于标准差较小，RSD 对均值变化非常敏感。请先确认 RSD 是否适合作为该数据的变异指标。",
+    references: "方法来源与参考文献",
+    methods: { naive: "方法 1：朴素区间（Naive interval）", mckay: "方法 2：McKay 近似（McKay approximation）", vangel: "方法 3：Vangel 修正（Modified McKay interval）", exact: "方法 4：精确方法（Exact method）" },
+    labels: { naive: "教学对照，不推荐作为默认结果", mckay: "经典解析近似", vangel: "推荐的解析近似", exact: "正态假设下的主要数值方法" },
+    recommendationText: {
+      "not-recommended": ["不推荐计算常规 RSD 置信区间", "当前样本均值不大于 0，常规 RSD 缺少稳定解释。建议重新评估变异指标，而不是依赖 RSD 置信区间。"],
+      "mean-unstable": ["精确方法", "当前均值相对于标准差较小，RSD 对分母变化非常敏感。应先判断 RSD 是否仍适合作为变异指标；如仍需计算，建议使用精确方法。"],
+      exact: ["精确方法（Exact method）", "当前 Observed RSD 较高，McKay 和 Vangel 近似可能偏离其常见适用范围。建议优先使用精确方法，并检查数据分布及接近零值的风险。"],
+      "exact-vangel": ["精确方法", "当前样本量较小。建议以精确方法作为主要结果，并使用 Vangel 修正作为解析近似对照。"],
+      vangel: ["Vangel 修正", "当前样本量和 Observed RSD 位于常见解析近似的适用范围内。推荐使用 Vangel 修正；如需更严格结果，可同时核对精确方法。"],
+      "tiny-sample": ["精确方法", "当前样本量极小，任何区间都可能非常宽。请将结果视为有限信息下的数值描述；如仍需计算，建议使用精确方法。"],
+    },
+  },
+  en: {
+    basisTitle: "Distribution Basis: Chi-square and Noncentral t", basisBody: "RSD is the ratio of the standard deviation to the mean, so its confidence interval cannot consider only variation in the standard deviation. Naive, McKay, and Vangel methods mainly use chi-square approximations; the exact method additionally uses the noncentral t distribution to account for uncertainty in both the mean and standard deviation.",
+    sampleTitle: "Sample information", n: "Sample size n", mean: "Sample mean", sd: "Sample standard deviation", chartTitle: "Chi-square Critical Values", chartNote: "Naive, McKay, and Vangel methods use these chi-square critical values. The exact method additionally uses the noncentral t distribution.",
+    resultTitle: "Confidence Interval for RSD", observed: "Observed RSD", unavailable: "Unavailable", confidence: "confidence interval", recommendation: "Recommendation Level", recommendedMethod: "Recommended method: ", assumption: "This recommendation assumes approximately normal raw data and a measurement scale for which RSD is meaningful. Normality cannot be assessed from summary statistics alone.",
+    meanInvalid: "The sample mean is not greater than zero. A conventional RSD is not stable or readily interpretable under this condition, so confidence intervals are not calculated.", meanRisk: "The mean is small relative to the standard deviation, so RSD is highly sensitive to changes in the mean. First confirm that RSD is appropriate for this data.", references: "Methods and References",
+    methods: { naive: "Method 1: Naive Interval", mckay: "Method 2: McKay Approximation", vangel: "Method 3: Vangel Modification", exact: "Method 4: Exact Method" },
+    labels: { naive: "Educational comparison; not recommended as the default result", mckay: "Classical analytical approximation", vangel: "Recommended analytical approximation", exact: "Primary numerical method under normality" },
+    recommendationText: {
+      "not-recommended": ["Conventional RSD confidence intervals are not recommended", "The sample mean is not greater than zero, so conventional RSD lacks a stable interpretation. Reassess the variability metric rather than relying on an RSD confidence interval."],
+      "mean-unstable": ["Exact method", "The mean is small relative to the standard deviation, so RSD is highly sensitive to its denominator. First decide whether RSD remains an appropriate variability measure; if calculation is still needed, use the exact method."],
+      exact: ["Exact method", "Observed RSD is high, so McKay and Vangel approximations may depart from their common operating range. Prefer the exact method and check distributional and near-zero risks."],
+      "exact-vangel": ["Exact method", "The sample is small. Use the exact method as the primary result and Vangel as an analytical approximation for comparison."],
+      vangel: ["Vangel modification", "Sample size and Observed RSD lie in a common range for analytical approximations. Use Vangel; use the exact method when a stricter check is needed."],
+      "tiny-sample": ["Exact method", "The sample is extremely small, so any interval may be very wide. Treat results as a numerical description under limited information; if calculation is still needed, use the exact method."],
     },
   },
 };
 
 const copy = computed(() => text[props.language]);
+const rsdCopy = computed(() => rsdText[props.language]);
 const scenarioStyle = computed(() =>
   mobileHeaderOffset.value === null
     ? undefined
@@ -183,7 +238,6 @@ const result = computed(() =>
 const confidenceLabel = computed(() => `${(inputs.value.confidence * 100).toFixed(1)}%`);
 const variabilityParsed = computed(() => ({
   n: Number(variabilityInputs.value.n),
-  mean: Number(variabilityInputs.value.mean),
   sd: Number(variabilityInputs.value.sd),
 }));
 const variabilityValid = computed(
@@ -191,13 +245,12 @@ const variabilityValid = computed(
     Number.isInteger(variabilityParsed.value.n) &&
     variabilityParsed.value.n >= 2 &&
     variabilityParsed.value.n <= 10000 &&
-    Number.isFinite(variabilityParsed.value.mean) &&
     Number.isFinite(variabilityParsed.value.sd) &&
     variabilityParsed.value.sd >= 0,
 );
 const variabilityResult = computed(() =>
   variabilityValid.value
-    ? standardDeviationUpperLimitFromSummary({
+    ? standardDeviationConfidenceIntervalFromSummary({
         ...variabilityParsed.value,
         confidenceLevel: variabilityInputs.value.confidence,
       })
@@ -206,6 +259,36 @@ const variabilityResult = computed(() =>
 const variabilityConfidenceLabel = computed(
   () => `${(variabilityInputs.value.confidence * 100).toFixed(1)}%`,
 );
+const rsdParsed = computed(() => ({
+  n: Number(rsdInputs.value.n), mean: Number(rsdInputs.value.mean), sd: Number(rsdInputs.value.sd), confidenceLevel: rsdInputs.value.confidence,
+}));
+const rsdValidation = computed(() => validateRsdInput(rsdParsed.value));
+const observedRsd = computed(() => calculateObservedRsd(rsdParsed.value.mean, rsdParsed.value.sd));
+const rsdMethods = computed(() => ({
+  naive: calculateNaiveRsdCI(rsdParsed.value), mckay: calculateMckayRsdCI(rsdParsed.value), vangel: calculateVangelRsdCI(rsdParsed.value), exact: exactRsdResult.value,
+}));
+const rsdRecommendation = computed(() => getRsdRecommendation(rsdParsed.value));
+const rsdConfidenceLabel = computed(() => `${(rsdInputs.value.confidence * 100).toFixed(1)}%`);
+const rsdMeanInvalid = computed(() => rsdValidation.value.valid && rsdParsed.value.mean <= 0);
+const rsdMeanRisk = computed(() => rsdValidation.value.valid && rsdParsed.value.mean > 0 && rsdParsed.value.mean <= 2 * rsdParsed.value.sd);
+
+async function updateExactRsd() {
+  const request = ++exactRsdRequest;
+  if (!rsdValidation.value.valid || rsdParsed.value.mean <= 0) {
+    exactRsdResult.value = null;
+    return;
+  }
+  exactRsdLoading.value = true;
+  try {
+    const cdf = await loadNoncentralTCdf();
+    if (request === exactRsdRequest) exactRsdResult.value = calculateExactRsdCI(rsdParsed.value, cdf);
+  } catch {
+    if (request === exactRsdRequest) exactRsdResult.value = { method: "exact", status: "unavailable", lower: null, upper: null, warnings: ["The noncentral t calculation could not be initialized."], intermediateValues: {} };
+  } finally {
+    if (request === exactRsdRequest) exactRsdLoading.value = false;
+  }
+}
+watch(rsdParsed, updateExactRsd, { immediate: true, deep: true });
 
 const precision = computed(() => {
   if (!result.value) return 2;
@@ -222,6 +305,24 @@ function format(value, digits = precision.value) {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
   }).format(Math.abs(value) < 1e-14 ? 0 : value);
+}
+function formatRsd(value) {
+  if (!Number.isFinite(value)) return "—";
+  const percentage = value * 100;
+  const digits = Math.abs(percentage) < 1 && percentage !== 0 ? 2 : 1;
+  return `${new Intl.NumberFormat(props.language === "zh" ? "zh-CN" : "en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(percentage)}%`;
+}
+function formatMethodInterval(method) {
+  if (method?.method === "exact" && exactRsdLoading.value) {
+    return props.language === "zh" ? "正在计算…" : "Calculating…";
+  }
+  if (!method || method.status !== "success" || method.lower === null || method.upper === null) {
+    return rsdCopy.value.unavailable;
+  }
+  return `[${formatRsd(method.lower)}, ${formatRsd(method.upper)}]`;
 }
 
 const tChart = computed(() => {
@@ -268,22 +369,24 @@ const tChart = computed(() => {
 });
 
 const chiChart = computed(() => {
-  if (!variabilityResult.value) return null;
+  const chartResult = variabilityResult.value;
+  if (!chartResult) return null;
   const width = 700,
     height = 480,
     left = 38,
     right = 18,
     top = 62,
     bottom = 70;
-  const critical = variabilityResult.value.criticalValue;
+  const lowerCritical = chartResult.lowerCriticalValue;
+  const upperCritical = chartResult.upperCriticalValue;
   const limit = Math.max(
-    critical * 3.2,
-    variabilityResult.value.df + 4 * Math.sqrt(2 * variabilityResult.value.df),
+    upperCritical * 1.35,
+    chartResult.df + 4 * Math.sqrt(2 * chartResult.df),
     8,
   );
   const values = Array.from({ length: 220 }, (_, index) => {
     const x = (limit * index) / 219;
-    return { x, y: chiSquarePdf(x, variabilityResult.value.df) };
+    return { x, y: chiSquarePdf(x, chartResult.df) };
   });
   const maxY = Math.max(...values.map((point) => point.y)) * 1.12;
   const sx = (x) => left + (x / limit) * (width - left - right);
@@ -297,14 +400,17 @@ const chiChart = computed(() => {
     `M${sx(points[0].x)},${height - bottom} ${points
       .map((point) => `L${sx(point.x).toFixed(2)},${sy(point.y).toFixed(2)}`)
       .join(" ")} L${sx(points.at(-1).x)},${height - bottom} Z`;
-  const leftTail = values.filter((point) => point.x <= critical);
-  const covered = values.filter((point) => point.x >= critical);
+  const leftTail = values.filter((point) => point.x <= lowerCritical);
+  const rightTail = values.filter((point) => point.x >= upperCritical);
+  const covered = values.filter((point) => point.x >= lowerCritical && point.x <= upperCritical);
   return {
     baseline: height - bottom,
     sx,
     path,
-    critical,
+    lowerCritical,
+    upperCritical,
     leftArea: area(leftTail),
+    rightArea: area(rightTail),
     coveredArea: area(covered),
   };
 });
@@ -315,6 +421,8 @@ function markChanged() {
 function resetTransientState() {
   basisOpen.value = false;
   formulaOpen.value = false;
+  recommendationOpen.value = false;
+  referencesOpen.value = false;
   touched.value = { n: false, mean: false, sd: false };
 }
 watch(scenario, resetTransientState);
@@ -522,7 +630,7 @@ onBeforeUnmount(() => {
             {{ level * 100 }}%
           </button>
         </div>
-        <dl v-if="result" class="derived-grid">
+        <dl v-if="result" class="parameter-grid">
           <div>
             <dt>α</dt>
             <dd>{{ result.alpha.toFixed(3) }}</dd>
@@ -598,14 +706,14 @@ onBeforeUnmount(() => {
         </summary>
         <div class="basis-copy">
           <p>{{ copy.variability.basisBody }}</p>
-          <p class="display-formula">χ² = (<i>n</i> − 1)<i>s</i>² / σ²</p>
+          <p class="display-formula">χ<sup>2</sup> = (<i>n</i> − 1)<i>s</i><sup>2</sup> / σ<sup>2</sup></p>
           <p class="formula-note"><span>df = n − 1</span></p>
         </div>
       </details>
 
       <section class="ci-card sample-card">
         <h3>{{ copy.variability.sampleTitle }}</h3>
-        <div class="sample-fields">
+        <div class="sample-fields sd-sample-fields">
           <label class="sample-size-field"
             ><span>{{ copy.variability.n }}</span
             ><input
@@ -614,16 +722,7 @@ onBeforeUnmount(() => {
               inputmode="numeric"
               @input="markChanged"
           /></label>
-          <div class="sample-measure-row">
-            <label
-              ><span>{{ copy.mean }}</span
-              ><input
-                v-model="variabilityInputs.mean"
-                type="text"
-                inputmode="decimal"
-                @input="markChanged"
-            /></label>
-            <label
+          <label class="sample-value-field"
               ><span>{{ copy.sd }}</span
               ><input
                 v-model="variabilityInputs.sd"
@@ -631,7 +730,6 @@ onBeforeUnmount(() => {
                 inputmode="decimal"
                 @input="markChanged"
             /></label>
-          </div>
         </div>
       </section>
 
@@ -646,6 +744,7 @@ onBeforeUnmount(() => {
           <title>{{ copy.variability.chartTitle }}</title>
           <desc>{{ copy.variability.chartDesc }}</desc>
           <path :d="chiChart.leftArea" class="tail-area" />
+          <path :d="chiChart.rightArea" class="tail-area" />
           <path :d="chiChart.coveredArea" class="central-area" />
           <line
             x1="38"
@@ -655,25 +754,28 @@ onBeforeUnmount(() => {
             class="chart-axis"
           />
           <line
-            :x1="chiChart.sx(chiChart.critical)"
+            :x1="chiChart.sx(chiChart.lowerCritical)"
             y1="92"
-            :x2="chiChart.sx(chiChart.critical)"
+            :x2="chiChart.sx(chiChart.lowerCritical)"
             :y2="chiChart.baseline"
             class="critical-line"
           />
+          <line :x1="chiChart.sx(chiChart.upperCritical)" y1="92" :x2="chiChart.sx(chiChart.upperCritical)" :y2="chiChart.baseline" class="critical-line" />
           <path :d="chiChart.path" class="density-line" />
-          <text x="80" y="170" text-anchor="middle" class="tail-label">α</text>
-          <text x="420" y="92" text-anchor="middle" class="coverage-label">1 − α</text>
+          <text x="10" y="150" text-anchor="middle" class="tail-label">α / 2</text>
+          <text x="245" y="92" text-anchor="middle" class="coverage-label">1 − α</text>
+          <text x="620" y="150" text-anchor="middle" class="tail-label">α / 2</text>
           <text
-            :x="chiChart.sx(chiChart.critical)"
+            :x="chiChart.sx(chiChart.lowerCritical)"
             :y="chiChart.baseline + 28"
             text-anchor="middle"
             class="critical-label"
           >
-            χ²α
+            χ<tspan baseline-shift="super" font-size="0.7em">2</tspan><tspan baseline-shift="sub" font-size="0.7em">α/2</tspan>
           </text>
+          <text :x="chiChart.sx(chiChart.upperCritical)" :y="chiChart.baseline + 28" text-anchor="middle" class="critical-label">χ<tspan baseline-shift="super" font-size="0.7em">2</tspan><tspan baseline-shift="sub" font-size="0.7em">1−α/2</tspan></text>
           <text x="38" y="508" class="chart-meta">
-            df = {{ variabilityResult.df }} · χ²α = {{ format(variabilityResult.criticalValue, 4) }}
+            df = {{ variabilityResult.df }} · χ²α/2 = {{ format(variabilityResult.lowerCriticalValue, 4) }} · χ²1−α/2 = {{ format(variabilityResult.upperCriticalValue, 4) }}
           </text>
         </svg>
       </section>
@@ -681,7 +783,7 @@ onBeforeUnmount(() => {
       <section v-if="variabilityResult" class="ci-card result-card">
         <p class="interval-line">
           <span>{{ copy.variability.resultLabel }}：</span
-          ><strong>{{ format(variabilityResult.upperSd) }}</strong>
+          ><strong>[{{ format(variabilityResult.lowerSd) }}, {{ format(variabilityResult.upperSd) }}]</strong>
         </p>
       </section>
 
@@ -712,23 +814,11 @@ onBeforeUnmount(() => {
             {{ level * 100 }}%
           </button>
         </div>
-        <dl v-if="variabilityResult" class="derived-grid">
-          <div>
-            <dt>α</dt>
-            <dd>{{ variabilityResult.alpha.toFixed(3) }}</dd>
-          </div>
-          <div>
-            <dt>df</dt>
-            <dd>{{ variabilityResult.df }}</dd>
-          </div>
-          <div>
-            <dt>χ²α</dt>
-            <dd>{{ format(variabilityResult.criticalValue, 4) }}</dd>
-          </div>
-          <div>
-            <dt>s²</dt>
-            <dd>{{ format(variabilityResult.sd ** 2) }}</dd>
-          </div>
+        <dl v-if="variabilityResult" class="parameter-grid">
+          <div><dt>α</dt><dd>{{ variabilityResult.alpha.toFixed(3) }}</dd></div>
+          <div><dt>α / 2</dt><dd>{{ (variabilityResult.alpha / 2).toFixed(3) }}</dd></div>
+          <div><dt>df</dt><dd>{{ variabilityResult.df }}</dd></div>
+          <div><dt>s²</dt><dd>{{ format(variabilityResult.sd ** 2) }}</dd></div>
         </dl>
       </section>
 
@@ -745,7 +835,7 @@ onBeforeUnmount(() => {
           >
         </summary>
         <p class="display-formula">
-          σ<sub>upper</sub> = √((<i>n</i> − 1)<i>s</i>² / χ²<sub>α, df</sub>)
+          CI<sub>SD</sub> = [<i>s</i>√(df / χ<sup>2</sup><sub>1−α/2</sub>), <i>s</i>√(df / χ<sup>2</sup><sub>α/2</sub>)]
         </p>
         <ol class="formula-steps">
           <li>
@@ -753,21 +843,75 @@ onBeforeUnmount(() => {
             ><strong>df = {{ variabilityResult.n }} − 1 = {{ variabilityResult.df }}</strong>
           </li>
           <li>
-            <span>2 · χ²α</span
-            ><strong>χ²α = {{ format(variabilityResult.criticalValue, 4) }}</strong>
+            <span>2 · χ² 临界值</span
+            ><strong>χ<sup>2</sup><sub>α/2</sub> = {{ format(variabilityResult.lowerCriticalValue, 4) }}；χ<sup>2</sup><sub>1−α/2</sub> = {{ format(variabilityResult.upperCriticalValue, 4) }}</strong>
           </li>
           <li>
-            <span>3 · {{ copy.variability.resultLabel }}</span
-            ><strong
-              >√({{ variabilityResult.df }} × {{ format(variabilityResult.sd) }}² /
-              {{ format(variabilityResult.criticalValue, 4) }}) =
-              {{ format(variabilityResult.upperSd) }}</strong
-            >
+            <span>3 · {{ copy.variability.resultLabel }}</span><strong>[{{ format(variabilityResult.lowerSd) }}, {{ format(variabilityResult.upperSd) }}]</strong>
           </li>
         </ol>
         <p class="coverage-copy">{{ copy.variability.coverage(variabilityConfidenceLabel) }}</p>
-        <p class="coverage-copy rsd-note">{{ copy.variability.rsdNote }}</p>
       </details>
+    </div>
+
+    <div v-else-if="scenario === 'rsd'" class="mean-flow rsd-flow">
+      <details :open="basisOpen" class="ci-card basis-card" @toggle="basisOpen = $event.currentTarget.open">
+        <summary :aria-expanded="basisOpen"><span><strong>{{ rsdCopy.basisTitle }}</strong></span></summary>
+        <div class="basis-copy"><p>{{ rsdCopy.basisBody }}</p><p class="display-formula">χ<sup>2</sup> = (<i>n</i> − 1)<i>s</i><sup>2</sup> / σ<sup>2</sup>；<i>T</i> = √<i>n</i> x̄ / <i>s</i></p><p class="formula-note">df = n − 1</p></div>
+      </details>
+
+      <section class="ci-card sample-card">
+        <h3>{{ rsdCopy.sampleTitle }}</h3>
+        <div class="sample-fields">
+          <label class="sample-size-field"><span>{{ rsdCopy.n }}</span><input v-model="rsdInputs.n" type="text" inputmode="numeric" /></label>
+          <div class="sample-measure-row">
+            <label><span>{{ rsdCopy.mean }}</span><input v-model="rsdInputs.mean" type="text" inputmode="decimal" /></label>
+            <label><span>{{ rsdCopy.sd }}</span><input v-model="rsdInputs.sd" type="text" inputmode="decimal" /></label>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="rsdMeanInvalid" class="ci-card rsd-notice" role="status">{{ rsdCopy.meanInvalid }}</section>
+      <section v-else-if="rsdMeanRisk" class="ci-card rsd-notice">{{ rsdCopy.meanRisk }}</section>
+
+      <section class="ci-card result-card rsd-result-card">
+        <h3>{{ rsdCopy.resultTitle }}</h3>
+        <p class="observed-rsd"><span>{{ rsdCopy.observed }}：</span><strong>{{ observedRsd === null ? "—" : `${formatRsd(observedRsd)}` }}</strong></p>
+        <dl class="rsd-results" v-if="!rsdMeanInvalid">
+          <div v-for="method in ['naive', 'mckay', 'vangel', 'exact']" :key="method"><dt>{{ rsdCopy.methods[method] }}</dt><dd>{{ formatMethodInterval(rsdMethods[method]) }}</dd></div>
+        </dl>
+      </section>
+
+      <details :open="recommendationOpen" class="ci-card basis-card compact-details recommendation-card" @toggle="recommendationOpen = $event.currentTarget.open">
+        <summary :aria-expanded="recommendationOpen"><span><strong><span class="recommendation-label">{{ rsdCopy.recommendedMethod }}</span>{{ rsdCopy.recommendationText[rsdRecommendation.key][0] }}</strong></span></summary>
+        <div class="basis-copy recommendation-copy"><p>{{ rsdCopy.recommendationText[rsdRecommendation.key][1] }}</p><small>{{ rsdCopy.assumption }}</small></div>
+      </details>
+
+      <section class="ci-card confidence-card">
+        <p class="confidence-line"><strong>{{ rsdConfidenceLabel }}</strong><span>{{ rsdCopy.confidence }}</span></p>
+        <input v-model.number="rsdInputs.confidence" type="range" min="0.8" max="0.999" step="0.001" :aria-label="rsdCopy.confidence" :aria-valuetext="rsdConfidenceLabel" />
+        <div class="quick-levels"><button v-for="level in [0.9, 0.95, 0.99]" :key="level" type="button" :class="{ active: rsdInputs.confidence === level }" :aria-pressed="rsdInputs.confidence === level" @click="rsdInputs.confidence = level">{{ level * 100 }}%</button></div>
+        <dl class="parameter-grid parameter-grid--three"><div><dt>α</dt><dd>{{ (1 - rsdInputs.confidence).toFixed(3) }}</dd></div><div><dt>α / 2</dt><dd>{{ ((1 - rsdInputs.confidence) / 2).toFixed(3) }}</dd></div><div><dt>1 − α</dt><dd>{{ rsdInputs.confidence.toFixed(3) }}</dd></div></dl>
+      </section>
+
+      <details v-for="method in ['naive', 'mckay', 'vangel', 'exact']" :key="method" :open="methodOpen[method]" class="ci-card formula-card method-card" @toggle="methodOpen[method] = $event.currentTarget.open">
+        <summary :aria-expanded="methodOpen[method]"><span><strong>{{ rsdCopy.methods[method] }}</strong><small>{{ rsdCopy.labels[method] }}</small></span></summary>
+        <div class="method-copy">
+          <p v-if="method === 'naive'">{{ props.language === 'zh' ? '先计算 SD 的卡方置信区间，再分别除以样本均值。该方法把样本均值视为固定值，只考虑 SD 的不确定性。' : 'First calculate the chi-square interval for SD, then divide its endpoints by the sample mean. This treats the sample mean as fixed.' }}</p>
+          <p v-else-if="method === 'mckay'">{{ props.language === 'zh' ? 'McKay 方法通过近似枢轴量构造 CV / RSD 的区间，同时将均值和标准差的变化纳入近似。' : 'McKay uses an approximate pivotal quantity for CV / RSD and incorporates variation in both the mean and standard deviation.' }}</p>
+          <p v-else-if="method === 'vangel'">{{ props.language === 'zh' ? 'Vangel 方法是在 McKay 近似基础上的有限样本修正，用于改善小样本条件下的区间表现。' : 'Vangel is a finite-sample modification of the McKay approximation.' }}</p>
+          <p v-else>{{ props.language === 'zh' ? '基于非中心 t 分布的数值反演。它通过累计概率方程分别求解非中心参数边界，再转换为 CV / RSD 区间。' : 'Numerical inversion based on the noncentral t distribution. It solves probability equations for noncentrality bounds and transforms them into a CV / RSD interval.' }}</p>
+          <p class="display-formula" v-if="method === 'naive'">L = K√(df / u<sub>high</sub>)；U = K√(df / u<sub>low</sub>)</p>
+          <p class="display-formula" v-else-if="method === 'mckay'">K / √(((u / n) − 1)K² + u / (n − 1))</p>
+          <p class="display-formula" v-else-if="method === 'vangel'">K / √((((u + 2) / n) − 1)K² + u / (n − 1))</p>
+          <p class="display-formula" v-else><i>T</i> = √<i>n</i> x̄ / <i>s</i>；δ = √<i>n</i> / CV</p>
+          <ol class="formula-steps"><li><span>1</span><strong>K = s / x̄ = {{ observedRsd === null ? '—' : formatRsd(observedRsd) }}</strong></li><li><span>2</span><strong>df = n − 1 = {{ rsdParsed.n - 1 }}</strong></li><li v-if="method !== 'exact'"><span>3</span><strong>χ<sup>2</sup><sub>α/2</sub> = {{ rsdMethods[method]?.intermediateValues?.uLow ? format(rsdMethods[method].intermediateValues.uLow, 4) : '—' }}；χ<sup>2</sup><sub>1−α/2</sub> = {{ rsdMethods[method]?.intermediateValues?.uHigh ? format(rsdMethods[method].intermediateValues.uHigh, 4) : '—' }}</strong></li><li v-else><span>3</span><strong>{{ exactRsdLoading ? (props.language === 'zh' ? '正在反演非中心 t 分布…' : 'Inverting the noncentral t distribution…') : `T = ${rsdMethods.exact?.intermediateValues?.observedT ? format(rsdMethods.exact.intermediateValues.observedT, 4) : '—'}` }}</strong></li><li><span>4</span><strong>{{ formatMethodInterval(rsdMethods[method]) }}</strong></li></ol>
+          <p class="coverage-copy" v-if="method === 'naive'">{{ props.language === 'zh' ? '该方法忽略样本均值自身的抽样不确定性，因此实际覆盖率可能偏离标称置信水平，尤其是在小样本、RSD 较高或均值接近零时。' : 'This method ignores sampling uncertainty in the sample mean, so actual coverage can depart from the nominal level, especially for small samples, high RSD, or a mean near zero.' }}</p>
+          <p class="coverage-copy" v-if="method === 'exact' && rsdMethods.exact?.status === 'success'">{{ props.language === 'zh' ? `数值求解已收敛：${rsdMethods.exact.iterations} 次迭代，残差 ${rsdMethods.exact.residual?.toExponential(2)}。` : `Numerical solve converged: ${rsdMethods.exact.iterations} iterations, residual ${rsdMethods.exact.residual?.toExponential(2)}.` }}</p>
+        </div>
+      </details>
+
+      <details :open="referencesOpen" class="ci-card formula-card references-card compact-details" @toggle="referencesOpen = $event.currentTarget.open"><summary :aria-expanded="referencesOpen"><span><strong>{{ rsdCopy.references }}</strong></span></summary><div class="method-copy references-list"><ol><li><a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/coefvacl.htm" target="_blank" rel="noopener noreferrer">NIST/SEMATECH, Coefficient of Variation Confidence Limits</a></li><li>McKay, A. T. (1932). Distribution of the Coefficient of Variation and the Extended “t” Distribution. <i>Journal of the Royal Statistical Society</i>, 95, 695–698.</li><li>Vangel, M. G. (1996). Confidence Intervals for a Normal Coefficient of Variation. <i>The American Statistician</i>, 50(1), 21–26.</li><li>Verrill, S. (2003). Confidence Bounds for Normal and Lognormal Distribution Coefficients of Variation. USDA Forest Products Laboratory, Research Paper 609.</li></ol></div></details>
     </div>
   </section>
 </template>
@@ -876,6 +1020,18 @@ onBeforeUnmount(() => {
 .formula-card[open] summary::after {
   content: "−";
 }
+.compact-details summary {
+  min-height: 76px;
+}
+.recommendation-card summary strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+.recommendation-label {
+  color: var(--muted);
+  font-weight: 650;
+}
 .basis-copy {
   padding: 0 16px 18px;
   border-top: 1px solid var(--soft-line);
@@ -889,6 +1045,18 @@ onBeforeUnmount(() => {
   font-family: "IBM Plex Mono", monospace;
   font-size: clamp(0.9rem, 2vw, 1.08rem);
   white-space: nowrap;
+}
+.display-formula sup,
+.formula-steps sup {
+  font-size: 0.7em;
+  line-height: 0;
+  vertical-align: super;
+}
+.display-formula sub,
+.formula-steps sub {
+  font-size: 0.7em;
+  line-height: 0;
+  vertical-align: sub;
 }
 .formula-note span {
   font-family: "IBM Plex Mono", monospace;
@@ -988,28 +1156,34 @@ onBeforeUnmount(() => {
   background: var(--selected-bg);
   color: var(--ink);
 }
-.derived-grid {
+.parameter-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
   margin: 0;
-}
-.derived-grid div {
-  min-width: 0;
-  padding: 10px;
-  border-radius: 7px;
+  padding: 8px;
+  border: 1px solid var(--soft-line);
+  border-radius: 9px;
   background: var(--panel-soft);
 }
-dt {
-  color: var(--muted);
-  font-size: 0.72rem;
+.parameter-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-dd {
+.parameter-grid div {
+  min-width: 0;
+  text-align: center;
+}
+.parameter-grid dt {
+  color: var(--muted);
+  font-size: 0.64rem;
+}
+.parameter-grid dd {
   margin: 5px 0 0;
   color: var(--ink);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 0.84rem;
+  font-size: 0.72rem;
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 .sample-fields {
   display: grid;
@@ -1038,6 +1212,26 @@ dd {
   color: var(--ink);
   font-family: "IBM Plex Mono", monospace;
   font-size: 16px;
+}
+.sd-sample-fields .sample-size-field,
+.sd-sample-fields .sample-value-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46%;
+  align-items: center;
+  column-gap: 10px;
+}
+.sd-sample-fields .sample-size-field > span,
+.sd-sample-fields .sample-value-field > span {
+  grid-column: 1;
+}
+.sd-sample-fields .sample-size-field > input,
+.sd-sample-fields .sample-value-field > input {
+  grid-column: 2;
+  text-align: right;
+}
+.rsd-flow .sample-size-field {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
 }
 .sample-fields input[aria-invalid="true"] {
   border-color: var(--bc-danger, #b24b4b);
@@ -1088,6 +1282,63 @@ dd {
   padding-top: 12px;
   font-size: 0.78rem;
 }
+.rsd-notice {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.rsd-result-card h3,
+.recommendation-card h3 {
+  font-size: 0.94rem;
+}
+.observed-rsd {
+  color: var(--ink) !important;
+  font-size: 0.9rem;
+}
+.observed-rsd strong,
+.rsd-results dd {
+  color: var(--accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+.rsd-results {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.rsd-results div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+}
+.rsd-results dt,
+.rsd-results dd { margin: 0; }
+.rsd-results dt { color: var(--muted); font-size: 0.78rem; }
+.rsd-results dd { font-size: 0.8rem; white-space: nowrap; }
+.recommendation-copy {
+  display: grid;
+  gap: 12px;
+  border-top: 0;
+}
+.recommendation-copy p,
+.recommendation-copy small {
+  margin: 0 !important;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.58;
+}
+.method-copy { padding: 0 16px 16px; }
+.method-copy > p { margin: 0 0 12px; font-size: 0.8rem; }
+.method-copy > .display-formula { overflow-x: auto; }
+.method-copy .formula-steps { margin: 0 0 16px; }
+.references-list {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.58;
+}
+.references-list a { color: var(--accent); }
+.references-list ol { display: grid; gap: 10px; margin: 0; padding-left: 1.35rem; }
+.chart-note { font-size: 0.78rem; }
 @media (min-width: 1024px) {
   .sample-card {
     max-width: 560px;
@@ -1177,6 +1428,16 @@ dd {
     min-height: 66px;
     padding: 11px 12px;
   }
+  .compact-details summary {
+    min-height: calc(var(--mobile-switch-height, 36px) - 2px);
+    height: calc(var(--mobile-switch-height, 36px) - 2px);
+    align-items: center;
+    padding: 0 12px;
+  }
+  .recommendation-card summary strong {
+    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-weight: var(--mobile-header-control-font-weight, 650);
+  }
   .basis-copy {
     padding: 0 12px 14px;
   }
@@ -1210,6 +1471,11 @@ dd {
     grid-template-columns: minmax(0, 1fr) 86px;
     align-items: center;
     column-gap: 8px !important;
+  }
+  .sd-sample-fields .sample-size-field,
+  .sd-sample-fields .sample-value-field {
+    grid-template-columns: minmax(0, 1fr) 86px;
+    column-gap: 8px;
   }
   .sample-size-field small {
     grid-column: 1 / -1;
@@ -1254,15 +1520,16 @@ dd {
     min-height: 36px;
     font-size: 0.72rem;
   }
-  .derived-grid div {
-    padding: 8px;
+  .parameter-grid {
+    gap: 3px;
+    padding: 7px 5px;
   }
-  .derived-grid dt {
-    font-size: 0.66rem;
+  .parameter-grid dt {
+    font-size: 0.6rem;
   }
-  .derived-grid dd {
+  .parameter-grid dd {
     margin-top: 3px;
-    font-size: 0.72rem;
+    font-size: 0.66rem;
   }
   .formula-card summary strong {
     font-size: 0.72rem;
@@ -1283,8 +1550,19 @@ dd {
     padding-top: 10px;
     font-size: 0.66rem;
   }
-  .derived-grid {
-    gap: 6px;
+  .rsd-result-card h3,
+  .observed-rsd { font-size: var(--mobile-header-control-font-size, 0.72rem); }
+  .rsd-results dt,
+  .rsd-results dd,
+  .recommendation-card p,
+  .recommendation-card small,
+  .method-copy > p,
+  .chart-note,
+  .references-list { font-size: 0.66rem; }
+  .method-copy { padding: 0 12px 14px; }
+  .rsd-results div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .rsd-flow .sample-size-field {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (prefers-reduced-motion: reduce) {

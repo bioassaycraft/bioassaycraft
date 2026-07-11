@@ -34,6 +34,18 @@ export type StandardDeviationUpperLimitResult = {
   upperSd: number;
 };
 
+export type StandardDeviationIntervalResult = {
+  n: number;
+  df: number;
+  sd: number;
+  confidenceLevel: number;
+  alpha: number;
+  lowerCriticalValue: number;
+  upperCriticalValue: number;
+  lowerSd: number;
+  upperSd: number;
+};
+
 export type PopulationPoint = {
   id: number;
   value: number;
@@ -453,6 +465,37 @@ export function standardDeviationUpperLimitFromSummary({
     criticalValue,
     upperVariance,
     upperSd: Math.sqrt(upperVariance),
+  };
+}
+
+export function standardDeviationConfidenceIntervalFromSummary({
+  n,
+  sd,
+  confidenceLevel,
+}: {
+  n: number;
+  sd: number;
+  confidenceLevel: number;
+}): StandardDeviationIntervalResult {
+  if (!Number.isInteger(n) || n < 2) throw new RangeError("n must be an integer of at least 2");
+  if (!Number.isFinite(sd) || sd < 0) throw new RangeError("sd must be finite and at least 0");
+  if (!Number.isFinite(confidenceLevel) || confidenceLevel <= 0 || confidenceLevel >= 1) {
+    throw new RangeError("confidenceLevel must be between 0 and 1");
+  }
+  const df = n - 1;
+  const alpha = 1 - confidenceLevel;
+  const lowerCriticalValue = chiSquareQuantile(alpha / 2, df);
+  const upperCriticalValue = chiSquareQuantile(1 - alpha / 2, df);
+  return {
+    n,
+    df,
+    sd,
+    confidenceLevel,
+    alpha,
+    lowerCriticalValue,
+    upperCriticalValue,
+    lowerSd: sd * Math.sqrt(df / upperCriticalValue),
+    upperSd: sd * Math.sqrt(df / lowerCriticalValue),
   };
 }
 

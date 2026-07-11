@@ -18,6 +18,7 @@ import {
   sampleStandardDeviation,
   sampleVariance,
   standardDeviationUpperLimitFromSummary,
+  standardDeviationConfidenceIntervalFromSummary,
   sd,
   standardError,
   studentTQuantile,
@@ -148,6 +149,15 @@ describe("ci statistics", () => {
     closeTo(result.alpha, 0.05);
     closeTo(result.criticalValue, 1.1454762260617697, 1e-7);
     closeTo(result.upperSd, 20.892574629617258, 1e-7);
+  });
+
+  it("calculates a two-sided SD confidence interval", () => {
+    const result = standardDeviationConfidenceIntervalFromSummary({ n: 6, sd: 10, confidenceLevel: 0.95 });
+    assert.equal(result.df, 5);
+    closeTo(result.lowerCriticalValue, 0.831211613486663, 1e-7);
+    closeTo(result.upperCriticalValue, 12.832501994030023, 1e-7);
+    closeTo(result.lowerSd, 6.242080022589831, 1e-7);
+    closeTo(result.upperSd, 24.526139885482955, 1e-7);
   });
 
   it("returns a t-based confidence interval with full calculation metadata", () => {
