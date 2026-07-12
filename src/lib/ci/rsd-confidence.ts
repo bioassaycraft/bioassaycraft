@@ -27,6 +27,19 @@ export type RsdMethodResult = {
   residual?: number;
 };
 
+export type ExactRsdIntervalResult = RsdMethodResult & {
+  degreesOfFreedom: number | null;
+  sampleCv: number | null;
+  observedT: number | null;
+  deltaLower: number | null;
+  deltaUpper: number | null;
+  cvLower: number | null;
+  cvUpper: number | null;
+  lowerTailProbability: number | null;
+  upperTailProbability: number | null;
+  converged: boolean;
+};
+
 export type RsdValidation = {
   valid: boolean;
   reason: "invalid-n" | "invalid-mean" | "invalid-sd" | "invalid-confidence" | null;
@@ -158,17 +171,44 @@ function solveNoncentrality(
   return { status: "no-convergence" as const };
 }
 
-export function calculateExactRsdCI(input: RsdConfidenceInput, cdf: NoncentralTCdf): RsdMethodResult {
+function exactFailure(
+  status: RsdMethodStatus,
+  warning: string,
+  values?: ReturnType<typeof getSharedValues>,
+  observedT: number | null = null,
+): ExactRsdIntervalResult {
+  return {
+    ...INVALID_METHOD("exact", status, warning),
+    degreesOfFreedom: values?.df ?? null,
+    sampleCv: values?.k ?? null,
+    observedT,
+    deltaLower: null,
+    deltaUpper: null,
+    cvLower: null,
+    cvUpper: null,
+    lowerTailProbability: values ? 1 - values.alpha / 2 : null,
+    upperTailProbability: values ? values.alpha / 2 : null,
+    converged: false,
+  };
+}
+
+export function calculateExactRsdCI(input: RsdConfidenceInput, cdf: NoncentralTCdf): ExactRsdIntervalResult {
   const values = getSharedValues(input);
   if (!values || input.sd === 0) {
     if (values && input.sd === 0) {
-      return { method: "exact", status: "success", lower: 0, upper: 0, warnings: [], intermediateValues: values, iterations: 0, tolerance: 1e-10, residual: 0 };
+      return {
+        method: "exact", status: "success", lower: 0, upper: 0, warnings: [], intermediateValues: values,
+        degreesOfFreedom: values.df, sampleCv: values.k, observedT: Number.POSITIVE_INFINITY,
+        deltaLower: Number.POSITIVE_INFINITY, deltaUpper: Number.POSITIVE_INFINITY,
+        cvLower: 0, cvUpper: 0, lowerTailProbability: 1 - values.alpha / 2,
+        upperTailProbability: values.alpha / 2, converged: true, iterations: 0, tolerance: 1e-10, residual: 0,
+      };
     }
-    return INVALID_METHOD("exact", "invalid-input", "The exact method requires a finite positive sample mean.");
+    return exactFailure("invalid-input", "The exact method requires a finite positive sample mean.", values);
   }
   const observedT = Math.sqrt(input.n) * input.mean / input.sd;
   if (!Number.isFinite(observedT) || observedT <= 0) {
-    return INVALID_METHOD("exact", "invalid-input", "The observed t value must be finite and positive.");
+    return exactFailure("invalid-input", "The observed t value must be finite and positive.", values, observedT);
   }
   // F_nct(t_obs; δ) decreases as δ increases. Transforming CV = √n / δ reverses bounds.
   const deltaLower = solveNoncentrality(cdf, observedT, values.df, 1 - values.alpha / 2);
@@ -176,18 +216,28 @@ export function calculateExactRsdCI(input: RsdConfidenceInput, cdf: NoncentralTC
   if (deltaLower.status !== "success" || deltaUpper.status !== "success") {
     const status = deltaLower.status !== "success" ? deltaLower.status : deltaUpper.status;
     return {
-      ...INVALID_METHOD("exact", status, "The noncentral t inversion did not converge to finite bounds."),
+      ...exactFailure(status, "The noncentral t inversion did not converge to finite bounds.", values, observedT),
       intermediateValues: { ...values, observedT },
     };
   }
   const lower = Math.sqrt(input.n) / deltaUpper.value;
   const upper = Math.sqrt(input.n) / deltaLower.value;
   if (!Number.isFinite(lower) || !Number.isFinite(upper) || lower < 0 || upper < lower) {
-    return INVALID_METHOD("exact", "no-convergence", "The noncentral t inversion produced invalid interval endpoints.");
+    return exactFailure("no-convergence", "The noncentral t inversion produced invalid interval endpoints.", values, observedT);
   }
   return {
     method: "exact", status: "success", lower, upper, warnings: [],
     intermediateValues: { ...values, observedT, deltaLower: deltaLower.value, deltaUpper: deltaUpper.value },
+    degreesOfFreedom: values.df,
+    sampleCv: values.k,
+    observedT,
+    deltaLower: deltaLower.value,
+    deltaUpper: deltaUpper.value,
+    cvLower: lower,
+    cvUpper: upper,
+    lowerTailProbability: 1 - values.alpha / 2,
+    upperTailProbability: values.alpha / 2,
+    converged: true,
     iterations: deltaLower.iterations + deltaUpper.iterations,
     tolerance: 1e-10,
     residual: Math.max(Math.abs(deltaLower.residual), Math.abs(deltaUpper.residual)),

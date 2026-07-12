@@ -29,6 +29,7 @@ describe("RSD confidence intervals", () => {
     assert.equal(naive.status, "success");
     assert.equal(mckay.status, "success");
     assert.equal(vangel.status, "success");
+    closeTo(naive.intermediateValues.k, 0.1);
     closeTo(naive.intermediateValues.uLow, 0.831211613486663, 1e-6);
     closeTo(naive.intermediateValues.uHigh, 12.832501994030023, 1e-6);
     assert.ok(naive.lower < naive.upper);
@@ -48,6 +49,44 @@ describe("RSD confidence intervals", () => {
     closeTo(result.lower, 0.0267, 2e-4);
     closeTo(result.upper, 0.1287, 2e-4);
     assert.ok(result.iterations > 0);
+  });
+
+  it("returns the full, correctly oriented exact-method calculation path", async () => {
+    const library = new CdfLibWrapper({ compileSync: true });
+    await library.compiled;
+    const cdf = (t, df, delta) => library.cdftnc_1(df, delta, t);
+    const result = calculateExactRsdCI(input, cdf);
+
+    assert.equal(result.converged, true);
+    assert.equal(result.degreesOfFreedom, 5);
+    closeTo(result.sampleCv, 0.1);
+    closeTo(result.observedT, Math.sqrt(6) * 100 / 10, 1e-8);
+    closeTo(result.observedT, Math.sqrt(6) / (10 / 100), 1e-8);
+    closeTo(result.deltaLower, 9.8295, 1e-3);
+    closeTo(result.deltaUpper, 39.3538, 1e-3);
+    assert.ok(result.deltaLower < result.deltaUpper);
+    closeTo(cdf(result.observedT, result.degreesOfFreedom, result.deltaLower), 0.975, 1e-8);
+    closeTo(cdf(result.observedT, result.degreesOfFreedom, result.deltaUpper), 0.025, 1e-8);
+    closeTo(result.cvLower, Math.sqrt(6) / result.deltaUpper, 1e-10);
+    closeTo(result.cvUpper, Math.sqrt(6) / result.deltaLower, 1e-10);
+    assert.ok(result.cvLower < result.cvUpper);
+    closeTo(result.lower, 0.06224, 1e-4);
+    closeTo(result.upper, 0.2492, 1e-4);
+
+    const ci90 = calculateExactRsdCI({ ...input, confidenceLevel: 0.9 }, cdf);
+    assert.equal(ci90.degreesOfFreedom, result.degreesOfFreedom);
+    closeTo(ci90.observedT, result.observedT, 1e-10);
+    assert.notEqual(ci90.deltaLower, result.deltaLower);
+    assert.notEqual(ci90.deltaUpper, result.deltaUpper);
+    assert.ok(ci90.upper - ci90.lower < result.upper - result.lower);
+  });
+
+  it("returns an explicit non-convergence state without interval endpoints", () => {
+    const result = calculateExactRsdCI(input, () => 0.5);
+    assert.equal(result.converged, false);
+    assert.equal(result.lower, null);
+    assert.equal(result.upper, null);
+    assert.ok(["unbounded", "no-bracket", "no-convergence"].includes(result.status));
   });
 
   it("applies recommendation boundaries", () => {

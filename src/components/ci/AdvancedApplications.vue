@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import BcTooltip from "../common/BcTooltip.vue";
+import MathFormula from "../common/MathFormula.vue";
 import {
   chiSquarePdf,
   meanConfidenceIntervalFromSummary,
@@ -182,6 +183,17 @@ const rsdText = {
     references: "方法来源与参考文献",
     methods: { naive: "方法 1：朴素区间（Naive interval）", mckay: "方法 2：McKay 近似（McKay approximation）", vangel: "方法 3：Vangel 修正（Modified McKay interval）", exact: "方法 4：精确方法（Exact method）" },
     labels: { naive: "教学对照，不推荐作为默认结果", mckay: "经典解析近似", vangel: "推荐的解析近似", exact: "正态假设下的主要数值方法" },
+    exactSteps: {
+      sampleCv: "1 · 样本变异系数",
+      dfAndObservedT: "2 · 自由度与观测 t 值",
+      invert: "3 · 反演非中心参数",
+      invertDescription: "固定观测 t 值后，分别寻找使非中心 t 分布左尾累计概率等于两个尾部目标概率的非中心参数。",
+      convert: "4 · 转换为 RSD 置信区间",
+      inverse: "CV 与非中心参数 δ 是倒数关系，因此转换为 CV 区间时，上下限需要反向对应。",
+      converged: "非中心参数的数值求解已收敛。",
+      failed: "非中心参数的数值求解未收敛，无法生成精确置信区间。",
+      observedRsd: "Observed RSD",
+    },
     recommendationText: {
       "not-recommended": ["不推荐计算常规 RSD 置信区间", "当前样本均值不大于 0，常规 RSD 缺少稳定解释。建议重新评估变异指标，而不是依赖 RSD 置信区间。"],
       "mean-unstable": ["精确方法", "当前均值相对于标准差较小，RSD 对分母变化非常敏感。应先判断 RSD 是否仍适合作为变异指标；如仍需计算，建议使用精确方法。"],
@@ -198,6 +210,17 @@ const rsdText = {
     meanInvalid: "The sample mean is not greater than zero. A conventional RSD is not stable or readily interpretable under this condition, so confidence intervals are not calculated.", meanRisk: "The mean is small relative to the standard deviation, so RSD is highly sensitive to changes in the mean. First confirm that RSD is appropriate for this data.", references: "Methods and References",
     methods: { naive: "Method 1: Naive Interval", mckay: "Method 2: McKay Approximation", vangel: "Method 3: Vangel Modification", exact: "Method 4: Exact Method" },
     labels: { naive: "Educational comparison; not recommended as the default result", mckay: "Classical analytical approximation", vangel: "Recommended analytical approximation", exact: "Primary numerical method under normality" },
+    exactSteps: {
+      sampleCv: "1 · Sample coefficient of variation",
+      dfAndObservedT: "2 · Degrees of freedom and observed t",
+      invert: "3 · Invert the noncentrality parameters",
+      invertDescription: "With the observed t fixed, solve for the noncentrality parameters corresponding to the two tail probabilities.",
+      convert: "4 · Convert to the RSD confidence interval",
+      inverse: "CV is inversely related to δ, so the noncentrality bounds are reversed when converted to the CV interval.",
+      converged: "The numerical solution for the noncentrality parameters converged.",
+      failed: "The numerical solution did not converge, so the exact confidence interval could not be generated.",
+      observedRsd: "Observed RSD",
+    },
     recommendationText: {
       "not-recommended": ["Conventional RSD confidence intervals are not recommended", "The sample mean is not greater than zero, so conventional RSD lacks a stable interpretation. Reassess the variability metric rather than relying on an RSD confidence interval."],
       "mean-unstable": ["Exact method", "The mean is small relative to the standard deviation, so RSD is highly sensitive to its denominator. First decide whether RSD remains an appropriate variability measure; if calculation is still needed, use the exact method."],
@@ -283,7 +306,15 @@ async function updateExactRsd() {
     const cdf = await loadNoncentralTCdf();
     if (request === exactRsdRequest) exactRsdResult.value = calculateExactRsdCI(rsdParsed.value, cdf);
   } catch {
-    if (request === exactRsdRequest) exactRsdResult.value = { method: "exact", status: "unavailable", lower: null, upper: null, warnings: ["The noncentral t calculation could not be initialized."], intermediateValues: {} };
+    if (request === exactRsdRequest) {
+      exactRsdResult.value = {
+        method: "exact", status: "unavailable", lower: null, upper: null,
+        warnings: ["The noncentral t calculation could not be initialized."], intermediateValues: {},
+        degreesOfFreedom: null, sampleCv: null, observedT: null, deltaLower: null, deltaUpper: null,
+        cvLower: null, cvUpper: null, lowerTailProbability: null, upperTailProbability: null,
+        converged: false,
+      };
+    }
   } finally {
     if (request === exactRsdRequest) exactRsdLoading.value = false;
   }
@@ -314,6 +345,29 @@ function formatRsd(value) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(percentage)}%`;
+}
+function formatRsdRatio(value) {
+  if (!Number.isFinite(value)) return "—";
+  if (value !== 0 && (Math.abs(value) < 1e-4 || Math.abs(value) >= 1e4)) {
+    return value.toExponential(3);
+  }
+  return new Intl.NumberFormat(props.language === "zh" ? "zh-CN" : "en-US", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(value);
+}
+function formatExactValue(value) {
+  if (!Number.isFinite(value)) return "—";
+  if (value !== 0 && (Math.abs(value) < 1e-4 || Math.abs(value) >= 1e5)) {
+    return value.toExponential(3);
+  }
+  return new Intl.NumberFormat(props.language === "zh" ? "zh-CN" : "en-US", {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  }).format(value);
+}
+function formatFormulaValue(value) {
+  return Number.isFinite(value) ? formatExactValue(value) : "\\text{—}";
 }
 function formatMethodInterval(method) {
   if (method?.method === "exact" && exactRsdLoading.value) {
@@ -485,7 +539,7 @@ onBeforeUnmount(() => {
         </summary>
         <div class="basis-copy">
           <p>{{ copy.basisBody }}</p>
-          <p class="display-formula"><i>t</i> = (<span>x̄</span> − μ) / (<i>s</i> / √<i>n</i>)</p>
+          <div class="display-formula"><MathFormula formula="t = \frac{\bar{x} - \mu}{s / \sqrt{n}}" display aria-label="t statistic" /></div>
           <p class="formula-note"><span>df = n − 1</span></p>
         </div>
       </details>
@@ -665,10 +719,7 @@ onBeforeUnmount(() => {
             ><small>{{ copy.formulaSummary }}</small></span
           >
         </summary>
-        <p class="display-formula">
-          x̄ ± t<sub>1 − α/2, n − 1</sub> ×
-          <span class="fraction"><span>s</span><span>√n</span></span>
-        </p>
+        <div class="display-formula"><MathFormula formula="\bar{x} \pm t_{1-\alpha/2,\,n-1}\frac{s}{\sqrt{n}}" display aria-label="Mean confidence interval formula" /></div>
         <ol class="formula-steps">
           <li>
             <span>1 · {{ copy.df }}</span
@@ -709,7 +760,7 @@ onBeforeUnmount(() => {
         </summary>
         <div class="basis-copy">
           <p>{{ copy.variability.basisBody }}</p>
-          <p class="display-formula">χ<sup>2</sup> = (<i>n</i> − 1)<i>s</i><sup>2</sup> / σ<sup>2</sup></p>
+          <div class="display-formula"><MathFormula formula="\chi^2 = \frac{(n-1)s^2}{\sigma^2}" display aria-label="Chi-square statistic" /></div>
           <p class="formula-note"><span>df = n − 1</span></p>
         </div>
       </details>
@@ -837,9 +888,7 @@ onBeforeUnmount(() => {
             ><small>{{ copy.variability.formulaSummary }}</small></span
           >
         </summary>
-        <p class="display-formula">
-          CI<sub>SD</sub> = [<i>s</i>√(df / χ<sup>2</sup><sub>1−α/2</sub>), <i>s</i>√(df / χ<sup>2</sup><sub>α/2</sub>)]
-        </p>
+        <div class="display-formula"><MathFormula formula="\mathrm{CI}_{\mathrm{SD}} = \left[s\sqrt{\frac{df}{\chi^2_{1-\alpha/2}}},\;s\sqrt{\frac{df}{\chi^2_{\alpha/2}}}\right]" display aria-label="Standard deviation confidence interval formula" /></div>
         <ol class="formula-steps">
           <li>
             <span>1 · {{ copy.df }}</span
@@ -860,7 +909,7 @@ onBeforeUnmount(() => {
     <div v-else-if="scenario === 'rsd'" class="mean-flow rsd-flow">
       <details :open="basisOpen" class="ci-card basis-card" @toggle="basisOpen = $event.currentTarget.open">
         <summary :aria-expanded="basisOpen"><span><strong>{{ rsdCopy.basisTitle }}</strong></span></summary>
-        <div class="basis-copy"><p>{{ rsdCopy.basisBody }}</p><p class="display-formula">χ<sup>2</sup> = (<i>n</i> − 1)<i>s</i><sup>2</sup> / σ<sup>2</sup>；<i>T</i> = √<i>n</i> x̄ / <i>s</i></p><p class="formula-note">df = n − 1</p></div>
+        <div class="basis-copy"><p>{{ rsdCopy.basisBody }}</p><div class="display-formula"><MathFormula formula="\chi^2 = \frac{(n-1)s^2}{\sigma^2},\qquad T = \frac{\sqrt{n}\,\bar{x}}{s}" display aria-label="Chi-square and observed t statistics" /></div><p class="formula-note">df = n − 1</p></div>
       </details>
 
       <section class="ci-card sample-card">
@@ -904,13 +953,58 @@ onBeforeUnmount(() => {
           <p v-else-if="method === 'mckay'">{{ props.language === 'zh' ? 'McKay 方法通过近似枢轴量构造 CV / RSD 的区间，同时将均值和标准差的变化纳入近似。' : 'McKay uses an approximate pivotal quantity for CV / RSD and incorporates variation in both the mean and standard deviation.' }}</p>
           <p v-else-if="method === 'vangel'">{{ props.language === 'zh' ? 'Vangel 方法是在 McKay 近似基础上的有限样本修正，用于改善小样本条件下的区间表现。' : 'Vangel is a finite-sample modification of the McKay approximation.' }}</p>
           <p v-else>{{ props.language === 'zh' ? '基于非中心 t 分布的数值反演。它通过累计概率方程分别求解非中心参数边界，再转换为 CV / RSD 区间。' : 'Numerical inversion based on the noncentral t distribution. It solves probability equations for noncentrality bounds and transforms them into a CV / RSD interval.' }}</p>
-          <p class="display-formula" v-if="method === 'naive'">L = K√(df / u<sub>high</sub>)；U = K√(df / u<sub>low</sub>)</p>
-          <p class="display-formula" v-else-if="method === 'mckay'">K / √(((u / n) − 1)K² + u / (n − 1))</p>
-          <p class="display-formula" v-else-if="method === 'vangel'">K / √((((u + 2) / n) − 1)K² + u / (n − 1))</p>
-          <p class="display-formula" v-else><i>T</i> = √<i>n</i> x̄ / <i>s</i>；δ = √<i>n</i> / CV</p>
-          <ol class="formula-steps"><li><span>1</span><strong>K = s / x̄ = {{ observedRsd === null ? '—' : formatRsd(observedRsd) }}</strong></li><li><span>2</span><strong>df = n − 1 = {{ rsdParsed.n - 1 }}</strong></li><li v-if="method !== 'exact'"><span>3</span><strong>χ<sup>2</sup><sub>α/2</sub> = {{ rsdMethods[method]?.intermediateValues?.uLow ? format(rsdMethods[method].intermediateValues.uLow, 4) : '—' }}；χ<sup>2</sup><sub>1−α/2</sub> = {{ rsdMethods[method]?.intermediateValues?.uHigh ? format(rsdMethods[method].intermediateValues.uHigh, 4) : '—' }}</strong></li><li v-else><span>3</span><strong>{{ exactRsdLoading ? (props.language === 'zh' ? '正在反演非中心 t 分布…' : 'Inverting the noncentral t distribution…') : `T = ${rsdMethods.exact?.intermediateValues?.observedT ? format(rsdMethods.exact.intermediateValues.observedT, 4) : '—'}` }}</strong></li><li><span>4</span><strong>{{ formatMethodInterval(rsdMethods[method]) }}</strong></li></ol>
+          <div v-if="method === 'naive'" class="display-formula"><MathFormula formula="L = K\sqrt{\frac{df}{u_{\mathrm{high}}}},\qquad U = K\sqrt{\frac{df}{u_{\mathrm{low}}}}" display aria-label="Naive RSD interval formula" /></div>
+          <div v-else-if="method === 'mckay'" class="display-formula"><MathFormula formula="\frac{K}{\sqrt{\left(\frac{u}{n}-1\right)K^2+\frac{u}{n-1}}}" display aria-label="McKay approximation formula" /></div>
+          <div v-else-if="method === 'vangel'" class="display-formula"><MathFormula formula="\frac{K}{\sqrt{\left(\frac{u+2}{n}-1\right)K^2+\frac{u}{n-1}}}" display aria-label="Vangel modification formula" /></div>
+          <div v-else class="display-formula"><MathFormula formula="T = \frac{\sqrt{n}\,\bar{x}}{s},\qquad \delta = \frac{\sqrt{n}}{\mathrm{CV}}" display aria-label="Exact method relations" /></div>
+          <ol v-if="method === 'exact'" class="formula-steps exact-formula-steps">
+            <li>
+              <span>{{ rsdCopy.exactSteps.sampleCv }}</span>
+              <MathFormula :formula="String.raw`K = \frac{s}{\bar{x}} = ${formatExactValue(rsdMethods.exact?.sampleCv)}`" />
+            </li>
+            <li>
+              <span>{{ rsdCopy.exactSteps.dfAndObservedT }}</span>
+              <MathFormula :formula="String.raw`\nu = n - 1 = ${rsdMethods.exact?.degreesOfFreedom ?? '\\text{—}'}`" />
+              <div class="exact-equation"><MathFormula :formula="String.raw`t_{\mathrm{obs}} = \frac{\sqrt{n}\,\bar{x}}{s} = \frac{\sqrt{n}}{K} = ${formatExactValue(rsdMethods.exact?.observedT)}`" display /></div>
+            </li>
+            <li>
+              <span>{{ rsdCopy.exactSteps.invert }}</span>
+              <p>{{ rsdCopy.exactSteps.invertDescription }}</p>
+              <div class="exact-equation"><MathFormula formula="F_{\mathrm{nct}}(t_{\mathrm{obs}};\nu,\delta_{\mathrm{lower}}) = 1 - \frac{\alpha}{2}" display /></div>
+              <div class="exact-equation"><MathFormula formula="F_{\mathrm{nct}}(t_{\mathrm{obs}};\nu,\delta_{\mathrm{upper}}) = \frac{\alpha}{2}" display /></div>
+              <MathFormula :formula="String.raw`\delta_{\mathrm{lower}} = ${formatExactValue(rsdMethods.exact?.deltaLower)}`" />
+              <MathFormula :formula="String.raw`\delta_{\mathrm{upper}} = ${formatExactValue(rsdMethods.exact?.deltaUpper)}`" />
+            </li>
+            <li>
+              <span>{{ rsdCopy.exactSteps.convert }}</span>
+              <MathFormula formula="\mathrm{CV} = \frac{\sqrt{n}}{\delta}" />
+              <div class="exact-equation"><MathFormula formula="\mathrm{CI}_{\mathrm{CV}} = \left[\frac{\sqrt{n}}{\delta_{\mathrm{upper}}},\;\frac{\sqrt{n}}{\delta_{\mathrm{lower}}}\right]" display /></div>
+              <MathFormula formula="\mathrm{CI}_{\mathrm{RSD}} = 100 \times \mathrm{CI}_{\mathrm{CV}}" />
+              <strong>{{ formatMethodInterval(rsdMethods.exact) }}</strong>
+              <p>{{ rsdCopy.exactSteps.inverse }}</p>
+            </li>
+          </ol>
+          <ol v-else-if="method === 'naive'" class="formula-steps method-formula-steps">
+            <li><span>1</span><MathFormula :formula="String.raw`K = \frac{s}{\bar{x}} = ${formatFormulaValue(rsdMethods.naive?.intermediateValues?.k)}`" /></li>
+            <li><span>2</span><MathFormula :formula="String.raw`df = n - 1 = ${formatFormulaValue(rsdMethods.naive?.intermediateValues?.df)}`" /><MathFormula :formula="String.raw`u_{\mathrm{low}} = \chi^2_{\alpha/2,df} = ${formatFormulaValue(rsdMethods.naive?.intermediateValues?.uLow)},\quad u_{\mathrm{high}} = \chi^2_{1-\alpha/2,df} = ${formatFormulaValue(rsdMethods.naive?.intermediateValues?.uHigh)}`" /></li>
+            <li><span>3</span><MathFormula :formula="String.raw`L = K\sqrt{\frac{df}{u_{\mathrm{high}}}} = ${formatFormulaValue(rsdMethods.naive?.lower)}`" /><MathFormula :formula="String.raw`U = K\sqrt{\frac{df}{u_{\mathrm{low}}}} = ${formatFormulaValue(rsdMethods.naive?.upper)}`" /></li>
+            <li><span>4</span><strong>{{ formatMethodInterval(rsdMethods.naive) }}</strong></li>
+          </ol>
+          <ol v-else-if="method === 'mckay'" class="formula-steps method-formula-steps">
+            <li><span>1</span><MathFormula :formula="String.raw`K = \frac{s}{\bar{x}} = ${formatFormulaValue(rsdMethods.mckay?.intermediateValues?.k)}`" /><MathFormula :formula="String.raw`df = n - 1 = ${formatFormulaValue(rsdMethods.mckay?.intermediateValues?.df)}`" /></li>
+            <li><span>2</span><MathFormula :formula="String.raw`u_1 = \chi^2_{1-\alpha/2,df} = ${formatFormulaValue(rsdMethods.mckay?.intermediateValues?.uHigh)}`" /><MathFormula :formula="String.raw`u_2 = \chi^2_{\alpha/2,df} = ${formatFormulaValue(rsdMethods.mckay?.intermediateValues?.uLow)}`" /></li>
+            <li><span>3</span><MathFormula :formula="String.raw`L = \frac{K}{\sqrt{\left(\frac{u_1}{n}-1\right)K^2+\frac{u_1}{n-1}}} = \frac{K}{\sqrt{${formatFormulaValue(rsdMethods.mckay?.intermediateValues?.lowerDenominator)}}} = ${formatFormulaValue(rsdMethods.mckay?.lower)}`" /><MathFormula :formula="String.raw`U = \frac{K}{\sqrt{\left(\frac{u_2}{n}-1\right)K^2+\frac{u_2}{n-1}}} = \frac{K}{\sqrt{${formatFormulaValue(rsdMethods.mckay?.intermediateValues?.upperDenominator)}}} = ${formatFormulaValue(rsdMethods.mckay?.upper)}`" /></li>
+            <li><span>4</span><strong>{{ formatMethodInterval(rsdMethods.mckay) }}</strong></li>
+          </ol>
+          <ol v-else-if="method === 'vangel'" class="formula-steps method-formula-steps">
+            <li><span>1</span><MathFormula :formula="String.raw`K = \frac{s}{\bar{x}} = ${formatFormulaValue(rsdMethods.vangel?.intermediateValues?.k)}`" /><MathFormula :formula="String.raw`df = n - 1 = ${formatFormulaValue(rsdMethods.vangel?.intermediateValues?.df)}`" /></li>
+            <li><span>2</span><MathFormula :formula="String.raw`u_1 = \chi^2_{1-\alpha/2,df} = ${formatFormulaValue(rsdMethods.vangel?.intermediateValues?.uHigh)}`" /><MathFormula :formula="String.raw`u_2 = \chi^2_{\alpha/2,df} = ${formatFormulaValue(rsdMethods.vangel?.intermediateValues?.uLow)}`" /></li>
+            <li><span>3</span><MathFormula :formula="String.raw`L = \frac{K}{\sqrt{\left(\frac{u_1+2}{n}-1\right)K^2+\frac{u_1}{n-1}}} = \frac{K}{\sqrt{${formatFormulaValue(rsdMethods.vangel?.intermediateValues?.lowerDenominator)}}} = ${formatFormulaValue(rsdMethods.vangel?.lower)}`" /><MathFormula :formula="String.raw`U = \frac{K}{\sqrt{\left(\frac{u_2+2}{n}-1\right)K^2+\frac{u_2}{n-1}}} = \frac{K}{\sqrt{${formatFormulaValue(rsdMethods.vangel?.intermediateValues?.upperDenominator)}}} = ${formatFormulaValue(rsdMethods.vangel?.upper)}`" /></li>
+            <li><span>4</span><strong>{{ formatMethodInterval(rsdMethods.vangel) }}</strong></li>
+          </ol>
           <p class="coverage-copy" v-if="method === 'naive'">{{ props.language === 'zh' ? '该方法忽略样本均值自身的抽样不确定性，因此实际覆盖率可能偏离标称置信水平，尤其是在小样本、RSD 较高或均值接近零时。' : 'This method ignores sampling uncertainty in the sample mean, so actual coverage can depart from the nominal level, especially for small samples, high RSD, or a mean near zero.' }}</p>
-          <p class="coverage-copy" v-if="method === 'exact' && rsdMethods.exact?.status === 'success'">{{ props.language === 'zh' ? `数值求解已收敛：${rsdMethods.exact.iterations} 次迭代，残差 ${rsdMethods.exact.residual?.toExponential(2)}。` : `Numerical solve converged: ${rsdMethods.exact.iterations} iterations, residual ${rsdMethods.exact.residual?.toExponential(2)}.` }}</p>
+          <p class="coverage-copy" v-if="method === 'exact' && rsdMethods.exact?.converged">{{ rsdCopy.exactSteps.converged }}</p>
+          <p class="coverage-copy field-error" v-else-if="method === 'exact' && !exactRsdLoading">{{ rsdCopy.exactSteps.failed }}</p>
         </div>
       </details>
 
@@ -1043,11 +1137,9 @@ onBeforeUnmount(() => {
   margin-top: 14px;
 }
 .display-formula {
-  overflow-x: auto;
+  min-width: 0;
   color: var(--ink) !important;
-  font-family: "IBM Plex Mono", monospace;
   font-size: clamp(0.9rem, 2vw, 1.08rem);
-  white-space: nowrap;
 }
 .display-formula sup,
 .formula-steps sup {
@@ -1278,6 +1370,31 @@ onBeforeUnmount(() => {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.78rem;
   overflow-wrap: anywhere;
+}
+.formula-steps strong small {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.82em;
+  font-weight: 500;
+}
+.exact-formula-steps li {
+  gap: 7px;
+}
+.exact-formula-steps p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.58;
+}
+.exact-equation {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.method-formula-steps :deep(.math-formula) {
+  display: block;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.12rem;
 }
 .coverage-copy {
   margin: 0 16px 16px !important;

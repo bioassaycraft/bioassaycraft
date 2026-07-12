@@ -3,6 +3,7 @@ import { scaleLinear } from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MobileStepController from "../components/anova/MobileStepController.vue";
 import BcTooltip from "../components/common/BcTooltip.vue";
+import MathFormula from "../components/common/MathFormula.vue";
 import AdvancedApplications from "../components/ci/AdvancedApplications.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
@@ -1037,11 +1038,11 @@ watch(intuitionStep, () => {
                     {{ calculationOpen ? copy.hideCalculation : copy.viewCalculation }}
                   </summary>
                   <div class="formula-stack compact">
-                    <p>x̄ = {{ formatNumber(ci.mean) }}</p>
-                    <p>s = {{ formatNumber(ci.sd) }}</p>
-                    <p>SE = s / √n = {{ formatNumber(ci.se) }}</p>
-                    <p>{{ formatPercent(confidenceLevel) }} CI = x̄ ± t* × SE</p>
-                    <p>[{{ formatNumber(ci.lower) }}, {{ formatNumber(ci.upper) }}]</p>
+                    <p><MathFormula :formula="`\\bar{x} = ${formatNumber(ci.mean)}`" /></p>
+                    <p><MathFormula :formula="`s = ${formatNumber(ci.sd)}`" /></p>
+                    <p><MathFormula :formula="String.raw`\mathrm{SE} = \frac{s}{\sqrt{n}} = ${formatNumber(ci.se)}`" /></p>
+                    <p><MathFormula :formula="String.raw`${formatPercent(confidenceLevel)}\ \mathrm{CI} = \bar{x} \pm t^* \times \mathrm{SE}`" /></p>
+                    <p><MathFormula :formula="String.raw`\left[${formatNumber(ci.lower)},\;${formatNumber(ci.upper)}\right]`" /></p>
                   </div>
                 </details>
               </aside>
@@ -1086,29 +1087,23 @@ watch(intuitionStep, () => {
                 </h3>
                 <div class="formula-stack">
                   <p :class="{ 'is-highlighted': highlightedFormula === 'mean' }">
-                    x̄ = (1/n) Σxᵢ = {{ formatNumber(ci.mean) }}
+                    <MathFormula :formula="String.raw`\bar{x} = \frac{1}{n}\sum x_i = ${formatNumber(ci.mean)}`" />
                   </p>
                   <p :class="{ 'is-highlighted': highlightedFormula === 'bias' }">
-                    Bias = x̄ - μ
-                    {{
-                      intuitionStep === 0
-                        ? `= ${formatNumber(sampleMean - populationMean)}`
-                        : `= ${copy.unknown}`
-                    }}
+                    <MathFormula :formula="String.raw`\mathrm{Bias} = \bar{x} - \mu ${intuitionStep === 0 ? `= ${formatNumber(sampleMean - populationMean)}` : `= \\text{${copy.unknown}}`}`" />
                   </p>
                   <p :class="{ 'is-highlighted': highlightedFormula === 'sd' }">
-                    s = √[Σ(xᵢ - x̄)² / (n - 1)] = {{ formatNumber(ci.sd) }}
+                    <MathFormula :formula="String.raw`s = \sqrt{\frac{\sum(x_i-\bar{x})^2}{n-1}} = ${formatNumber(ci.sd)}`" />
                   </p>
-                  <p>Σ(xᵢ - x̄)² = {{ formatNumber(squaredDeviationSum) }}; df = {{ ci.df }}</p>
+                  <p><MathFormula :formula="String.raw`\sum(x_i-\bar{x})^2 = ${formatNumber(squaredDeviationSum)},\quad \mathrm{df} = ${ci.df}`" /></p>
                   <p
                     v-if="intuitionStep === 3"
                     :class="{ 'is-highlighted': highlightedFormula === 'critical' }"
                   >
-                    t* = t({{ formatNumber(ci.probability, 3) }}, {{ ci.df }}) =
-                    {{ formatNumber(ci.criticalValue, 3) }}
+                    <MathFormula :formula="String.raw`t^* = t\left(${formatNumber(ci.probability, 3)},\,${ci.df}\right) = ${formatNumber(ci.criticalValue, 3)}`" />
                   </p>
                   <p v-if="intuitionStep === 3">
-                    CI = [{{ formatNumber(ci.lower) }}, {{ formatNumber(ci.upper) }}]
+                    <MathFormula :formula="String.raw`\mathrm{CI} = \left[${formatNumber(ci.lower)},\;${formatNumber(ci.upper)}\right]`" />
                   </p>
                 </div>
 
@@ -1703,11 +1698,11 @@ input:focus-visible {
 .formula-stack {
   display: grid;
   gap: 8px;
-  overflow-x: auto;
+  min-width: 0;
 }
 
 .formula-stack p {
-  min-width: max-content;
+  min-width: 0;
   margin: 0;
   padding: 7px 8px;
   border: 1px solid transparent;
