@@ -430,7 +430,10 @@ watch(scenario, resetTransientState);
 function updateMobileHeaderOffset() {
   const header = document.querySelector(".ci-mobile-sticky-header");
   if (!header) return;
-  mobileHeaderOffset.value = Math.round(header.getBoundingClientRect().bottom + 8);
+  const gap = Number.parseFloat(getComputedStyle(header).getPropertyValue("--mobile-sticky-gap")) || 8;
+  // Use layout height rather than viewport position: iOS Safari moves the visual viewport while
+  // its browser chrome expands and collapses, but the stacked sticky controls keep this height.
+  mobileHeaderOffset.value = Math.round(header.offsetHeight + gap);
 }
 
 onMounted(() => {
