@@ -915,7 +915,11 @@ onBeforeUnmount(() => {
       </details>
     </div>
 
-    <div v-else-if="scenario === 'rsd'" class="mean-flow rsd-flow">
+    <div
+      v-else-if="scenario === 'rsd'"
+      class="mean-flow rsd-flow"
+      :class="{ 'has-notice': rsdMeanInvalid || rsdMeanRisk }"
+    >
       <details :open="basisOpen" class="ci-card basis-card" @toggle="basisOpen = $event.currentTarget.open">
         <summary :aria-expanded="basisOpen"><span><strong>{{ rsdCopy.basisTitle }}</strong></span></summary>
         <div class="basis-copy"><p>{{ rsdCopy.basisBody }}</p><div class="display-formula"><MathFormula formula="\chi^2 = \frac{(n-1)s^2}{\sigma^2},\qquad T = \frac{\sqrt{n}\,\bar{x}}{s}" display aria-label="Chi-square and observed t statistics" /></div><p class="formula-note">df = n − 1</p></div>
@@ -1510,9 +1514,203 @@ onBeforeUnmount(() => {
 .references-list a { color: var(--accent); }
 .references-list ol { display: grid; gap: 10px; margin: 0; padding-left: 1.35rem; }
 .chart-note { font-size: 0.78rem; }
+@media (min-width: 768px) {
+  .scenario-field {
+    position: static;
+  }
+}
 @media (min-width: 1024px) {
+  .advanced-applications {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    column-gap: 24px;
+    row-gap: 20px;
+    align-items: start;
+  }
+
+  .advanced-heading {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: center;
+    max-width: 68ch;
+  }
+
+  .scenario-field {
+    grid-row: 1;
+    grid-column: 2;
+    width: 100%;
+    max-width: none;
+  }
+
+  .advanced-applications > .mean-flow,
+  .advanced-applications > .soon-card {
+    grid-column: 1 / -1;
+  }
+
+  .advanced-applications > .soon-card {
+    width: min(720px, 100%);
+  }
+
+  .mean-flow {
+    gap: 16px;
+  }
+
+  .mean-flow:not(.rsd-flow) {
+    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+    grid-template-rows: repeat(5, auto);
+    column-gap: 20px;
+    align-items: start;
+  }
+
+  .mean-flow:not(.rsd-flow) > .basis-card {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+
+  .mean-flow:not(.rsd-flow) > .sample-card {
+    grid-row: 2;
+    grid-column: 1;
+  }
+
+  .mean-flow:not(.rsd-flow) > .t-chart-card {
+    grid-row: 2 / 5;
+    grid-column: 2;
+    justify-self: center;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .mean-flow:not(.rsd-flow) > .result-card {
+    grid-row: 3;
+    grid-column: 1;
+  }
+
+  .mean-flow:not(.rsd-flow) > .confidence-card {
+    grid-row: 4;
+    grid-column: 1;
+  }
+
+  .mean-flow:not(.rsd-flow) > .formula-card {
+    grid-row: 5;
+    grid-column: 1 / -1;
+  }
+
+  .rsd-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+    align-items: start;
+  }
+
+  .rsd-flow > .basis-card:first-child {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+
+  .rsd-flow > .sample-card {
+    grid-row: 2;
+    grid-column: 1;
+  }
+
+  .rsd-flow > .rsd-result-card {
+    grid-row: 2;
+    grid-column: 2;
+  }
+
+  .rsd-flow > .recommendation-card {
+    grid-row: 3;
+    grid-column: 1;
+  }
+
+  .rsd-flow > .confidence-card {
+    grid-row: 3;
+    grid-column: 2;
+  }
+
+  .rsd-flow.has-notice > .rsd-notice {
+    grid-row: 2;
+    grid-column: 2;
+  }
+
+  .rsd-flow.has-notice > .rsd-result-card {
+    grid-row: 3;
+    grid-column: 1 / -1;
+    justify-self: start;
+    width: min(820px, 100%);
+  }
+
+  .rsd-flow.has-notice > .recommendation-card,
+  .rsd-flow.has-notice > .confidence-card {
+    grid-row: 4;
+  }
+
+  .rsd-flow > .method-card,
+  .rsd-flow > .references-card {
+    grid-column: 1 / -1;
+  }
+
   .sample-card {
-    max-width: 560px;
+    width: 100%;
+    max-width: none;
+  }
+
+  .t-chart-card svg {
+    max-width: 620px;
+    margin-inline: auto;
+  }
+
+  .interval-line {
+    flex-wrap: wrap;
+  }
+
+  .interval-line strong {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rsd-results div {
+    grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
+  }
+
+  .rsd-results dt {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .rsd-results dd {
+    justify-self: end;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .basis-copy > p,
+  .method-copy > p,
+  .coverage-copy,
+  .references-list {
+    max-width: 76ch;
+  }
+
+  .basis-copy > .display-formula,
+  .formula-card > .display-formula,
+  .method-copy > .display-formula,
+  .exact-equation {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .formula-steps li,
+  .method-copy,
+  .rsd-results,
+  .rsd-results div {
+    min-width: 0;
   }
 }
 @media (max-width: 767px) {

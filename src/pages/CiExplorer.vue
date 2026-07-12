@@ -998,7 +998,7 @@ watch(intuitionStep, () => {
 
                 <details
                   :open="statisticsOpen"
-                  class="mobile-disclosure"
+                  class="mobile-disclosure statistics-disclosure"
                   @toggle="statisticsOpen = $event.target.open"
                 >
                   <summary>{{ statisticsOpen ? copy.hideStats : copy.viewStats }}</summary>
@@ -1031,7 +1031,7 @@ watch(intuitionStep, () => {
                 <details
                   v-if="intuitionStep === 3"
                   :open="calculationOpen"
-                  class="mobile-disclosure"
+                  class="mobile-disclosure calculation-disclosure"
                   @toggle="calculationOpen = $event.target.open"
                 >
                   <summary>
@@ -1122,35 +1122,37 @@ watch(intuitionStep, () => {
                   {{ copy.decisionClasses[decisionClass] }}
                 </div>
 
-                <table class="sample-table">
-                  <caption>
-                    {{
-                      copy.sampleTable
-                    }}
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th>{{ copy.id }}</th>
-                      <th>{{ copy.value }}</th>
-                      <th>{{ copy.deviation }}</th>
-                      <th>{{ copy.squaredDeviation }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="row in sampleRows"
-                      :key="row.id"
-                      :class="{ 'is-highlighted': highlightedSample === row.id }"
-                      @pointerenter="highlightedSample = row.id"
-                      @pointerleave="highlightedSample = null"
-                    >
-                      <td>{{ row.id }}</td>
-                      <td>{{ formatNumber(row.value) }}</td>
-                      <td>{{ formatNumber(row.deviation) }}</td>
-                      <td>{{ formatNumber(row.squaredDeviation) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div class="sample-table-scroll">
+                  <table class="sample-table">
+                    <caption>
+                      {{
+                        copy.sampleTable
+                      }}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th>{{ copy.id }}</th>
+                        <th>{{ copy.value }}</th>
+                        <th>{{ copy.deviation }}</th>
+                        <th>{{ copy.squaredDeviation }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="row in sampleRows"
+                        :key="row.id"
+                        :class="{ 'is-highlighted': highlightedSample === row.id }"
+                        @pointerenter="highlightedSample = row.id"
+                        @pointerleave="highlightedSample = null"
+                      >
+                        <td>{{ row.id }}</td>
+                        <td>{{ formatNumber(row.value) }}</td>
+                        <td>{{ formatNumber(row.deviation) }}</td>
+                        <td>{{ formatNumber(row.squaredDeviation) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </aside>
             </div>
 
@@ -1938,7 +1940,7 @@ input:focus-visible {
 
 @media (min-width: 768px) {
   .workspace-grid {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
@@ -1965,23 +1967,78 @@ input:focus-visible {
   }
 
   .workspace-grid {
-    grid-template-columns: minmax(0, 7fr) minmax(260px, 3fr) minmax(300px, 4fr);
+    grid-template-areas:
+      "visual controls"
+      "details details";
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+    gap: 16px;
+  }
+
+  .workspace-grid > * {
+    min-width: 0;
+  }
+
+  .visual-workspace {
+    grid-area: visual;
+  }
+
+  .control-panel {
+    grid-area: controls;
+  }
+
+  .control-panel > .calculation-disclosure {
+    display: none;
   }
 
   .desktop-panel {
+    grid-area: details;
     display: grid;
+    grid-template-areas:
+      "heading table"
+      "formula table"
+      "context table";
+    grid-template-columns: minmax(300px, 0.82fr) minmax(480px, 1.18fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     gap: 14px;
+    align-items: start;
     align-content: start;
-    padding: 14px;
+    padding: 16px;
   }
 
   .desktop-panel h3 {
+    grid-area: heading;
     margin: 0;
     font-size: 0.95rem;
   }
 
+  .desktop-panel > .formula-stack {
+    grid-area: formula;
+  }
+
+  .desktop-panel > .formula-stack p {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .desktop-panel > .two-column-note,
+  .desktop-panel > .decision-class {
+    grid-area: context;
+  }
+
+  .sample-table-scroll {
+    grid-area: table;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
   .sample-table {
     width: 100%;
+    min-width: 500px;
+    table-layout: fixed;
     border-collapse: collapse;
     font-family: "IBM Plex Mono", monospace;
     font-size: 0.72rem;
@@ -1999,6 +2056,15 @@ input:focus-visible {
     padding: 6px 4px;
     border-bottom: 1px solid var(--soft-line);
     text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sample-table th {
+    overflow-wrap: anywhere;
+  }
+
+  .sample-table td {
+    white-space: nowrap;
   }
 
   .sample-table th:first-child,
@@ -2057,6 +2123,12 @@ input:focus-visible {
 
   .desktop-application-details {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .content-anchor {
+    width: min(1240px, calc(100% - var(--bc-container-inline, 48px)));
   }
 
   .question-grid {
