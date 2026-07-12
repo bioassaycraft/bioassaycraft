@@ -34,6 +34,8 @@ const methodOpen = ref({ naive: false, mckay: false, vangel: false, exact: false
 const recommendationOpen = ref(false);
 const referencesOpen = ref(false);
 const touched = ref({ n: false, mean: false, sd: false });
+const variabilityTouched = ref({ n: false, sd: false });
+const rsdTouched = ref({ n: false, mean: false, sd: false });
 const mobileHeaderOffset = ref(null);
 let mobileHeaderObserver = null;
 let exactRsdRequest = 0;
@@ -174,7 +176,7 @@ const rsdText = {
   zh: {
     basisTitle: "分布与方法依据：卡方分布与非中心 t 分布",
     basisBody: "RSD 是标准差与均值的比值，因此它的置信区间不能只考虑标准差的变化。朴素区间、McKay 和 Vangel 方法主要借助卡方分布构造近似区间；精确方法进一步利用非中心 t 分布，同时处理均值和标准差的不确定性。",
-    sampleTitle: "样本信息", n: "样本量 n", mean: "样本均值", sd: "样本标准差",
+    sampleTitle: "样本信息", n: "样本量 n", mean: "样本均值", sd: "样本标准差", nError: "请输入 2–10000 之间的整数。", meanError: "请输入有效的有限数值。", sdError: "请输入大于或等于 0 的有限数值。", zeroSd: "当前输入表示所有观测值完全相同。",
     chartTitle: "卡方分布临界值", chartNote: "Naive、McKay 和 Vangel 方法使用这些卡方临界值；精确方法还需使用非中心 t 分布。",
     resultTitle: "RSD 的置信区间", observed: "Observed RSD", unavailable: "无法计算", confidence: "置信区间",
     recommendation: "推荐等级", recommendedMethod: "推荐方法为：", assumption: "本推荐假设原始数据近似正态，且 RSD 适用于该测量尺度。仅凭汇总统计量无法检验正态性。",
@@ -205,7 +207,7 @@ const rsdText = {
   },
   en: {
     basisTitle: "Distribution Basis: Chi-square and Noncentral t", basisBody: "RSD is the ratio of the standard deviation to the mean, so its confidence interval cannot consider only variation in the standard deviation. Naive, McKay, and Vangel methods mainly use chi-square approximations; the exact method additionally uses the noncentral t distribution to account for uncertainty in both the mean and standard deviation.",
-    sampleTitle: "Sample information", n: "Sample size n", mean: "Sample mean", sd: "Sample standard deviation", chartTitle: "Chi-square Critical Values", chartNote: "Naive, McKay, and Vangel methods use these chi-square critical values. The exact method additionally uses the noncentral t distribution.",
+    sampleTitle: "Sample information", n: "Sample size n", mean: "Sample mean", sd: "Sample standard deviation", nError: "Enter an integer from 2 to 10000.", meanError: "Enter a valid finite number.", sdError: "Enter a finite number greater than or equal to 0.", zeroSd: "The current input represents observations that are all identical.", chartTitle: "Chi-square Critical Values", chartNote: "Naive, McKay, and Vangel methods use these chi-square critical values. The exact method additionally uses the noncentral t distribution.",
     resultTitle: "Confidence Interval for RSD", observed: "Observed RSD", unavailable: "Unavailable", confidence: "confidence interval", recommendation: "Recommendation Level", recommendedMethod: "Recommended method: ", assumption: "This recommendation assumes approximately normal raw data and a measurement scale for which RSD is meaningful. Normality cannot be assessed from summary statistics alone.",
     meanInvalid: "The sample mean is not greater than zero. A conventional RSD is not stable or readily interpretable under this condition, so confidence intervals are not calculated.", meanRisk: "The mean is small relative to the standard deviation, so RSD is highly sensitive to changes in the mean. First confirm that RSD is appropriate for this data.", references: "Methods and References",
     methods: { naive: "Method 1: Naive Interval", mckay: "Method 2: McKay Approximation", vangel: "Method 3: Vangel Modification", exact: "Method 4: Exact Method" },
@@ -263,6 +265,10 @@ const variabilityParsed = computed(() => ({
   n: Number(variabilityInputs.value.n),
   sd: Number(variabilityInputs.value.sd),
 }));
+const variabilityErrors = computed(() => ({
+  n: variabilityInputs.value.n.trim() === "" || !Number.isInteger(variabilityParsed.value.n) || variabilityParsed.value.n < 2 || variabilityParsed.value.n > 10000,
+  sd: variabilityInputs.value.sd.trim() === "" || !Number.isFinite(variabilityParsed.value.sd) || variabilityParsed.value.sd < 0,
+}));
 const variabilityValid = computed(
   () =>
     Number.isInteger(variabilityParsed.value.n) &&
@@ -286,6 +292,11 @@ const rsdParsed = computed(() => ({
   n: Number(rsdInputs.value.n), mean: Number(rsdInputs.value.mean), sd: Number(rsdInputs.value.sd), confidenceLevel: rsdInputs.value.confidence,
 }));
 const rsdValidation = computed(() => validateRsdInput(rsdParsed.value));
+const rsdErrors = computed(() => ({
+  n: rsdInputs.value.n.trim() === "" || !Number.isInteger(rsdParsed.value.n) || rsdParsed.value.n < 2 || rsdParsed.value.n > 10000,
+  mean: rsdInputs.value.mean.trim() === "" || !Number.isFinite(rsdParsed.value.mean),
+  sd: rsdInputs.value.sd.trim() === "" || !Number.isFinite(rsdParsed.value.sd) || rsdParsed.value.sd < 0,
+}));
 const observedRsd = computed(() => calculateObservedRsd(rsdParsed.value.mean, rsdParsed.value.sd));
 const rsdMethods = computed(() => ({
   naive: calculateNaiveRsdCI(rsdParsed.value), mckay: calculateMckayRsdCI(rsdParsed.value), vangel: calculateVangelRsdCI(rsdParsed.value), exact: exactRsdResult.value,
@@ -345,16 +356,6 @@ function formatRsd(value) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(percentage)}%`;
-}
-function formatRsdRatio(value) {
-  if (!Number.isFinite(value)) return "—";
-  if (value !== 0 && (Math.abs(value) < 1e-4 || Math.abs(value) >= 1e4)) {
-    return value.toExponential(3);
-  }
-  return new Intl.NumberFormat(props.language === "zh" ? "zh-CN" : "en-US", {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(value);
 }
 function formatExactValue(value) {
   if (!Number.isFinite(value)) return "—";
@@ -478,6 +479,8 @@ function resetTransientState() {
   recommendationOpen.value = false;
   referencesOpen.value = false;
   touched.value = { n: false, mean: false, sd: false };
+  variabilityTouched.value = { n: false, sd: false };
+  rsdTouched.value = { n: false, mean: false, sd: false };
 }
 watch(scenario, resetTransientState);
 
@@ -546,7 +549,7 @@ onBeforeUnmount(() => {
 
       <section class="ci-card sample-card">
         <h3>{{ copy.sampleTitle }}</h3>
-        <div class="sample-fields">
+        <div class="sample-fields mean-sample-fields">
           <label class="sample-size-field">
             <span>{{ copy.n }}</span>
             <input
@@ -774,16 +777,22 @@ onBeforeUnmount(() => {
               v-model="variabilityInputs.n"
               type="text"
               inputmode="numeric"
+              :aria-invalid="variabilityTouched.n && variabilityErrors.n"
+              aria-describedby="variability-n-message"
               @input="markChanged"
-          /></label>
+              @blur="variabilityTouched.n = true"
+            /><small v-if="variabilityTouched.n && variabilityErrors.n" id="variability-n-message" class="field-error">{{ rsdCopy.nError }}</small></label>
           <label class="sample-value-field"
               ><span>{{ copy.sd }}</span
               ><input
                 v-model="variabilityInputs.sd"
                 type="text"
                 inputmode="decimal"
+                :aria-invalid="variabilityTouched.sd && variabilityErrors.sd"
+                aria-describedby="variability-sd-message"
                 @input="markChanged"
-            /></label>
+                @blur="variabilityTouched.sd = true"
+            /><small v-if="variabilityTouched.sd && variabilityErrors.sd" id="variability-sd-message" class="field-error">{{ rsdCopy.sdError }}</small><small v-else-if="variabilityValid && variabilityParsed.sd === 0" id="variability-sd-message">{{ rsdCopy.zeroSd }}</small></label>
         </div>
       </section>
 
@@ -915,10 +924,10 @@ onBeforeUnmount(() => {
       <section class="ci-card sample-card">
         <h3>{{ rsdCopy.sampleTitle }}</h3>
         <div class="sample-fields">
-          <label class="sample-size-field"><span>{{ rsdCopy.n }}</span><input v-model="rsdInputs.n" type="text" inputmode="numeric" /></label>
+          <label class="sample-size-field"><span>{{ rsdCopy.n }}</span><input v-model="rsdInputs.n" type="text" inputmode="numeric" :aria-invalid="rsdTouched.n && rsdErrors.n" aria-describedby="rsd-n-message" @blur="rsdTouched.n = true" /><small v-if="rsdTouched.n && rsdErrors.n" id="rsd-n-message" class="field-error">{{ rsdCopy.nError }}</small></label>
           <div class="sample-measure-row">
-            <label><span>{{ rsdCopy.mean }}</span><input v-model="rsdInputs.mean" type="text" inputmode="decimal" /></label>
-            <label><span>{{ rsdCopy.sd }}</span><input v-model="rsdInputs.sd" type="text" inputmode="decimal" /></label>
+            <label><span>{{ rsdCopy.mean }}</span><input v-model="rsdInputs.mean" type="text" inputmode="decimal" :aria-invalid="rsdTouched.mean && rsdErrors.mean" aria-describedby="rsd-mean-message" @blur="rsdTouched.mean = true" /><small v-if="rsdTouched.mean && rsdErrors.mean" id="rsd-mean-message" class="field-error">{{ rsdCopy.meanError }}</small></label>
+            <label><span>{{ rsdCopy.sd }}</span><input v-model="rsdInputs.sd" type="text" inputmode="decimal" :aria-invalid="rsdTouched.sd && rsdErrors.sd" aria-describedby="rsd-sd-message" @blur="rsdTouched.sd = true" /><small v-if="rsdTouched.sd && rsdErrors.sd" id="rsd-sd-message" class="field-error">{{ rsdCopy.sdError }}</small><small v-else-if="rsdValidation.valid && rsdParsed.sd === 0" id="rsd-sd-message">{{ rsdCopy.zeroSd }}</small></label>
           </div>
         </div>
       </section>
@@ -1283,11 +1292,14 @@ onBeforeUnmount(() => {
 .sample-fields {
   display: grid;
   gap: 12px;
+  --sample-input-height: 46px;
+  --field-message-height: 2.7em;
 }
 .sample-measure-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  align-items: start;
 }
 .sample-fields label {
   display: grid;
@@ -1298,7 +1310,8 @@ onBeforeUnmount(() => {
 }
 .sample-fields input {
   width: 100%;
-  min-height: 46px;
+  height: var(--sample-input-height);
+  min-height: var(--sample-input-height);
   box-sizing: border-box;
   padding: 0 11px;
   border: 1px solid var(--soft-line);
@@ -1308,10 +1321,41 @@ onBeforeUnmount(() => {
   font-family: "IBM Plex Mono", monospace;
   font-size: 16px;
 }
+.sample-measure-row > label {
+  grid-template-rows: auto var(--sample-input-height) minmax(var(--field-message-height), auto);
+  align-content: start;
+}
+.sample-fields small {
+  display: block;
+  min-height: var(--field-message-height);
+  line-height: 1.35;
+}
+.sample-size-field > small,
+.sample-value-field > small {
+  grid-column: 1 / -1;
+}
+.mean-sample-fields .sample-size-field {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+}
+.mean-sample-fields .sample-size-field > input {
+  grid-column: 2;
+}
+.mean-sample-fields .sample-size-field > small {
+  text-align: right;
+}
+.mean-sample-fields .sample-measure-row > label,
+.rsd-flow .sample-measure-row > label {
+  grid-template-rows: auto var(--sample-input-height) auto;
+}
+.mean-sample-fields small,
+.rsd-flow .sample-fields small {
+  min-height: 0;
+}
 .sd-sample-fields .sample-size-field,
 .sd-sample-fields .sample-value-field {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 46%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
   column-gap: 10px;
 }
@@ -1323,6 +1367,12 @@ onBeforeUnmount(() => {
 .sd-sample-fields .sample-value-field > input {
   grid-column: 2;
   text-align: right;
+}
+.sd-sample-fields .sample-size-field > small,
+.sd-sample-fields .sample-value-field > small,
+.rsd-flow .sample-size-field > small {
+  grid-column: 2;
+  text-align: left;
 }
 .rsd-flow .sample-size-field {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1582,6 +1632,8 @@ onBeforeUnmount(() => {
   .sample-fields,
   .sample-measure-row {
     gap: 6px;
+    --sample-input-height: 36px;
+    --field-message-height: 2.7em;
   }
   .sample-fields label {
     gap: 4px;
@@ -1593,10 +1645,14 @@ onBeforeUnmount(() => {
     align-items: center;
     column-gap: 8px !important;
   }
+  .mean-sample-fields .sample-size-field {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 6px !important;
+  }
   .sd-sample-fields .sample-size-field,
   .sd-sample-fields .sample-value-field {
-    grid-template-columns: minmax(0, 1fr) 86px;
-    column-gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 6px;
   }
   .sample-size-field small {
     grid-column: 1 / -1;
