@@ -63,9 +63,9 @@ a,
   top: 0;
   z-index: 20;
   display: grid;
-  justify-content: start;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: clamp(14px, 1.4vw, 18px);
-  align-items: start;
+  align-items: center;
   padding: 32px 0 22px;
   background: color-mix(in srgb, var(--app-bg) 90%, transparent);
   backdrop-filter: blur(12px);
@@ -92,8 +92,47 @@ a,
   font-size: 0.98rem;
 }
 
+.site-header-language {
+  display: inline-flex;
+  grid-column: 2;
+  grid-row: 1;
+  gap: 4px;
+  width: 92px;
+  height: 36px;
+  min-height: 36px;
+  padding: 3px;
+  border: 1px solid var(--app-rule-subtle);
+  border-radius: 11px;
+  background: var(--app-glass);
+  box-shadow: var(--app-card-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.site-header-language button {
+  flex: 1;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.site-header-language button.is-active {
+  background: var(--bc-bg-selected);
+  color: var(--app-text);
+}
+
+.site-header-language button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--app-focus);
+}
+
 .site-nav {
   display: inline-flex;
+  grid-column: 1 / -1;
+  grid-row: 2;
   gap: clamp(22px, 2.85vw, 34px);
   align-items: center;
   padding-left: 50px;
@@ -183,6 +222,10 @@ a,
   .site-header {
     gap: 10px;
     padding: 16px 0 12px;
+  }
+
+  .site-header-language {
+    display: none;
   }
 
   .brand-link {

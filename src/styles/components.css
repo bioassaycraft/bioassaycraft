@@ -62,9 +62,6 @@ h2 {
 .home-scene {
   position: relative;
   display: grid;
-  min-height: clamp(560px, 82svh, 760px);
-  align-items: center;
-  padding: clamp(58px, 8vw, 108px) 0;
   scroll-margin-top: 112px;
 }
 
@@ -194,9 +191,10 @@ h2 {
 }
 
 .content-scene {
-  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1fr);
-  gap: clamp(48px, 9vw, 130px);
-  align-items: center;
+  grid-template-columns: minmax(212px, 0.7fr) minmax(0, 1.48fr);
+  gap: clamp(42px, 6vw, 82px);
+  align-items: start;
+  padding: clamp(70px, 8vw, 108px) 0;
 }
 
 .scene-heading {
@@ -205,122 +203,190 @@ h2 {
   max-width: 620px;
 }
 
+@media (min-width: 768px) {
+  .scene-heading .heading-line {
+    display: block;
+  }
+}
+
 .scene-note {
   color: var(--app-muted);
   font-size: clamp(1rem, 1.6vw, 1.18rem);
   line-height: 1.55;
 }
 
-.learn-list {
+.desktop-card-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px 42px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
   margin: 0;
   padding: 0;
-  color: var(--app-text);
   list-style: none;
 }
 
-.learn-list li {
-  display: grid;
-  gap: 8px;
-  padding-top: 14px;
-  border-top: 1px solid var(--app-rule);
-  line-height: 1.4;
+.desktop-card-grid li {
+  min-width: 0;
 }
 
-.learn-list a {
+.desktop-hub-card {
+  position: relative;
   display: grid;
-  gap: 8px;
-  color: inherit;
+  align-content: space-between;
+  min-height: 144px;
+  gap: 26px;
+  height: 100%;
+  padding: 16px 18px 17px;
+  color: var(--app-text);
+  border: 1px solid var(--app-rule-subtle);
+  border-radius: 18px;
+  background: var(--app-glass);
+  box-shadow: var(--app-card-shadow);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
   text-decoration: none;
 }
 
-.learn-list strong {
-  color: var(--app-text);
-  font-size: clamp(0.98rem, 1.46vw, 1.2rem);
-  font-weight: 600;
-  line-height: 1.28;
+.desktop-hub-card::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--app-accent-soft), transparent 54%);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
 }
 
-.learn-list span {
+.desktop-card-status {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  width: fit-content;
   color: var(--app-muted);
-  font-size: 0.82rem;
+  font-size: 0.62rem;
+  font-weight: 680;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.desktop-card-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--app-accent);
+}
+
+.desktop-card-status.is-ready {
+  color: var(--app-accent);
+}
+
+.desktop-card-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+  align-self: end;
+  max-width: 31ch;
+}
+
+.desktop-card-copy strong {
+  font-size: clamp(1rem, 1.12vw, 1.2rem);
+  font-weight: 680;
+  line-height: 1.22;
+}
+
+.desktop-card-copy small {
+  color: var(--app-muted);
+  font-size: 0.78rem;
   font-weight: 500;
   line-height: 1.45;
 }
 
-.journey-list,
-.tool-list {
-  display: grid;
-  gap: 0;
-  border-top: 1px solid var(--app-rule);
-}
-
-.journey-link,
-.tool-link {
-  display: grid;
-  gap: 6px;
-  padding: 22px 0;
-  color: var(--app-text);
-  border-bottom: 1px solid var(--app-rule);
-  text-decoration: none;
-}
-
-.journey-link span,
-.tool-link span {
-  font-size: clamp(0.98rem, 1.46vw, 1.2rem);
-  font-weight: 600;
-  line-height: 1.28;
-  transition: color 180ms ease;
-}
-
-.journey-link small,
-.tool-link small {
-  color: var(--app-muted);
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
-.journey-link span::after,
-.tool-link span::after {
-  display: inline-block;
-  margin-left: 8px;
+.desktop-card-arrow {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  z-index: 1;
   color: var(--app-accent);
-  content: "→";
-  opacity: 0.72;
-  transition: transform 180ms ease;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
 }
 
-.journey-link:hover span,
-.journey-link:focus-visible span,
-.tool-link:hover span,
-.tool-link:focus-visible span {
-  color: var(--app-accent);
+.desktop-hub-card.is-linked {
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
-.journey-link:hover span::after,
-.journey-link:focus-visible span::after,
-.tool-link:hover span::after,
-.tool-link:focus-visible span::after {
-  transform: translateX(3px);
+.desktop-hub-card.is-linked:hover,
+.desktop-hub-card.is-linked:focus-visible {
+  border-color: var(--bc-accent-border);
+  background: var(--app-surface-elevated);
+  box-shadow: var(--bc-shadow-card-strong);
+  outline: none;
 }
 
-.tools-scene h2 {
-  max-width: 520px;
+.desktop-hub-card.is-linked:focus-visible {
+  box-shadow:
+    var(--bc-shadow-card-strong),
+    0 0 0 4px var(--app-focus);
 }
 
-.tools-scene .tool-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px 42px;
-  border-top: 0;
+.desktop-hub-card.is-linked:hover::before,
+.desktop-hub-card.is-linked:focus-visible::before {
+  opacity: 1;
 }
 
-.tools-scene .tool-link {
-  gap: 7px;
-  padding: 16px 0 18px;
-  border-top: 1px solid var(--app-rule);
-  border-bottom: 0;
+.desktop-hub-card.is-linked:hover .desktop-card-arrow,
+.desktop-hub-card.is-linked:focus-visible .desktop-card-arrow {
+  opacity: 0.86;
+  transform: translateX(0);
+}
+
+.desktop-learn-grid li:nth-child(1) {
+  grid-column: span 7;
+}
+
+.desktop-learn-grid li:nth-child(2) {
+  grid-column: span 5;
+}
+
+.desktop-learn-grid li:nth-child(3) {
+  grid-column: span 12;
+}
+
+.desktop-journey-grid li:nth-child(1) {
+  grid-column: span 7;
+}
+
+.desktop-journey-grid li:nth-child(2) {
+  grid-column: span 5;
+}
+
+.desktop-journey-grid li:nth-child(3) {
+  grid-column: span 12;
+}
+
+.desktop-tools-grid li:nth-child(odd) {
+  grid-column: span 7;
+}
+
+.desktop-tools-grid li:nth-child(even) {
+  grid-column: span 5;
+}
+
+.desktop-learn-grid .desktop-hub-card,
+.desktop-journey-grid .desktop-hub-card {
+  min-height: 156px;
 }
 
 .panel {

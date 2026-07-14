@@ -2,13 +2,10 @@
 import { scaleLinear } from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MobileStepController from "../components/anova/MobileStepController.vue";
-import BcTooltip from "../components/common/BcTooltip.vue";
-import MathFormula from "../components/common/MathFormula.vue";
 import AdvancedApplications from "../components/ci/AdvancedApplications.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import {
-  classifyIntervalAgainstSpecification,
   confidenceInterval,
   createSeededRandom,
   cv,
@@ -31,16 +28,15 @@ const sectionPanel = ref(null);
 const isHeaderMorphed = ref(false);
 const activeSection = ref(readInitialSection());
 const intuitionStep = ref(0);
-const mode = ref("precision");
 const populationMean = ref(100);
 const targetBias = ref(4);
 const spread = ref(1);
 const seed = ref(41);
 const confidenceLevel = ref(0.95);
-const statisticsOpen = ref(false);
-const calculationOpen = ref(false);
 const highlightedSample = ref(null);
-const highlightedFormula = ref("");
+const isDesktopViewport = () =>
+  typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+const statisticsOpen = ref(isDesktopViewport());
 
 let scrollFrame = null;
 
@@ -131,6 +127,12 @@ const copyByLanguage = {
       "Unless...",
       "We quantify confidence.",
       "If the decision is based on an interval rather than a single value, and we state our confidence that this interval contains the population mean, then we have information that can support a decision.",
+    ],
+    desktopDecisionBridge: [
+      "One acceptable sample mean does not prove the population mean is acceptable; a repeat sample may differ.",
+      "A single observed value is not enough for a decision.",
+      "We quantify confidence by using the results to infer the likely range for the population mean.",
+      "If the 95% confidence interval lies within the specification, we can support an acceptable decision even without knowing the population mean.",
     ],
     estimateInterval: "Estimate interval",
     needRange: "We need to estimate the range in which the population parameter may lie.",
@@ -300,6 +302,12 @@ const copyByLanguage = {
       "如果这个范围处于可接受标准内，",
       "即使我们不知道总体均值是多少，我们仍有“信心”认为总体均值符合可接受标准！",
     ],
+    desktopDecisionBridge: [
+      "一次样本均值合格，不能证明总体均值合格；复测的均值仍可能不同。",
+      "只看当前数值，还不足以作出可靠决策。",
+      "需要把“信心”量化：基于检测结果，推测总体均值的可能范围。",
+      "若 95% 置信区间完全位于可接受范围内，即使总体均值未知，也有足够依据支持“符合标准”的判断。",
+    ],
     estimateInterval: "进行区间估计",
     needRange: "我们需要估计总体参数可能位于什么范围。",
     specificationRange: "可接受质量标准",
@@ -396,25 +404,6 @@ const sampleSd = computed(() => sampleStandardDeviation(sampleValues.value));
 const sampleRsd = computed(() => cv(sampleValues.value));
 const effectiveConfidenceLevel = computed(() => Math.min(confidenceLevel.value, 0.999));
 const ci = computed(() => confidenceInterval(sampleValues.value, effectiveConfidenceLevel.value));
-const decisionClass = computed(() =>
-  classifyIntervalAgainstSpecification(
-    ci.value.lower,
-    ci.value.upper,
-    specificationLower,
-    specificationUpper,
-  ),
-);
-const squaredDeviationSum = computed(() =>
-  sampleValues.value.reduce((sum, value) => sum + (value - sampleMean.value) ** 2, 0),
-);
-const sampleRows = computed(() =>
-  sampleValues.value.map((value, index) => ({
-    id: index + 1,
-    value,
-    deviation: value - sampleMean.value,
-    squaredDeviation: (value - sampleMean.value) ** 2,
-  })),
-);
 const mainStats = computed(() => [
   { label: copy.value.n, value: sampleValues.value.length },
   { label: copy.value.sampleMean, value: formatNumber(sampleMean.value) },
@@ -487,13 +476,6 @@ const axisSummary = computed(() => {
   }
   return `${copy.value.populationMean} ${formatNumber(populationMean.value)}, ${copy.value.sampleMean} ${formatNumber(sampleMean.value)}, ${copy.value.biasLabel} ${formatNumber(sampleMean.value - populationMean.value)}.`;
 });
-const sliderLabel = computed(() =>
-  mode.value === "precision" ? copy.value.spread : copy.value.bias,
-);
-const sliderValue = computed(() => (mode.value === "precision" ? spread.value : targetBias.value));
-const sliderMin = computed(() => (mode.value === "precision" ? 0 : -10));
-const sliderMax = computed(() => (mode.value === "precision" ? 2 : 10));
-const sliderStep = computed(() => (mode.value === "precision" ? 0.25 : 0.25));
 const sampleMeanTarget = computed(() => populationMean.value + targetBias.value);
 
 function readInitialSection() {
@@ -541,30 +523,16 @@ function handleSectionKeydown(event, index, tabPrefix = "") {
   });
 }
 
-function updateSlider(event) {
-  const value = Number(event.target.value);
-  if (mode.value === "precision") {
-    spread.value = value;
-    highlightedFormula.value = "sd";
-  } else {
-    targetBias.value = value;
-    highlightedFormula.value = "bias";
-  }
-}
-
 function updateSampleMeanTarget(event) {
   targetBias.value = Number(event.target.value) - populationMean.value;
-  highlightedFormula.value = "bias";
 }
 
 function updateSpread(event) {
   spread.value = Number(event.target.value);
-  highlightedFormula.value = "sd";
 }
 
 function updateConfidence(event) {
   confidenceLevel.value = Number(event.target.value) / 100;
-  highlightedFormula.value = "critical";
 }
 
 function scrollIntuitionToStart() {
@@ -581,6 +549,10 @@ function goToAdjacentIntuitionStep(direction) {
 function setIntuitionStepById(stepId) {
   const nextIndex = intuitionStepIds.indexOf(stepId);
   if (nextIndex >= 0) intuitionStep.value = nextIndex;
+}
+
+function setLanguage(locale) {
+  setLocale(locale);
 }
 
 function createInteractionSeed() {
@@ -604,7 +576,6 @@ function regenerate() {
   seed.value = nextSeed;
   targetBias.value = Number(((random() - 0.5) * 8).toFixed(2));
   spread.value = Number((random() * 2).toFixed(2));
-  highlightedFormula.value = "";
 }
 
 function requestScrollState() {
@@ -650,7 +621,7 @@ watch(intuitionStep, () => {
       :language-label="copy.languageLabel"
       :home-label="copy.home"
       :is-morphed="isHeaderMorphed"
-      @set-language="setLocale"
+      @set-language="setLanguage"
     />
 
     <div class="ci-mobile-sticky-header" :aria-label="copy.sectionLabel">
@@ -663,7 +634,7 @@ watch(intuitionStep, () => {
         :language-label="copy.languageLabel"
         :home-label="copy.home"
         :show-selector="false"
-        @set-language="setLocale"
+        @set-language="setLanguage"
       />
 
       <div class="mobile-section-tabs" :aria-label="copy.sectionLabel">
@@ -695,21 +666,46 @@ watch(intuitionStep, () => {
     </div>
 
     <section class="section-handle" :aria-label="copy.sectionLabel">
-      <div class="section-tabs" role="tablist">
-        <button
-          v-for="(section, index) in sections"
-          :key="section"
-          type="button"
-          role="tab"
-          :data-section-tab="section"
-          :aria-selected="activeSection === section"
-          :tabindex="activeSection === section ? 0 : -1"
-          :class="{ 'is-active': activeSection === section }"
-          @click="setSection(section)"
-          @keydown="handleSectionKeydown($event, index)"
-        >
-          {{ copy.sections[section] }}
-        </button>
+      <div class="desktop-navigation-group desktop-section-group">
+        <span>{{ copy.sectionLabel }}</span>
+        <div class="section-tabs" role="tablist">
+          <button
+            v-for="(section, index) in sections"
+            :key="section"
+            type="button"
+            role="tab"
+            :data-section-tab="section"
+            :aria-selected="activeSection === section"
+            :tabindex="activeSection === section ? 0 : -1"
+            :class="{ 'is-active': activeSection === section }"
+            @click="setSection(section)"
+            @keydown="handleSectionKeydown($event, index)"
+          >
+            {{ copy.sections[section] }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-if="activeSection === 'intuition'"
+        class="desktop-navigation-group desktop-intuition-group"
+      >
+        <span>{{ mobileStepControllerCopy.stepsLabel }}</span>
+        <div class="desktop-step-tabs" role="tablist">
+          <button
+            v-for="(step, index) in intuitionStepIds"
+            :key="step"
+            type="button"
+            role="tab"
+            :aria-selected="intuitionStep === index"
+            :tabindex="intuitionStep === index ? 0 : -1"
+            :class="{ 'is-active': intuitionStep === index }"
+            @click="intuitionStep = index"
+          >
+            <span class="step-index">{{ index + 1 }}</span>
+            {{ mobileIntuitionStepNames[index] }}
+          </button>
+        </div>
       </div>
     </section>
 
@@ -723,7 +719,7 @@ watch(intuitionStep, () => {
               <p>{{ activeStepCopy.subtitle }}</p>
             </div>
 
-            <div class="workspace-grid">
+            <div class="workspace-grid" :class="{ 'has-decision-step': intuitionStep === 2 }">
               <article class="visual-workspace">
                 <svg
                   class="sampling-svg"
@@ -936,42 +932,6 @@ watch(intuitionStep, () => {
                   </label>
                 </div>
 
-                <div class="mode-switch" :aria-label="copy.modeLabel">
-                  <button
-                    type="button"
-                    :class="{ 'is-active': mode === 'precision' }"
-                    @click="mode = 'precision'"
-                  >
-                    {{ copy.precisionMode }}
-                  </button>
-                  <button
-                    type="button"
-                    :class="{ 'is-active': mode === 'accuracy' }"
-                    @click="mode = 'accuracy'"
-                  >
-                    {{ copy.accuracyMode }}
-                  </button>
-                </div>
-
-                <label class="range-control">
-                  <span>
-                    <span>{{ sliderLabel }}</span>
-                    <strong>{{ formatNumber(sliderValue) }}</strong>
-                  </span>
-                  <input
-                    type="range"
-                    :min="sliderMin"
-                    :max="sliderMax"
-                    :step="sliderStep"
-                    :value="sliderValue"
-                    @input="updateSlider"
-                  />
-                </label>
-
-                <button type="button" class="quiet-button desktop-regenerate" @click="regenerate">
-                  {{ copy.regenerate }}
-                </button>
-
                 <div v-if="intuitionStep === 1" class="unknown-card">
                   <strong>{{ copy.unknownBias }}</strong>
                   <span>{{ copy.unknownBiasReason }}</span>
@@ -980,6 +940,13 @@ watch(intuitionStep, () => {
                 <div v-if="intuitionStep === 2" class="unknown-card decision-prompt-card">
                   <span v-for="line in copy.decisionPromptLines" :key="line">{{ line }}</span>
                 </div>
+
+                <section
+                  v-if="intuitionStep === 2"
+                  class="decision-flow decision-bridge desktop-decision-bridge"
+                >
+                  <p v-for="paragraph in copy.desktopDecisionBridge" :key="paragraph">{{ paragraph }}</p>
+                </section>
 
                 <label v-if="intuitionStep === 3" class="confidence-control interval-confidence">
                   <span>
@@ -995,62 +962,14 @@ watch(intuitionStep, () => {
                     @input="updateConfidence"
                   />
                 </label>
-
-                <details
-                  :open="statisticsOpen"
-                  class="mobile-disclosure statistics-disclosure"
-                  @toggle="statisticsOpen = $event.target.open"
-                >
-                  <summary>{{ statisticsOpen ? copy.hideStats : copy.viewStats }}</summary>
-                  <dl class="mini-stats">
-                    <div v-for="item in mainStats" :key="item.label">
-                      <dt>{{ item.label }}</dt>
-                      <dd>{{ item.value }}</dd>
-                    </div>
-                    <div v-if="intuitionStep === 0">
-                      <dt>{{ copy.populationMean }}</dt>
-                      <dd>{{ formatNumber(populationMean) }}</dd>
-                    </div>
-                    <div v-else>
-                      <dt>μ</dt>
-                      <dd>{{ copy.unknown }}</dd>
-                    </div>
-                    <div>
-                      <dt>{{ copy.biasLabel }}</dt>
-                      <dd>
-                        {{
-                          intuitionStep === 0
-                            ? formatNumber(sampleMean - populationMean)
-                            : copy.unknown
-                        }}
-                      </dd>
-                    </div>
-                  </dl>
-                </details>
-
-                <details
-                  v-if="intuitionStep === 3"
-                  :open="calculationOpen"
-                  class="mobile-disclosure calculation-disclosure"
-                  @toggle="calculationOpen = $event.target.open"
-                >
-                  <summary>
-                    {{ calculationOpen ? copy.hideCalculation : copy.viewCalculation }}
-                  </summary>
-                  <div class="formula-stack compact">
-                    <p><MathFormula :formula="`\\bar{x} = ${formatNumber(ci.mean)}`" /></p>
-                    <p><MathFormula :formula="`s = ${formatNumber(ci.sd)}`" /></p>
-                    <p><MathFormula :formula="String.raw`\mathrm{SE} = \frac{s}{\sqrt{n}} = ${formatNumber(ci.se)}`" /></p>
-                    <p><MathFormula :formula="String.raw`${formatPercent(confidenceLevel)}\ \mathrm{CI} = \bar{x} \pm t^* \times \mathrm{SE}`" /></p>
-                    <p><MathFormula :formula="String.raw`\left[${formatNumber(ci.lower)},\;${formatNumber(ci.upper)}\right]`" /></p>
-                  </div>
-                </details>
               </aside>
 
               <details
                 v-if="intuitionStep !== 2"
                 class="mobile-stat-card mobile-stat-disclosure"
                 :aria-label="copy.viewStats"
+                :open="statisticsOpen"
+                @toggle="statisticsOpen = $event.currentTarget.open"
               >
                 <summary>{{ copy.viewStats }}</summary>
                 <dl class="mini-stats">
@@ -1078,85 +997,9 @@ watch(intuitionStep, () => {
                   </div>
                 </dl>
               </details>
-
-              <aside class="desktop-panel">
-                <h3>
-                  <BcTooltip :text="copy.ciPrototype" placement="bottom">
-                    <span>{{ copy.formulas }}</span>
-                  </BcTooltip>
-                </h3>
-                <div class="formula-stack">
-                  <p :class="{ 'is-highlighted': highlightedFormula === 'mean' }">
-                    <MathFormula :formula="String.raw`\bar{x} = \frac{1}{n}\sum x_i = ${formatNumber(ci.mean)}`" />
-                  </p>
-                  <p :class="{ 'is-highlighted': highlightedFormula === 'bias' }">
-                    <MathFormula :formula="String.raw`\mathrm{Bias} = \bar{x} - \mu ${intuitionStep === 0 ? `= ${formatNumber(sampleMean - populationMean)}` : `= \\text{${copy.unknown}}`}`" />
-                  </p>
-                  <p :class="{ 'is-highlighted': highlightedFormula === 'sd' }">
-                    <MathFormula :formula="String.raw`s = \sqrt{\frac{\sum(x_i-\bar{x})^2}{n-1}} = ${formatNumber(ci.sd)}`" />
-                  </p>
-                  <p><MathFormula :formula="String.raw`\sum(x_i-\bar{x})^2 = ${formatNumber(squaredDeviationSum)},\quad \mathrm{df} = ${ci.df}`" /></p>
-                  <p
-                    v-if="intuitionStep === 3"
-                    :class="{ 'is-highlighted': highlightedFormula === 'critical' }"
-                  >
-                    <MathFormula :formula="String.raw`t^* = t\left(${formatNumber(ci.probability, 3)},\,${ci.df}\right) = ${formatNumber(ci.criticalValue, 3)}`" />
-                  </p>
-                  <p v-if="intuitionStep === 3">
-                    <MathFormula :formula="String.raw`\mathrm{CI} = \left[${formatNumber(ci.lower)},\;${formatNumber(ci.upper)}\right]`" />
-                  </p>
-                </div>
-
-                <div v-if="intuitionStep === 1" class="two-column-note">
-                  <div>
-                    <strong>{{ copy.observed }}</strong>
-                    <span>x̄, s, RSD</span>
-                  </div>
-                  <div>
-                    <strong>{{ copy.requiresPopulation }}</strong>
-                    <span>μ, Bias, Accuracy</span>
-                  </div>
-                </div>
-
-                <div v-if="intuitionStep === 3" class="decision-class">
-                  {{ copy.decisionClasses[decisionClass] }}
-                </div>
-
-                <div class="sample-table-scroll">
-                  <table class="sample-table">
-                    <caption>
-                      {{
-                        copy.sampleTable
-                      }}
-                    </caption>
-                    <thead>
-                      <tr>
-                        <th>{{ copy.id }}</th>
-                        <th>{{ copy.value }}</th>
-                        <th>{{ copy.deviation }}</th>
-                        <th>{{ copy.squaredDeviation }}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr
-                        v-for="row in sampleRows"
-                        :key="row.id"
-                        :class="{ 'is-highlighted': highlightedSample === row.id }"
-                        @pointerenter="highlightedSample = row.id"
-                        @pointerleave="highlightedSample = null"
-                      >
-                        <td>{{ row.id }}</td>
-                        <td>{{ formatNumber(row.value) }}</td>
-                        <td>{{ formatNumber(row.deviation) }}</td>
-                        <td>{{ formatNumber(row.squaredDeviation) }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </aside>
             </div>
 
-            <details v-if="intuitionStep === 2" class="decision-flow decision-bridge">
+            <details v-if="intuitionStep === 2" class="decision-flow decision-bridge mobile-decision-bridge">
               <summary>{{ copy.detailExplanation }}</summary>
               <p v-for="paragraph in copy.decisionBridge" :key="paragraph">{{ paragraph }}</p>
               <button type="button" class="primary-button tail-cta" @click="intuitionStep = 3">
@@ -1212,24 +1055,29 @@ watch(intuitionStep, () => {
 
 <style scoped>
 .ci-explorer {
-  --paper: var(--app-bg);
-  --ink: var(--app-text);
-  --muted: var(--app-muted);
-  --soft-line: var(--app-rule-subtle);
-  --accent: var(--app-accent);
-  --accent-border: var(--bc-blue-border, rgba(36, 86, 179, 0.32));
-  --focus-ring: var(--app-focus);
-  --panel: var(--app-surface-elevated);
-  --panel-soft: var(--app-surface);
-  --selected-bg: var(--app-accent-soft);
+  --topbar-sticky-height: 48px;
+  --paper: var(--bc-bg-page);
+  --ink: var(--bc-text-primary);
+  --muted: var(--bc-text-secondary);
+  --soft-line: var(--bc-border-subtle);
+  --accent: var(--bc-accent);
+  --accent-border: var(--bc-accent-border);
+  --focus-ring: var(--bc-focus-ring);
+  --panel: var(--bc-bg-surface);
+  --panel-soft: var(--bc-bg-surface-elevated);
+  --selected-bg: var(--bc-bg-selected);
+  --card-shadow: var(--bc-shadow-card);
+  position: relative;
+  width: min(1280px, calc(100% - var(--bc-container-inline, 48px)));
   min-height: 100svh;
-  padding: calc(var(--topbar-sticky-height, 60px) + 22px) 0 72px;
+  margin: 0 auto;
+  padding: calc(var(--topbar-sticky-height) + 10px) 0 36px;
   color: var(--ink);
   background: var(--paper);
 }
 
 .content-anchor {
-  width: min(1180px, calc(100% - var(--bc-container-inline, 32px)));
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -1255,12 +1103,99 @@ watch(intuitionStep, () => {
   position: sticky;
   top: var(--topbar-sticky-height, 60px);
   z-index: 40;
-  padding: 8px 0;
+  display: grid;
+  grid-template-columns: minmax(230px, 0.72fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: start;
+  padding: 6px 0;
   background: color-mix(in srgb, var(--paper) 82%, transparent);
+  border-top: 1px solid var(--soft-line);
+  border-bottom: 1px solid var(--soft-line);
   backdrop-filter: blur(14px);
 }
 
+.desktop-navigation-group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.desktop-navigation-group > span {
+  display: flex;
+  align-items: center;
+  min-height: 17px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .section-tabs,
+.desktop-step-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  width: 100%;
+  padding: 2px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.desktop-intuition-group .desktop-step-tabs {
+  background: var(--panel);
+}
+
+.section-tabs button,
+.desktop-step-tabs button {
+  min-width: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.section-tabs button {
+  flex: 1;
+  min-height: 30px;
+  padding: 0 7px;
+  line-height: 1;
+}
+
+.desktop-step-tabs button {
+  display: inline-flex;
+  flex: 1 1 0;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 8px;
+  line-height: 1;
+}
+
+.desktop-step-tabs button.is-active {
+  background: var(--accent);
+  color: var(--bc-text-inverse);
+}
+
+.step-index {
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  line-height: 1;
+  opacity: 0.78;
+}
+
 .mobile-section-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1287,7 +1222,7 @@ select {
 
 .section-tabs button,
 .mobile-section-tabs button,
-.mode-switch button,
+.desktop-step-tabs button,
 .confidence-control button,
 .answer-row button,
 .step-nav button,
@@ -1305,7 +1240,7 @@ select {
 
 .section-tabs button.is-active,
 .mobile-section-tabs button.is-active,
-.mode-switch button.is-active,
+.desktop-step-tabs button.is-active,
 .confidence-control button.is-active,
 .answer-row button.is-active,
 .application-picker button.is-active {
@@ -1322,9 +1257,34 @@ select {
 }
 
 .section-tabs button:focus-visible,
-.mobile-section-tabs button:focus-visible {
+.mobile-section-tabs button:focus-visible,
+.desktop-step-tabs button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 4px rgba(79, 86, 97, 0.12);
+}
+
+.section-tabs button {
+  min-height: 30px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.desktop-step-tabs button {
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.desktop-step-tabs button.is-active {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--bc-text-inverse);
 }
 
 button:focus-visible,
@@ -1373,7 +1333,6 @@ input:focus-visible {
 
 .visual-workspace,
 .control-panel,
-.desktop-panel,
 .decision-flow,
 .application-content,
 .coming-soon-card,
@@ -1383,7 +1342,7 @@ input:focus-visible {
   border: 1px solid var(--soft-line);
   border-radius: 8px;
   background: var(--panel);
-  box-shadow: var(--app-card-shadow);
+  box-shadow: var(--card-shadow);
 }
 
 .visual-workspace {
@@ -1532,12 +1491,6 @@ input:focus-visible {
   display: none;
 }
 
-.mode-switch {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-}
-
 .range-control {
   display: grid;
   gap: 10px;
@@ -1625,34 +1578,16 @@ input:focus-visible {
   border-color: var(--soft-line);
 }
 
-.mobile-disclosure {
-  border-top: 1px solid var(--soft-line);
-  padding-top: 10px;
-}
-
-.mobile-disclosure summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  list-style: none;
-  min-height: 44px;
-  color: var(--accent);
-  font-weight: 650;
-  cursor: pointer;
-}
-
 .mobile-stat-disclosure summary,
 .decision-flow summary {
   list-style: none;
 }
 
-.mobile-disclosure summary::-webkit-details-marker,
 .mobile-stat-disclosure summary::-webkit-details-marker,
 .decision-flow summary::-webkit-details-marker {
   display: none;
 }
 
-.mobile-disclosure summary::before,
 .mobile-stat-disclosure summary::before,
 .decision-flow summary::before {
   width: 0;
@@ -1663,7 +1598,6 @@ input:focus-visible {
   content: "";
 }
 
-.mobile-disclosure[open] > summary::before,
 .mobile-stat-disclosure[open] > summary::before,
 .decision-flow[open] > summary::before {
   transform: rotate(90deg);
@@ -1693,39 +1627,15 @@ input:focus-visible {
   font-family: "IBM Plex Mono", monospace;
 }
 
-.desktop-panel {
-  display: none;
-}
-
-.formula-stack {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.formula-stack p {
-  min-width: 0;
-  margin: 0;
-  padding: 7px 8px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  color: var(--muted);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-.formula-stack p.is-highlighted {
-  color: var(--ink);
-  background: var(--selected-bg);
-  border-color: var(--accent-border);
-}
-
 .decision-flow {
   display: grid;
   gap: 12px;
   margin-top: 14px;
   padding: 14px;
+}
+
+.desktop-decision-bridge {
+  display: none;
 }
 
 .decision-flow h3 {
@@ -1939,17 +1849,246 @@ input:focus-visible {
 }
 
 @media (min-width: 768px) {
+  .step-heading,
+  .step-nav {
+    display: none;
+  }
+
   .workspace-grid {
+    grid-template-areas:
+      "visual"
+      "controls"
+      "statistics";
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
   .visual-workspace {
-    padding: 18px;
+    grid-area: visual;
+    aspect-ratio: 16 / 9;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: center;
+    align-content: center;
+    overflow: hidden;
+    padding: 10px 8px 14px;
   }
 
-  .mode-switch {
-    grid-template-columns: 1fr 1fr;
+  .visual-workspace .sampling-svg {
+    min-height: 0;
+    transform: scale(0.96);
+    transform-origin: center;
+  }
+
+  /* Keep the mobile composition while drawing marks at the desktop scale used
+     by the advanced t-distribution chart. */
+  .visual-workspace .axis-line,
+  .visual-workspace .axis-tick line {
+    stroke-width: 1px;
+  }
+
+  .visual-workspace .axis-tick text,
+  .visual-workspace .spec-label,
+  .visual-workspace .spec-range-label,
+  .visual-workspace .population-label,
+  .visual-workspace .sample-mean-label,
+  .visual-workspace .ci-endpoint,
+  .visual-workspace .ci-label,
+  .visual-workspace .unknown-parameter text {
+    font-size: 9px;
+  }
+
+  .visual-workspace .spec-limit {
+    stroke-width: 1.2px;
+  }
+
+  .visual-workspace .population-line {
+    stroke-width: 2px;
+  }
+
+  .visual-workspace .population-line.is-unknown,
+  .visual-workspace .unknown-parameter line {
+    stroke-width: 1px;
+  }
+
+  .visual-workspace .precision-envelope {
+    stroke-width: 1.5px;
+    stroke-dasharray: 2px 4px;
+  }
+
+  .chart-summary {
+    display: none;
+  }
+
+  .sample-mark line,
+  .sample-mark text {
+    display: none;
+  }
+
+  .sample-mark circle {
+    r: 4.2px;
+    stroke-width: 1.5px;
+  }
+
+  .bias-connector {
+    stroke-width: 1.3px;
+    stroke-dasharray: 5 6;
+  }
+
+  .chart-index-marker {
+    font-size: 10.5px;
+  }
+
+  .visual-workspace .sample-mean-line {
+    stroke-width: 1.4px;
+  }
+
+  .visual-workspace .ci-line,
+  .visual-workspace .ci-cap {
+    stroke-width: 2px;
+  }
+
+  .chart-legend {
+    gap: 6px 10px;
+    margin-top: 8px;
+    font-size: 0.62rem;
+    line-height: 1.25;
+  }
+
+  .control-panel {
+    grid-area: controls;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .control-panel .unknown-card,
+  .control-panel .decision-prompt-card {
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
+  .control-panel .unknown-card strong {
+    font-size: 0.72rem;
+    line-height: 1.25;
+  }
+
+  .control-panel .unknown-card span {
+    font-size: inherit;
+  }
+
+  .desktop-decision-bridge {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 12px;
+  }
+
+  .desktop-decision-bridge p {
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+  .desktop-decision-bridge .tail-cta {
+    justify-self: start;
+    min-height: 32px;
+    font-size: 0.68rem;
+  }
+
+  .mobile-decision-bridge {
+    display: none;
+  }
+
+  .mobile-simulation-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .mobile-simulation-head strong {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .mobile-simulation-head .quiet-button {
+    min-height: 32px;
+    border-color: var(--accent-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--accent);
+    font-size: 0.68rem;
+  }
+
+  .mobile-slider-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 18px;
+  }
+
+  .mobile-slider-stack .range-control {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .mobile-slider-stack .range-control > span {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .mobile-slider-stack .range-control strong,
+  .interval-confidence > span strong {
+    color: var(--accent);
+    font-size: 0.72rem;
+  }
+
+  .mobile-slider-stack .range-control input,
+  .interval-confidence input {
+    min-height: 28px;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  .interval-confidence {
+    gap: 6px;
+  }
+
+  .interval-confidence > span {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .mobile-stat-card {
+    grid-area: statistics;
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--soft-line);
+    border-radius: 8px;
+    background: var(--panel);
+    box-shadow: var(--card-shadow);
+  }
+
+  .mobile-stat-disclosure summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 1.25rem;
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mobile-stat-disclosure[open] {
+    gap: 10px;
   }
 
   .tail-cta {
@@ -1963,14 +2102,15 @@ input:focus-visible {
 
 @media (min-width: 1024px) {
   .ci-explorer {
-    padding-top: calc(var(--topbar-sticky-height, 60px) + 30px);
+    padding-top: calc(var(--topbar-sticky-height) + 10px);
   }
 
   .workspace-grid {
     grid-template-areas:
       "visual controls"
-      "details details";
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+      "visual statistics";
+    grid-template-columns: minmax(0, 1.36fr) minmax(340px, 0.64fr);
+    grid-template-rows: minmax(0, 1fr) auto;
     gap: 16px;
   }
 
@@ -1980,119 +2120,39 @@ input:focus-visible {
 
   .visual-workspace {
     grid-area: visual;
+    /* Use the known-truth canvas as the fixed desktop reference. The right
+       column may vary by step, but it must not resize the teaching graphic. */
+    align-self: start;
+    width: 100%;
   }
 
   .control-panel {
     grid-area: controls;
+    align-self: stretch;
+    min-height: 0;
   }
 
-  .control-panel > .calculation-disclosure {
-    display: none;
-  }
-
-  .desktop-panel {
-    grid-area: details;
-    display: grid;
+  .workspace-grid.has-decision-step {
     grid-template-areas:
-      "heading table"
-      "formula table"
-      "context table";
-    grid-template-columns: minmax(300px, 0.82fr) minmax(480px, 1.18fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
-    gap: 14px;
-    align-items: start;
+      "visual controls"
+      "visual .";
+  }
+
+  .workspace-grid.has-decision-step .control-panel {
+    align-self: start;
+  }
+
+  .workspace-grid.has-decision-step .desktop-decision-bridge {
     align-content: start;
-    padding: 16px;
   }
 
-  .desktop-panel h3 {
-    grid-area: heading;
-    margin: 0;
-    font-size: 0.95rem;
+  .mobile-stat-card .mini-stats {
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
   }
 
-  .desktop-panel > .formula-stack {
-    grid-area: formula;
-  }
-
-  .desktop-panel > .formula-stack p {
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: thin;
-  }
-
-  .desktop-panel > .two-column-note,
-  .desktop-panel > .decision-class {
-    grid-area: context;
-  }
-
-  .sample-table-scroll {
-    grid-area: table;
-    width: 100%;
-    min-width: 0;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scrollbar-width: thin;
-  }
-
-  .sample-table {
-    width: 100%;
-    min-width: 500px;
-    table-layout: fixed;
-    border-collapse: collapse;
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.72rem;
-  }
-
-  .sample-table caption {
-    margin-bottom: 8px;
-    color: var(--muted);
-    font-family: Inter, system-ui, sans-serif;
-    text-align: left;
-  }
-
-  .sample-table th,
-  .sample-table td {
-    padding: 6px 4px;
-    border-bottom: 1px solid var(--soft-line);
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .sample-table th {
-    overflow-wrap: anywhere;
-  }
-
-  .sample-table td {
-    white-space: nowrap;
-  }
-
-  .sample-table th:first-child,
-  .sample-table td:first-child {
-    text-align: left;
-  }
-
-  .sample-table tr.is-highlighted {
-    background: var(--selected-bg);
-  }
-
-  .two-column-note {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .two-column-note div {
-    display: grid;
-    gap: 4px;
-    padding: 10px;
-    border: 1px solid var(--soft-line);
-    border-radius: 8px;
-  }
-
-  .two-column-note span {
-    color: var(--muted);
-    font-size: 0.78rem;
+  .mobile-stat-card .mini-stats div {
+    padding: 9px 10px;
   }
 
   .application-layout {
@@ -2197,7 +2257,6 @@ input:focus-visible {
 
   .visual-workspace,
   .control-panel,
-  .desktop-panel,
   .decision-flow,
   .application-content,
   .coming-soon-card,
@@ -2404,13 +2463,6 @@ input:focus-visible {
   .interval-confidence input {
     min-height: var(--mobile-slider-height, 24px);
     accent-color: var(--bc-accent-strong, #315fba);
-  }
-
-  .mode-switch,
-  .control-panel > .range-control,
-  .desktop-regenerate,
-  .mobile-disclosure {
-    display: none;
   }
 
   .mobile-stat-card {

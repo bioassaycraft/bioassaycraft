@@ -22,7 +22,13 @@ import { loadNoncentralTCdf } from "../../lib/ci/noncentral-t.ts";
 const props = defineProps({ language: { type: String, required: true } });
 
 const DEFAULTS = Object.freeze({ n: "6", mean: "100", sd: "10", confidence: 0.95 });
-const scenario = ref("");
+const initialScenario = () =>
+  typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches
+    ? "mean"
+    : "";
+const isDesktopViewport = () =>
+  typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+const scenario = ref(initialScenario());
 const basisOpen = ref(false);
 const formulaOpen = ref(false);
 const inputs = ref({ ...DEFAULTS });
@@ -476,7 +482,7 @@ function markChanged() {
 function resetTransientState() {
   basisOpen.value = false;
   formulaOpen.value = false;
-  recommendationOpen.value = false;
+  recommendationOpen.value = scenario.value === "rsd" && isDesktopViewport();
   referencesOpen.value = false;
   touched.value = { n: false, mean: false, sd: false };
   variabilityTouched.value = { n: false, sd: false };
@@ -515,6 +521,20 @@ onBeforeUnmount(() => {
       <h2>{{ copy.heading }}</h2>
       <p>{{ copy.intro }}</p>
     </header>
+
+    <nav class="desktop-scenario-bar" :aria-label="copy.heading">
+      <button
+        v-for="(label, id) in copy.scenarios"
+        :key="id"
+        type="button"
+        :class="{ 'is-active': scenario === id }"
+        :aria-pressed="scenario === id"
+        @click="scenario = id"
+      >
+        {{ label }}
+      </button>
+    </nav>
+
     <label class="scenario-field" :style="scenarioStyle">
       <span>{{ copy.heading }}</span>
       <select v-model="scenario">
@@ -1081,6 +1101,9 @@ onBeforeUnmount(() => {
   outline: none;
   box-shadow: 0 0 0 2px var(--accent-border);
 }
+.desktop-scenario-bar {
+  display: none;
+}
 .ci-card {
   min-width: 0;
   padding: 16px;
@@ -1515,35 +1538,66 @@ onBeforeUnmount(() => {
 .references-list ol { display: grid; gap: 10px; margin: 0; padding-left: 1.35rem; }
 .chart-note { font-size: 0.78rem; }
 @media (min-width: 768px) {
+  .advanced-heading,
   .scenario-field {
-    position: static;
+    display: none;
+  }
+
+  .desktop-scenario-bar {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    padding: 2px;
+    border: 1px solid var(--soft-line);
+    border-radius: 8px;
+    background: var(--panel-soft);
+  }
+
+  .desktop-scenario-bar button {
+    flex: 1 1 0;
+    min-height: 31px;
+    min-width: 0;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .desktop-scenario-bar button.is-active {
+    background: var(--accent);
+    color: var(--bc-text-inverse, white);
+  }
+
+  .desktop-scenario-bar button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--focus-ring);
+  }
+
+  .basis-card:not(.compact-details) summary {
+    min-height: 38px;
+    align-items: center;
+    padding: 8px 12px;
   }
 }
 @media (min-width: 1024px) {
   .advanced-applications {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-    column-gap: 24px;
-    row-gap: 20px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
     align-items: start;
   }
 
-  .advanced-heading {
-    grid-row: 1;
-    grid-column: 1;
-    align-self: center;
-    max-width: 68ch;
-  }
-
-  .scenario-field {
-    grid-row: 1;
-    grid-column: 2;
+  .desktop-scenario-bar {
     width: 100%;
-    max-width: none;
+    grid-column: 1;
   }
 
   .advanced-applications > .mean-flow,
   .advanced-applications > .soon-card {
-    grid-column: 1 / -1;
+    grid-column: 1;
   }
 
   .advanced-applications > .soon-card {
@@ -1555,7 +1609,7 @@ onBeforeUnmount(() => {
   }
 
   .mean-flow:not(.rsd-flow) {
-    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.24fr) minmax(340px, 0.76fr);
     grid-template-rows: repeat(5, auto);
     column-gap: 20px;
     align-items: start;
@@ -1568,25 +1622,24 @@ onBeforeUnmount(() => {
 
   .mean-flow:not(.rsd-flow) > .sample-card {
     grid-row: 2;
-    grid-column: 1;
+    grid-column: 2;
   }
 
   .mean-flow:not(.rsd-flow) > .t-chart-card {
     grid-row: 2 / 5;
-    grid-column: 2;
-    justify-self: center;
+    grid-column: 1;
+    align-self: stretch;
     width: 100%;
-    max-width: 680px;
   }
 
   .mean-flow:not(.rsd-flow) > .result-card {
     grid-row: 3;
-    grid-column: 1;
+    grid-column: 2;
   }
 
   .mean-flow:not(.rsd-flow) > .confidence-card {
     grid-row: 4;
-    grid-column: 1;
+    grid-column: 2;
   }
 
   .mean-flow:not(.rsd-flow) > .formula-card {
@@ -1618,6 +1671,14 @@ onBeforeUnmount(() => {
   .rsd-flow > .recommendation-card {
     grid-row: 3;
     grid-column: 1;
+    align-self: stretch;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .rsd-flow > .recommendation-card[open] .recommendation-copy {
+    display: grid;
+    align-content: center;
   }
 
   .rsd-flow > .confidence-card {
@@ -1653,7 +1714,7 @@ onBeforeUnmount(() => {
   }
 
   .t-chart-card svg {
-    max-width: 620px;
+    max-width: none;
     margin-inline: auto;
   }
 

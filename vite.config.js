@@ -12,7 +12,6 @@ export default defineConfig({
         ciExplorer: "learn/ci-explorer/index.html",
         concentrationConverter: "tools/converter/index.html",
         specificationLimitCalculator: "tools/specification-limit-calculator/index.html",
-        validationCiCalculator: "tools/validation-ci-calculator/index.html",
       },
     },
   },

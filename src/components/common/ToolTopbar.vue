@@ -252,6 +252,16 @@ const emit = defineEmits(["set-language"]);
   box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
+@media (min-width: 768px) {
+  /* Keep the homepage's scroll-driven brand veil, but present tool-page
+     branding at full contrast. */
+  .brand-link,
+  .brand-mark,
+  .brand-name {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .brand-name,
   .morph-compact-group,
