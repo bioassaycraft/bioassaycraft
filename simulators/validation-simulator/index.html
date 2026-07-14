@@ -15,7 +15,8 @@
     <link rel="icon" href="/assets/icons/favicon-16x16-v1.png" type="image/png" sizes="16x16">
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-v1.png" sizes="180x180" />
   <link rel="manifest" href="/assets/icons/site.webmanifest">
-  <meta name="theme-color" content="#F7F5F0">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
   <script type="module" src="/assets/js/theme-logo.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2354,10 +2355,10 @@
       const points = state.procedure.meanPoints || [];
       const fit = state.procedure.fit || {};
       const rootStyles = getComputedStyle(document.documentElement);
-      const paper = rootStyles.getPropertyValue("--bc-bg").trim() || "#F7F5F0";
+      const paper = rootStyles.getPropertyValue("--bc-bg").trim() || "#FFFFFF";
       const text = rootStyles.getPropertyValue("--bc-text").trim() || "#171717";
       const muted = rootStyles.getPropertyValue("--bc-secondary").trim() || "#6E7278";
-      const rule = rootStyles.getPropertyValue("--bc-border").trim() || "#D6D9DE";
+      const rule = rootStyles.getPropertyValue("--bc-border").trim() || "#D0D7DE";
       const blue = rootStyles.getPropertyValue("--bc-blue").trim() || "#2457B3";
       ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = paper;

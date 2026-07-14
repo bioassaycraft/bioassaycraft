@@ -900,11 +900,11 @@ onBeforeUnmount(() => {
 .converter-shell {
   --topbar-sticky-height: 48px;
   --shell-edge-space: 10px;
-  --paper: var(--bc-bg-page, #f7f5f0);
+  --paper: var(--bc-bg-page, #ffffff);
   --ink: var(--bc-text-primary, #171717);
   --muted: var(--bc-text-secondary, #6e7278);
-  --line: var(--bc-border-default, #d6d9de);
-  --soft-line: var(--bc-border-subtle, rgba(214, 217, 222, 0.58));
+  --line: var(--bc-border-default, #d0d7de);
+  --soft-line: var(--bc-border-subtle, rgba(208, 215, 222, 0.72));
   --panel: var(--bc-bg-surface, rgba(255, 255, 255, 0.28));
   --panel-soft: var(--bc-bg-surface-elevated, rgba(255, 255, 255, 0.2));
   --field-bg: var(--bc-bg-input, rgba(255, 255, 255, 0.24));

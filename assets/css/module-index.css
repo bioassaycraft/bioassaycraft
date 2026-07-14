@@ -1,12 +1,12 @@
 :root {
   color-scheme: light;
   --background: var(--bc-bg);
-  --surface: rgba(255, 255, 255, 0.44);
-  --surface-soft: rgba(255, 255, 255, 0.28);
+  --surface: var(--bc-bg-surface);
+  --surface-soft: var(--bc-bg-section);
   --text: var(--bc-text);
   --muted: var(--bc-secondary);
   --rule: var(--bc-border);
-  --soft-rule: rgba(214, 217, 222, 0.72);
+  --soft-rule: var(--bc-border-subtle);
   --accent: var(--bc-blue);
   --accent-soft: var(--bc-blue-soft);
   --accent-border: var(--bc-blue-border);

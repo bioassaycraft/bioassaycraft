@@ -1,13 +1,14 @@
 :root {
-  --app-bg: var(--bc-bg-page, #f7f5f0);
-  --app-surface: var(--bc-bg-surface, rgba(255, 255, 255, 0.28));
-  --app-surface-elevated: var(--bc-bg-surface-elevated, rgba(255, 255, 255, 0.48));
-  --app-glass: var(--bc-bg-glass, rgba(255, 255, 255, 0.48));
+  --app-bg: var(--bc-bg-page, #ffffff);
+  --app-section: var(--bc-bg-section, #f6f8fa);
+  --app-surface: var(--bc-bg-surface, #ffffff);
+  --app-surface-elevated: var(--bc-bg-surface-elevated, #ffffff);
+  --app-glass: var(--bc-bg-glass, rgba(255, 255, 255, 0.94));
   --app-text: var(--bc-text-primary, #171717);
   --app-muted: var(--bc-text-secondary, #6e7278);
   --app-faint: var(--bc-text-muted, #8b9097);
-  --app-rule: var(--bc-border-default, #d6d9de);
-  --app-rule-subtle: var(--bc-border-subtle, rgba(214, 217, 222, 0.54));
+  --app-rule: var(--bc-border-default, #d0d7de);
+  --app-rule-subtle: var(--bc-border-subtle, rgba(208, 215, 222, 0.72));
   --app-accent: var(--bc-accent, #2457b3);
   --app-accent-soft: var(--bc-accent-soft, rgba(36, 86, 179, 0.08));
   --app-focus: var(--bc-focus-ring, rgba(36, 86, 179, 0.16));

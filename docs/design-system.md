@@ -125,10 +125,11 @@ Current tokens:
 --bc-blue-hover: #1E4B9C;
 --bc-logo-light: #F2F0EA;
 --bc-logo-dark: #4B5D6B;
---bc-bg: #F7F5F0;
+--bc-bg: #FFFFFF;
+--bc-bg-section: #F6F8FA;
 --bc-text: #171717;
 --bc-secondary: #6E7278;
---bc-border: #D6D9DE;
+--bc-border: #D0D7DE;
 --bc-blue-soft: rgba(36, 86, 179, 0.08);
 --bc-blue-border: rgba(36, 86, 179, 0.32);
 --bc-focus-ring: rgba(36, 86, 179, 0.16);
@@ -136,7 +137,7 @@ Current tokens:
 
 Rules:
 
-- Use `--bc-bg` for the page background.
+- Use `--bc-bg` for the page background and `--bc-bg-section` only for large, low-emphasis content groupings.
 - Use `--bc-text` for primary text.
 - Use `--bc-secondary` for helper text, labels, captions, and metadata.
 - Use `--bc-border` for structural lines.

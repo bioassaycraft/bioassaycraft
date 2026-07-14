@@ -5,20 +5,21 @@
   --bc-blue-hover: #1e4b9c;
   --bc-logo-light: #f2f0ea;
   --bc-logo-dark: #4b5d6b;
-  --bc-bg-page: #f7f5f0;
-  --bc-bg-surface: rgba(255, 255, 255, 0.28);
+  --bc-bg-page: #ffffff;
+  --bc-bg-section: #f6f8fa;
+  --bc-bg-surface: #ffffff;
   --bc-bg-surface-solid: #ffffff;
-  --bc-bg-surface-elevated: rgba(255, 255, 255, 0.48);
-  --bc-bg-input: rgba(255, 255, 255, 0.46);
-  --bc-bg-glass: rgba(255, 255, 255, 0.48);
-  --bc-bg-glass-strong: rgba(255, 255, 255, 0.72);
-  --bc-bg-selected: rgba(255, 255, 255, 0.78);
+  --bc-bg-surface-elevated: #ffffff;
+  --bc-bg-input: #ffffff;
+  --bc-bg-glass: rgba(255, 255, 255, 0.94);
+  --bc-bg-glass-strong: #ffffff;
+  --bc-bg-selected: #f6f8fa;
   --bc-text-primary: #171717;
   --bc-text-secondary: #6e7278;
   --bc-text-muted: #8b9097;
   --bc-text-inverse: #ffffff;
-  --bc-border-subtle: rgba(214, 217, 222, 0.54);
-  --bc-border-default: #d6d9de;
+  --bc-border-subtle: rgba(208, 215, 222, 0.72);
+  --bc-border-default: #d0d7de;
   --bc-border-strong: rgba(79, 86, 97, 0.32);
   --bc-accent: #2457b3;
   --bc-accent-hover: #1e4b9c;
@@ -154,6 +155,8 @@ body {
 
 html,
 body {
+  min-height: 100%;
+  background: var(--bc-bg-page);
   touch-action: manipulation;
 }
 
