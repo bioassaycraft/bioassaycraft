@@ -1808,8 +1808,6 @@ button {
   margin: 0 calc(var(--bc-container-inline, 48px) / -2);
   padding: 6px calc(var(--bc-container-inline, 48px) / 2);
   background: color-mix(in srgb, var(--paper) 92%, transparent);
-  border-top: 1px solid var(--soft-line);
-  border-bottom: 1px solid var(--soft-line);
   backdrop-filter: blur(14px);
 }
 

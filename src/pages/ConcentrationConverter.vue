@@ -35,7 +35,6 @@ let isRestoringCalculation = false;
 const converterCopy = {
   en: {
     title: "Concentration Converter",
-    eyebrow: "Converter",
     compactSubtitle: "Mass ↔ molar concentration conversion.",
     home: "Back to home",
     languageLabel: "Language",
@@ -107,7 +106,6 @@ const converterCopy = {
   },
   zh: {
     title: "浓度换算器",
-    eyebrow: "Converter",
     compactSubtitle: "质量浓度 ↔ 摩尔浓度换算。",
     home: "返回首页",
     languageLabel: "语言切换",
@@ -549,7 +547,6 @@ onBeforeUnmount(() => {
       />
 
       <section class="converter-hero" aria-labelledby="converter-title">
-        <span class="panel-kicker">{{ copy.eyebrow }}</span>
         <h1 id="converter-title">{{ copy.title }}</h1>
         <p>{{ copy.compactSubtitle }}</p>
       </section>
@@ -965,11 +962,6 @@ onBeforeUnmount(() => {
 .converter-hero {
   max-width: 760px;
   padding: 9px 0 12px;
-}
-
-.converter-hero .panel-kicker {
-  display: block;
-  margin-bottom: 12px;
 }
 
 .converter-hero h1 {

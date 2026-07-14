@@ -36,6 +36,7 @@ const confidenceLevel = ref(0.95);
 const highlightedSample = ref(null);
 const isDesktopViewport = () =>
   typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+const applicationScenario = ref(isDesktopViewport() ? "mean" : "");
 const statisticsOpen = ref(isDesktopViewport());
 
 let scrollFrame = null;
@@ -162,6 +163,12 @@ const copyByLanguage = {
     deviation: "Deviation",
     squaredDeviation: "Squared deviation",
     applicationsTitle: "Choose an application",
+    applicationScenarios: {
+      mean: "CI for a mean",
+      variability: "CI for SD",
+      rsd: "CI for RSD",
+      ratio: "CI for a ratio",
+    },
     applicationsSubtitle:
       "The mean confidence interval is implemented here. Other CI families are held as clear extension points.",
     applicationShell: {
@@ -333,6 +340,12 @@ const copyByLanguage = {
     deviation: "Deviation",
     squaredDeviation: "Squared deviation",
     applicationsTitle: "选择一个应用场景",
+    applicationScenarios: {
+      mean: "均值的置信区间",
+      variability: "SD 的置信区间",
+      rsd: "RSD 的置信区间",
+      ratio: "比值的置信区间",
+    },
     applicationsSubtitle: "均值置信区间已完整实现。其他 CI 类型先保留为清晰的扩展框架。",
     applicationShell: {
       why: "为什么需要 CI",
@@ -502,6 +515,13 @@ function setSection(section, scroll = true) {
   activeSection.value = section;
   if (scroll) {
     nextTick(() => {
+      if (isDesktopViewport()) {
+        const pageTop = pageRoot.value
+          ? window.scrollY + pageRoot.value.getBoundingClientRect().top
+          : 0;
+        window.scrollTo({ top: Math.max(0, pageTop), behavior: "smooth" });
+        return;
+      }
       contentRoot.value?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
@@ -665,6 +685,10 @@ watch(intuitionStep, () => {
       />
     </div>
 
+    <section class="explorer-header" aria-labelledby="ci-explorer-title">
+      <h1 id="ci-explorer-title">{{ copy.title }}</h1>
+    </section>
+
     <section class="section-handle" :aria-label="copy.sectionLabel">
       <div class="desktop-navigation-group desktop-section-group">
         <span>{{ copy.sectionLabel }}</span>
@@ -705,6 +729,34 @@ watch(intuitionStep, () => {
             <span class="step-index">{{ index + 1 }}</span>
             {{ mobileIntuitionStepNames[index] }}
           </button>
+        </div>
+      </div>
+
+      <div
+        v-else-if="activeSection === 'applications'"
+        class="desktop-navigation-group desktop-application-group"
+      >
+        <span>{{ copy.applicationsTitle }}</span>
+        <div class="desktop-step-tabs" role="tablist" :aria-label="copy.applicationsTitle">
+          <button
+            v-for="(label, scenario) in copy.applicationScenarios"
+            :key="scenario"
+            type="button"
+            role="tab"
+            :aria-selected="applicationScenario === scenario"
+            :tabindex="applicationScenario === scenario ? 0 : -1"
+            :class="{ 'is-active': applicationScenario === scenario }"
+            @click="applicationScenario = scenario"
+          >
+            {{ label }}
+          </button>
+        </div>
+      </div>
+
+      <div v-else class="desktop-navigation-group desktop-questions-group">
+        <span>{{ copy.sections.questions }}</span>
+        <div class="desktop-question-intro">
+          <p>{{ copy.questionsIntro[0] }} {{ copy.questionsIntro[1] }}</p>
         </div>
       </div>
     </section>
@@ -1026,12 +1078,12 @@ watch(intuitionStep, () => {
         </template>
 
         <template v-else-if="activeSection === 'applications'">
-          <AdvancedApplications :language="language" />
+          <AdvancedApplications v-model:scenario="applicationScenario" :language="language" />
         </template>
 
         <template v-else>
           <section class="questions-shell">
-            <article class="question-intro">
+            <article class="question-intro mobile-question-intro">
               <p>{{ copy.questionsIntro[0] }}<br />{{ copy.questionsIntro[1] }}</p>
             </article>
             <div class="question-grid">
@@ -1099,6 +1151,27 @@ watch(intuitionStep, () => {
   display: none;
 }
 
+.explorer-header {
+  padding: 4px 0 5px;
+}
+
+.explorer-header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.25vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1;
+  transform-origin: left center;
+  transition:
+    opacity 280ms ease,
+    transform 280ms ease;
+}
+
+.is-header-morphed .explorer-header h1 {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.92);
+}
+
 .section-handle {
   position: sticky;
   top: var(--topbar-sticky-height, 60px);
@@ -1109,8 +1182,6 @@ watch(intuitionStep, () => {
   align-items: start;
   padding: 6px 0;
   background: color-mix(in srgb, var(--paper) 82%, transparent);
-  border-top: 1px solid var(--soft-line);
-  border-bottom: 1px solid var(--soft-line);
   backdrop-filter: blur(14px);
 }
 
@@ -1146,6 +1217,27 @@ watch(intuitionStep, () => {
 
 .desktop-intuition-group .desktop-step-tabs {
   background: var(--panel);
+}
+
+.desktop-question-intro {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  min-height: 34px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--ink);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.desktop-question-intro p {
+  margin: 0;
 }
 
 .section-tabs button,
@@ -2196,6 +2288,49 @@ input:focus-visible {
   }
 }
 
+@media (min-width: 768px) {
+  .mobile-question-intro {
+    display: none;
+  }
+
+  .question-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .question-card:hover {
+    border-color: var(--accent-border);
+  }
+
+  .question-row {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 0;
+    align-items: stretch;
+    min-height: 72px;
+    padding: 0;
+  }
+
+  .question-row span {
+    display: grid;
+    place-items: center;
+    padding: 12px;
+    border-right: 1px solid var(--soft-line);
+    background: var(--panel-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .question-row strong {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+}
+
 @media (max-width: 767px) {
   .ci-explorer {
     --mobile-safe-top: max(env(safe-area-inset-top), 12px);
@@ -2225,6 +2360,7 @@ input:focus-visible {
   }
 
   .tool-topbar,
+  .explorer-header,
   .section-handle {
     display: none;
   }

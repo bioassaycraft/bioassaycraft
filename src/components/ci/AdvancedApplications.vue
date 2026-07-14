@@ -19,7 +19,11 @@ import {
 } from "../../lib/ci/rsd-confidence.ts";
 import { loadNoncentralTCdf } from "../../lib/ci/noncentral-t.ts";
 
-const props = defineProps({ language: { type: String, required: true } });
+const props = defineProps({
+  language: { type: String, required: true },
+  scenario: { type: String, default: undefined },
+});
+const emit = defineEmits(["update:scenario"]);
 
 const DEFAULTS = Object.freeze({ n: "6", mean: "100", sd: "10", confidence: 0.95 });
 const initialScenario = () =>
@@ -28,9 +32,16 @@ const initialScenario = () =>
     : "";
 const isDesktopViewport = () =>
   typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
-const scenario = ref(initialScenario());
+const localScenario = ref(initialScenario());
+const scenario = computed({
+  get: () => props.scenario ?? localScenario.value,
+  set: (value) => {
+    localScenario.value = value;
+    emit("update:scenario", value);
+  },
+});
 const basisOpen = ref(false);
-const formulaOpen = ref(false);
+const formulaOpen = ref(true);
 const inputs = ref({ ...DEFAULTS });
 const variabilityInputs = ref({ n: DEFAULTS.n, sd: DEFAULTS.sd, confidence: DEFAULTS.confidence });
 const rsdInputs = ref({ ...DEFAULTS });
@@ -481,7 +492,7 @@ function markChanged() {
 }
 function resetTransientState() {
   basisOpen.value = false;
-  formulaOpen.value = false;
+  formulaOpen.value = true;
   recommendationOpen.value = scenario.value === "rsd" && isDesktopViewport();
   referencesOpen.value = false;
   touched.value = { n: false, mean: false, sd: false };
@@ -521,19 +532,6 @@ onBeforeUnmount(() => {
       <h2>{{ copy.heading }}</h2>
       <p>{{ copy.intro }}</p>
     </header>
-
-    <nav class="desktop-scenario-bar" :aria-label="copy.heading">
-      <button
-        v-for="(label, id) in copy.scenarios"
-        :key="id"
-        type="button"
-        :class="{ 'is-active': scenario === id }"
-        :aria-pressed="scenario === id"
-        @click="scenario = id"
-      >
-        {{ label }}
-      </button>
-    </nav>
 
     <label class="scenario-field" :style="scenarioStyle">
       <span>{{ copy.heading }}</span>
@@ -1590,11 +1588,6 @@ onBeforeUnmount(() => {
     align-items: start;
   }
 
-  .desktop-scenario-bar {
-    width: 100%;
-    grid-column: 1;
-  }
-
   .advanced-applications > .mean-flow,
   .advanced-applications > .soon-card {
     grid-column: 1;
@@ -1605,13 +1598,23 @@ onBeforeUnmount(() => {
   }
 
   .mean-flow {
-    gap: 16px;
+    gap: 14px;
   }
 
   .mean-flow:not(.rsd-flow) {
-    grid-template-columns: minmax(0, 1.24fr) minmax(340px, 0.76fr);
-    grid-template-rows: repeat(5, auto);
-    column-gap: 20px;
+    --application-card-gap: 14px;
+    --application-sample-height: 160px;
+    --application-result-height: 60px;
+    --application-confidence-height: 192px;
+    grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+    grid-template-rows:
+      auto
+      var(--application-sample-height)
+      var(--application-result-height)
+      var(--application-confidence-height)
+      auto;
+    column-gap: var(--application-card-gap);
+    row-gap: var(--application-card-gap);
     align-items: start;
   }
 
@@ -1630,6 +1633,17 @@ onBeforeUnmount(() => {
     grid-column: 1;
     align-self: stretch;
     width: 100%;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .mean-flow:not(.rsd-flow) > .t-chart-card svg {
+    width: auto;
+    max-width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin-inline: auto;
   }
 
   .mean-flow:not(.rsd-flow) > .result-card {
@@ -1642,6 +1656,11 @@ onBeforeUnmount(() => {
     grid-column: 2;
   }
 
+  .mean-flow:not(.rsd-flow) > :is(.sample-card, .result-card, .confidence-card) {
+    align-self: stretch;
+    min-height: 0;
+  }
+
   .mean-flow:not(.rsd-flow) > .formula-card {
     grid-row: 5;
     grid-column: 1 / -1;
@@ -1649,8 +1668,71 @@ onBeforeUnmount(() => {
 
   .rsd-flow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 20px;
+    column-gap: 14px;
     align-items: start;
+  }
+
+  /* Keep the control column compact and typographically consistent beside the chart. */
+  .mean-flow:not(.rsd-flow) > :is(.sample-card, .result-card, .confidence-card),
+  .rsd-flow > :is(.sample-card, .result-card, .recommendation-card, .confidence-card) {
+    gap: 8px;
+    padding: 12px;
+    font-size: 0.78rem;
+  }
+
+  .mean-flow:not(.rsd-flow) > :is(.sample-card, .result-card, .confidence-card) h3,
+  .rsd-flow > :is(.sample-card, .result-card, .recommendation-card, .confidence-card) h3 {
+    font-size: 0.82rem;
+  }
+
+  .mean-flow:not(.rsd-flow) > .confidence-card .confidence-line > strong {
+    font-size: 1.2rem;
+  }
+
+  .mean-flow:not(.rsd-flow) > .confidence-card > input {
+    min-height: 34px;
+  }
+
+  .mean-flow:not(.rsd-flow) > .confidence-card .quick-levels button {
+    min-height: 34px;
+    font-size: 0.74rem;
+  }
+
+  .mean-flow:not(.rsd-flow) > .sample-card .sample-fields {
+    gap: 7px;
+    --sample-input-height: 36px;
+  }
+
+  .mean-flow:not(.rsd-flow) > .sample-card .sample-measure-row {
+    gap: 8px;
+  }
+
+  .mean-flow:not(.rsd-flow) > .sample-card .sample-fields label {
+    gap: 4px;
+    font-size: 0.72rem;
+  }
+
+  .mean-flow:not(.rsd-flow) > .sample-card .sample-fields input {
+    padding-inline: 9px;
+    font-size: 0.9rem;
+  }
+
+  .mean-flow:not(.rsd-flow) > .confidence-card .parameter-grid {
+    padding: 6px;
+  }
+
+  .mean-flow:not(.rsd-flow) > .confidence-card .parameter-grid dt {
+    font-size: 0.6rem;
+  }
+
+  .mean-flow:not(.rsd-flow) > .confidence-card .parameter-grid dd {
+    margin-top: 3px;
+    font-size: 0.68rem;
+  }
+
+  .rsd-flow > :is(.sample-card, .result-card) .rsd-results dt,
+  .rsd-flow > :is(.sample-card, .result-card) .rsd-results dd {
+    font-size: 0.74rem;
   }
 
   .rsd-flow > .basis-card:first-child {
@@ -1660,12 +1742,17 @@ onBeforeUnmount(() => {
 
   .rsd-flow > .sample-card {
     grid-row: 2;
-    grid-column: 1;
+    grid-column: 2;
   }
 
   .rsd-flow > .rsd-result-card {
     grid-row: 2;
-    grid-column: 2;
+    grid-column: 1;
+  }
+
+  .rsd-flow > :is(.sample-card, .rsd-result-card, .recommendation-card, .confidence-card) {
+    align-self: stretch;
+    min-height: 0;
   }
 
   .rsd-flow > .recommendation-card {

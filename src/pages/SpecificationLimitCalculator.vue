@@ -27,7 +27,6 @@ let headerMorphObserver = null;
 const specificationCopy = {
   en: {
     title: "Specification Limit Calculator",
-    eyebrow: "Tools",
     home: "Back to home",
     languageLabel: "Language",
     mobileControlsLabel: "Specification Limit Calculator mobile navigation",
@@ -46,7 +45,6 @@ const specificationCopy = {
   },
   zh: {
     title: "质量标准限度计算器",
-    eyebrow: "Tools",
     home: "返回首页",
     languageLabel: "语言切换",
     mobileControlsLabel: "质量标准限度计算器移动端导航",
@@ -155,7 +153,6 @@ onBeforeUnmount(() => {
 
       <section class="module-header" aria-labelledby="spec-limit-title">
         <div>
-          <span class="panel-kicker">{{ copy.eyebrow }}</span>
           <h1 id="spec-limit-title">{{ copy.title }}</h1>
         </div>
       </section>
@@ -256,20 +253,8 @@ onBeforeUnmount(() => {
   align-items: end;
   margin: 0 calc(var(--bc-container-inline, 48px) / -2);
   padding: 9px calc(var(--bc-container-inline, 48px) / 2) 10px;
-  border-top: 1px solid var(--soft-line);
-  border-bottom: 1px solid var(--soft-line);
   background: color-mix(in srgb, var(--paper) 92%, transparent);
   backdrop-filter: blur(14px);
-}
-
-.panel-kicker {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .module-header h1 {

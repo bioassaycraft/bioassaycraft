@@ -1,7 +1,7 @@
 export const anovaCopy = {
   zh: {
     languageName: "中文",
-    title: "ANOVA Explorer",
+    title: "探索方差分析",
     home: "返回首页",
     modulesLabel: "模型模块",
     stepsLabel: "当前步骤",

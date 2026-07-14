@@ -220,6 +220,8 @@ const emit = defineEmits(["set-language"]);
 }
 
 .back-link {
+  height: 32px;
+  box-sizing: border-box;
   padding: 0 10px;
   font-weight: 500;
 }
@@ -227,6 +229,8 @@ const emit = defineEmits(["set-language"]);
 .language-switch {
   display: flex;
   gap: 4px;
+  height: 32px;
+  box-sizing: border-box;
   padding: 2px;
   border: 1px solid var(--soft-line);
   border-radius: 8px;
