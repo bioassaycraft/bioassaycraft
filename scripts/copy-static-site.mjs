@@ -7,6 +7,7 @@ const dist = join(root, "dist");
 const entries = ["assets", "learn", "journeys", "tools", "simulators", "lessons"];
 const viteManagedRoutes = new Set([
   join(root, "learn", "anova-explorer"),
+  join(root, "learn", "residual-explorer"),
   join(root, "learn", "ci-explorer"),
   join(root, "tools", "converter"),
   join(root, "tools", "specification-limit-calculator"),

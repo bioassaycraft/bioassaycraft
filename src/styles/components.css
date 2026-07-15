@@ -352,16 +352,8 @@ h2 {
   transform: translateX(0);
 }
 
-.desktop-learn-grid li:nth-child(1) {
-  grid-column: span 7;
-}
-
-.desktop-learn-grid li:nth-child(2) {
-  grid-column: span 5;
-}
-
-.desktop-learn-grid li:nth-child(3) {
-  grid-column: span 12;
+.desktop-learn-grid li {
+  grid-column: span 6;
 }
 
 .desktop-journey-grid li:nth-child(1) {

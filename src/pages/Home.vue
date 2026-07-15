@@ -16,8 +16,8 @@ const homeGroups = [
     items: [
       {
         key: "anova-explorer",
-        title: { en: "ANOVA Explorer", zh: "方差分析探索" },
-        titleLines: { en: ["ANOVA", "Explorer"], zh: ["探索", "方差分析"] },
+        title: { en: "Explore ANOVA", zh: "探索方差分析" },
+        titleLines: { en: ["Explore ANOVA"], zh: ["探索方差分析"] },
         note: {
           en: "Interactive ANOVA visualization.",
           zh: "交互式方差分析可视化。",
@@ -29,8 +29,8 @@ const homeGroups = [
       },
       {
         key: "ci-explorer",
-        title: { en: "CI Explorer", zh: "置信区间探索" },
-        titleLines: { en: ["CI", "Explorer"], zh: ["探索", "置信区间"] },
+        title: { en: "Explore Confidence Interval", zh: "探索置信区间" },
+        titleLines: { en: ["Explore CI"], zh: ["探索置信区间"] },
         note: {
           en: "Interactive confidence interval visualization.",
           zh: "交互式置信区间可视化。",
@@ -41,9 +41,19 @@ const homeGroups = [
         weight: 1,
       },
       {
+        key: "residual-explorer",
+        title: { en: "Explore Residual Distribution", zh: "探索残差分布" },
+        titleLines: { en: ["Explore residuals"], zh: ["探索残差分布"] },
+        note: { en: "Explore residual structure after fitting.", zh: "探索拟合后的残差结构。" },
+        ready: false,
+        href: "/learn/residual-explorer/",
+        luckyKey: "residual-explorer",
+        weight: 1,
+      },
+      {
         key: "validation-explorer",
-        title: { en: "Validation Explorer", zh: "方法验证探索" },
-        titleLines: { en: ["Validation", "Explorer"], zh: ["方法验证", "探索"] },
+        title: { en: "Explore Method Validation", zh: "探索方法验证" },
+        titleLines: { en: ["Explore validation"], zh: ["探索方法验证"] },
         note: { en: "Method validation learning.", zh: "方法验证学习模块。" },
         ready: false,
       },
