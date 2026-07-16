@@ -3,11 +3,12 @@ const mean = (xs) => (xs.length ? sum(xs) / xs.length : 0);
 const variance = (xs) => xs.length > 1 ? sum(xs.map((x) => (x - mean(xs)) ** 2)) / (xs.length - 1) : 0;
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 
-export const residualModules = ["single", "sra", "pla", "fourpl"];
+export const residualModules = ["single", "fourpl"];
 export const residualSteps = ["situation", "analysis", "treatment"];
 export const defaultResidualParameters = {
   seed: 17, error: 1.25, hetero: 0.7, correlation: 0.55, drift: 1.2, outlier: 4,
   nonlinearity: 0, slopeDifference: 1.1, fourPlDifference: 0, power: 1, boxCoxLambda: .25,
+  concentrationPoints: null, replicates: null,
 };
 
 const randomFor = (seed) => {
@@ -15,7 +16,6 @@ const randomFor = (seed) => {
   return () => ((state = (state * 16807) % 2147483647) - 1) / 2147483646;
 };
 const normal = (r) => Math.sqrt(-2 * Math.log(Math.max(r(), 1e-12))) * Math.cos(2 * Math.PI * r());
-const tNoise = (r) => normal(r) / Math.sqrt((r() < .5 ? .45 : 1.9));
 // Kept intentionally identical to the ANOVA Explorer parameterization:
 // lower + (upper - lower) / (1 + (EC50 / concentration)^Hill).
 const fourPL = (concentration, p) =>
@@ -94,25 +94,38 @@ export function transformResponse(value, kind, boxCoxLambda = .25) {
 }
 
 export function generateResidualData(module, parameters, errorStructure = "ideal") {
-  const r = randomFor(parameters.seed), linearDoses = [-2, -1.3, -.6, .1, .8, 1.5], fourPlDoses = [.015, .03, .07, .15, .32, .7, 1.4, 2.8, 5.8, 12, 25, 52], doses = module === "fourpl" ? fourPlDoses : linearDoses, reps = module === "fourpl" ? 2 : 3, shared = { reference: normal(r), test: normal(r) };
-  let prior = 0; const out = [];
+  const r = randomFor(parameters.seed), defaultPointCount = module === "fourpl" ? 12 : 6, defaultReplicates = module === "fourpl" ? 2 : 3, pointCount = clamp(Math.round(parameters.concentrationPoints ?? defaultPointCount), 3, 16), reps = clamp(Math.round(parameters.replicates ?? defaultReplicates), 2, 6), defaultLinearDoses = [-2, -1.3, -.6, .1, .8, 1.5], defaultFourPlDoses = [.015, .03, .07, .15, .32, .7, 1.4, 2.8, 5.8, 12, 25, 52], linearDoses = parameters.concentrationPoints === null || parameters.concentrationPoints === undefined ? defaultLinearDoses : Array.from({ length: pointCount }, (_, index) => -2 + (3.5 * index) / (pointCount - 1)), fourPlDoses = parameters.concentrationPoints === null || parameters.concentrationPoints === undefined ? defaultFourPlDoses : Array.from({ length: pointCount }, (_, index) => Math.exp(Math.log(.015) + (Math.log(52) - Math.log(.015)) * index / (pointCount - 1))), doses = module === "fourpl" ? fourPlDoses : linearDoses, shared = { reference: normal(r), test: normal(r) };
+  const expectedResponse = (dose, logDose, preparation) => module === "fourpl" ? fourPL(dose, preparation === "reference" ? { lower: 7, upper: 103, ec50: 1.45, hill: 1.25 } : { lower: 7.5 + parameters.fourPlDifference * 1.1, upper: 101 - parameters.fourPlDifference * 3.2, ec50: 1.65 + parameters.fourPlDifference * .62, hill: 1.2 - parameters.fourPlDifference * .08 }) : module === "pla" ? 54 + 11 * logDose + (preparation === "test" ? 3 : 0) + parameters.nonlinearity * logDose ** 2 : module === "sra" ? 54 + (preparation === "test" ? 11 + parameters.slopeDifference : 11) * logDose + (preparation === "test" ? 3 : 0) + parameters.nonlinearity * logDose ** 2 : 54 + 11 * logDose + parameters.nonlinearity * logDose ** 2;
+  const expectedValues = doses.flatMap((value) => {
+    const dose = module === "fourpl" ? value : 10 ** value;
+    const logDose = module === "fourpl" ? Math.log(dose) : value;
+    return ["reference", "test"].map((preparation) => expectedResponse(dose, logDose, preparation));
+  });
+  const minExpected = Math.min(...expectedValues), expectedSpan = Math.max(1e-8, Math.max(...expectedValues) - minExpected);
+  let prior = null; const out = [];
   for (let doseIndex = 0; doseIndex < doses.length; doseIndex += 1) for (const preparation of ["reference", "test"]) for (let replicate = 1; replicate <= reps; replicate += 1) {
     const dose = module === "fourpl" ? doses[doseIndex] : 10 ** doses[doseIndex];
     const logDose = module === "fourpl" ? Math.log(dose) : doses[doseIndex], runOrder = out.length + 1;
-    const trueY = module === "fourpl" ? fourPL(dose, preparation === "reference" ? { lower: 7, upper: 103, ec50: 1.45, hill: 1.25 } : { lower: 7.5 + parameters.fourPlDifference * 1.1, upper: 101 - parameters.fourPlDifference * 3.2, ec50: 1.65 + parameters.fourPlDifference * .62, hill: 1.2 - parameters.fourPlDifference * .08 }) : module === "pla" ? 54 + 11 * logDose + (preparation === "test" ? 3 : 0) + parameters.nonlinearity * logDose ** 2 : module === "sra" ? 54 + (preparation === "test" ? 11 + parameters.slopeDifference : 11) * logDose + (preparation === "test" ? 3 : 0) + parameters.nonlinearity * logDose ** 2 : 54 + 11 * logDose + parameters.nonlinearity * logDose ** 2;
+    const trueY = expectedResponse(dose, logDose, preparation);
     let scale = parameters.error;
     if (["increase", "decrease"].includes(errorStructure)) {
-      const responsePosition = clamp((trueY - 7) / 96, 0, 1) - .5;
-      const direction = errorStructure === "increase" ? 1 : -1;
-      scale *= Math.exp(direction * parameters.hetero * responsePosition);
+      const responsePosition = clamp((trueY - minExpected) / expectedSpan, 0, 1);
+      const standardDeviationMultiplier = errorStructure === "increase"
+        ? .2 + .8 * responsePosition
+        : 1 - .8 * responsePosition;
+      scale *= 1 + parameters.hetero * standardDeviationMultiplier;
     }
     let e = normal(r) * scale;
-    if (errorStructure === "rightSkew") e = (Math.exp(normal(r) * .45) - 1.1) * scale * 1.55;
-    if (errorStructure === "heavyTail") e = tNoise(r) * scale;
-    if (errorStructure === "correlated") { e = parameters.correlation * prior + Math.sqrt(1 - parameters.correlation ** 2) * e; prior = e; }
-    if (errorStructure === "drift") e += ((runOrder - 1) / 35 - .5) * parameters.drift;
+    if (errorStructure === "rightSkew") {
+      const skew = .45, skewMean = Math.exp(skew ** 2 / 2), skewSd = Math.sqrt((Math.exp(skew ** 2) - 1) * Math.exp(skew ** 2));
+      e = ((Math.exp(normal(r) * skew) - skewMean) / skewSd) * scale;
+    }
+    if (errorStructure === "correlated") {
+      if (prior === null) prior = e;
+      else { e = parameters.correlation * prior + Math.sqrt(1 - parameters.correlation ** 2) * e; prior = e; }
+    }
     if (errorStructure === "outlier" && doseIndex === 3 && preparation === "test" && replicate === 2) e += parameters.outlier;
-    if (errorStructure === "plate") e += ((replicate - 2) * .7 + (doseIndex % 2 ? .45 : -.45)) * parameters.error;
+    if (errorStructure === "plate") e += ((replicate - (reps + 1) / 2) * .7 + (doseIndex % 2 ? .45 : -.45)) * parameters.error;
     if (errorStructure === "shared") e += shared[preparation] * parameters.error * .65;
     out.push({ id: `${preparation}-${doseIndex}-${replicate}`, dose, logDose, response: trueY + e, preparation, replicate, runOrder, plateRow: replicate, plateColumn: doseIndex + 1, dilutionSeries: preparation, trueY });
   }
@@ -135,7 +148,7 @@ export function analyseResiduals(raw, { module, transform = "raw", weightMode = 
   const observed = points.map((p, i) => { const fitted = fit.predict(p), rawResidual = p.response - fitted, weightedResidual = Math.sqrt(weights[i]) * rawResidual; const leverage = Math.min(.85, (module === "fourpl" ? 8 : fit.parameters.length) / points.length); return { ...p, fitted, weight: weights[i], rawResidual, weightedResidual, standardizedResidual: weightedResidual / Math.max(sigma * Math.sqrt(1 - leverage), 1e-8) }; });
   const sorted = [...observed].sort((a, b) => a.standardizedResidual - b.standardizedResidual); const qq = sorted.map((p, i) => ({ ...p, theoretical: normalQuantile((i + .5) / sorted.length), residual: p.standardizedResidual }));
   const groups = new Map(); observed.forEach((p) => { const key = `${p.preparation}-${p.logDose}`; groups.set(key, [...(groups.get(key) || []), p]); });
-  const meanVariance = [...groups.values()].map((g) => ({ mean: mean(g.map((p) => p.response)), variance: variance(g.map((p) => p.response)), n: g.length })).filter((d) => d.n > 1 && d.mean > 0 && d.variance > 0);
+  const meanVariance = [...groups.values()].map((g) => ({ preparation: g[0].preparation, mean: mean(g.map((p) => p.response)), variance: variance(g.map((p) => p.response)), n: g.length })).filter((d) => d.n > 1 && d.mean > 0 && d.variance > 0);
   const mvFit = meanVariance.length > 1 ? linearFit(meanVariance.map((d) => ({ ...d, response: Math.log(d.variance), logDose: Math.log(d.mean) })), (p) => [1, p.logDose]) : null;
   return { points: observed, fit, sigma, qq, meanVariance, variancePower: mvFit?.parameters[1] ?? null, error: null, transform, boxCoxLambda };
 }
