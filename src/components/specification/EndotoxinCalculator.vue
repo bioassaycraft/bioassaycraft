@@ -448,10 +448,12 @@ onMounted(() => {
           />
         </label>
       </div>
-      <p v-if="productInformation.doseUnit === 'mgKgDose'" class="field-note">
-        {{ copy.bodyWeightNotUsed }}
-      </p>
-      <p class="field-note">{{ copy.safetyNote }}</p>
+      <div class="parameter-notes">
+        <p v-if="productInformation.doseUnit === 'mgKgDose'" class="field-note">
+          {{ copy.bodyWeightNotUsed }}
+        </p>
+        <p class="field-note safety-note">{{ copy.safetyNote }}</p>
+      </div>
     </section>
 
     <section
@@ -666,6 +668,16 @@ select:focus,
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.42;
+}
+
+.parameter-notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.safety-note {
+  grid-column: 2;
 }
 
 .result-card {
@@ -944,6 +956,15 @@ select:focus,
   .parameter-grid {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .parameter-notes {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .safety-note {
+    grid-column: 1;
   }
 
   .numeric-input,

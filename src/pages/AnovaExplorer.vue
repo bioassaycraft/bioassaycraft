@@ -1826,7 +1826,7 @@ button {
 }
 
 .module-group .segmented-control button {
-  min-height: 26px;
+  min-height: 31px;
   padding: 0 7px;
   font-size: 0.62rem;
 }

@@ -335,7 +335,7 @@ export const anovaCopy = {
       },
       sra: {
         treatment: {
-          name: "Treatment + Pure error",
+          name: "处理+纯误差",
           model: "剂量-样品单元均值",
           assumption: "重复测定给出 pure error，单元均值之间形成 treatment 变异。",
           comparison: "SS_Total = SS_Treatment + SS_Pure error。",
@@ -369,7 +369,7 @@ export const anovaCopy = {
       },
       pla: {
         treatment: {
-          name: "Treatment + Pure error",
+          name: "处理+纯误差",
           model: "剂量-样品单元均值",
           assumption: "重复测定给出 pure error，单元均值之间形成 treatment 变异。",
           comparison: "SS_Total = SS_Treatment + SS_Pure error。",
