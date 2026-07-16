@@ -5,14 +5,25 @@ const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 
 export const residualModules = ["single", "fourpl"];
 export const residualSteps = ["situation", "analysis", "treatment"];
+export const residualModelParameterCounts = { single: 2, fourpl: 4 };
+export function concentrationPointBounds(module) {
+  const parameterCount = residualModelParameterCounts[module] ?? residualModelParameterCounts.single;
+  return { min: parameterCount + 2, max: parameterCount + 16 };
+}
 export const defaultResidualParameters = {
-  seed: 17, error: 1.25, hetero: 0.7, correlation: 0.55, drift: 1.2, outlier: 4,
+  seed: 17, error: 1.25, hetero: .7, correlation: 0.55, dilutionShift: .04, drift: 1.2,
   nonlinearity: 0, slopeDifference: 1.1, fourPlDifference: 0, power: 1, boxCoxLambda: .25,
   concentrationPoints: null, replicates: null,
 };
 
+const mixedSeed = (seed) => {
+  let value = Math.floor(seed) >>> 0;
+  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b) >>> 0;
+  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b) >>> 0;
+  return ((value ^ (value >>> 16)) >>> 0) % 2147483646 + 1;
+};
 const randomFor = (seed) => {
-  let state = Math.max(1, Math.floor(seed)) % 2147483647;
+  let state = mixedSeed(seed);
   return () => ((state = (state * 16807) % 2147483647) - 1) / 2147483646;
 };
 const normal = (r) => Math.sqrt(-2 * Math.log(Math.max(r(), 1e-12))) * Math.cos(2 * Math.PI * r());
@@ -94,42 +105,42 @@ export function transformResponse(value, kind, boxCoxLambda = .25) {
 }
 
 export function generateResidualData(module, parameters, errorStructure = "ideal") {
-  const r = randomFor(parameters.seed), defaultPointCount = module === "fourpl" ? 12 : 6, defaultReplicates = module === "fourpl" ? 2 : 3, pointCount = clamp(Math.round(parameters.concentrationPoints ?? defaultPointCount), 3, 16), reps = clamp(Math.round(parameters.replicates ?? defaultReplicates), 2, 6), defaultLinearDoses = [-2, -1.3, -.6, .1, .8, 1.5], defaultFourPlDoses = [.015, .03, .07, .15, .32, .7, 1.4, 2.8, 5.8, 12, 25, 52], linearDoses = parameters.concentrationPoints === null || parameters.concentrationPoints === undefined ? defaultLinearDoses : Array.from({ length: pointCount }, (_, index) => -2 + (3.5 * index) / (pointCount - 1)), fourPlDoses = parameters.concentrationPoints === null || parameters.concentrationPoints === undefined ? defaultFourPlDoses : Array.from({ length: pointCount }, (_, index) => Math.exp(Math.log(.015) + (Math.log(52) - Math.log(.015)) * index / (pointCount - 1))), doses = module === "fourpl" ? fourPlDoses : linearDoses, shared = { reference: normal(r), test: normal(r) };
+  const r = randomFor(parameters.seed), defaultPointCount = module === "fourpl" ? 12 : 6, defaultReplicates = module === "fourpl" ? 2 : 3, { min: minConcentrationPoints, max: maxConcentrationPoints } = concentrationPointBounds(module), pointCount = clamp(Math.round(parameters.concentrationPoints ?? defaultPointCount), minConcentrationPoints, maxConcentrationPoints), reps = clamp(Math.round(parameters.replicates ?? defaultReplicates), 2, 6), defaultLinearDoses = [-2, -1.3, -.6, .1, .8, 1.5], defaultFourPlDoses = [.015, .03, .07, .15, .32, .7, 1.4, 2.8, 5.8, 12, 25, 52], linearDoses = parameters.concentrationPoints === null || parameters.concentrationPoints === undefined ? defaultLinearDoses : Array.from({ length: pointCount }, (_, index) => -2 + (3.5 * index) / (pointCount - 1)), fourPlDoses = parameters.concentrationPoints === null || parameters.concentrationPoints === undefined ? defaultFourPlDoses : Array.from({ length: pointCount }, (_, index) => Math.exp(Math.log(.015) + (Math.log(52) - Math.log(.015)) * index / (pointCount - 1))), doses = module === "fourpl" ? fourPlDoses : linearDoses;
   const expectedResponse = (dose, logDose, preparation) => module === "fourpl" ? fourPL(dose, preparation === "reference" ? { lower: 7, upper: 103, ec50: 1.45, hill: 1.25 } : { lower: 7.5 + parameters.fourPlDifference * 1.1, upper: 101 - parameters.fourPlDifference * 3.2, ec50: 1.65 + parameters.fourPlDifference * .62, hill: 1.2 - parameters.fourPlDifference * .08 }) : module === "pla" ? 54 + 11 * logDose + (preparation === "test" ? 3 : 0) + parameters.nonlinearity * logDose ** 2 : module === "sra" ? 54 + (preparation === "test" ? 11 + parameters.slopeDifference : 11) * logDose + (preparation === "test" ? 3 : 0) + parameters.nonlinearity * logDose ** 2 : 54 + 11 * logDose + parameters.nonlinearity * logDose ** 2;
-  const expectedValues = doses.flatMap((value) => {
-    const dose = module === "fourpl" ? value : 10 ** value;
-    const logDose = module === "fourpl" ? Math.log(dose) : value;
-    return ["reference", "test"].map((preparation) => expectedResponse(dose, logDose, preparation));
-  });
-  const minExpected = Math.min(...expectedValues), expectedSpan = Math.max(1e-8, Math.max(...expectedValues) - minExpected);
-  let prior = null; const out = [];
+  const design = [];
   for (let doseIndex = 0; doseIndex < doses.length; doseIndex += 1) for (const preparation of ["reference", "test"]) for (let replicate = 1; replicate <= reps; replicate += 1) {
     const dose = module === "fourpl" ? doses[doseIndex] : 10 ** doses[doseIndex];
-    const logDose = module === "fourpl" ? Math.log(dose) : doses[doseIndex], runOrder = out.length + 1;
-    const trueY = expectedResponse(dose, logDose, preparation);
-    let scale = parameters.error;
-    if (["increase", "decrease"].includes(errorStructure)) {
-      const responsePosition = clamp((trueY - minExpected) / expectedSpan, 0, 1);
-      const standardDeviationMultiplier = errorStructure === "increase"
-        ? .2 + .8 * responsePosition
-        : 1 - .8 * responsePosition;
-      scale *= 1 + parameters.hetero * standardDeviationMultiplier;
-    }
-    let e = normal(r) * scale;
-    if (errorStructure === "rightSkew") {
-      const skew = .45, skewMean = Math.exp(skew ** 2 / 2), skewSd = Math.sqrt((Math.exp(skew ** 2) - 1) * Math.exp(skew ** 2));
-      e = ((Math.exp(normal(r) * skew) - skewMean) / skewSd) * scale;
-    }
-    if (errorStructure === "correlated") {
-      if (prior === null) prior = e;
-      else { e = parameters.correlation * prior + Math.sqrt(1 - parameters.correlation ** 2) * e; prior = e; }
-    }
-    if (errorStructure === "outlier" && doseIndex === 3 && preparation === "test" && replicate === 2) e += parameters.outlier;
-    if (errorStructure === "plate") e += ((replicate - (reps + 1) / 2) * .7 + (doseIndex % 2 ? .45 : -.45)) * parameters.error;
-    if (errorStructure === "shared") e += shared[preparation] * parameters.error * .65;
-    out.push({ id: `${preparation}-${doseIndex}-${replicate}`, dose, logDose, response: trueY + e, preparation, replicate, runOrder, plateRow: replicate, plateColumn: doseIndex + 1, dilutionSeries: preparation, trueY });
+    const logDose = module === "fourpl" ? Math.log(dose) : doses[doseIndex];
+    design.push({ id: `${preparation}-${doseIndex}-${replicate}`, concentrationIndex: doseIndex, nominalConcentration: dose, actualConcentration: dose, dose, logDose, preparation, replicate, replicateIndex: replicate, seriesId: `${preparation}-${replicate}`, dilutionSeries: `${preparation}-${replicate}`, runOrder: design.length + 1, plateRow: replicate, plateColumn: doseIndex + 1, wellId: `${String.fromCharCode(64 + replicate)}${doseIndex + 1}`, trueMean: expectedResponse(dose, logDose, preparation), trueY: expectedResponse(dose, logDose, preparation), localSD: parameters.error, independentError: 0, dilutionLogShift: 0, sharedSeriesEffect: 0 });
   }
-  return out;
+  const means = design.map((point) => point.trueMean), minMean = Math.min(...means), meanSpan = Math.max(1e-8, Math.max(...means) - minMean);
+  if (["increase", "decrease"].includes(errorStructure)) {
+    const heterogeneity = Math.max(0, parameters.hetero ?? 0);
+    const factors = design.map((point) => {
+      const responsePosition = clamp((point.trueMean - minMean) / meanSpan, 0, 1);
+      const variancePosition = errorStructure === "increase" ? .05 + .95 * responsePosition : 1 - .95 * responsePosition;
+      return 1 + heterogeneity * variancePosition;
+    });
+    design.forEach((point, index) => { point.localSD = parameters.error * Math.sqrt(factors[index]); });
+  }
+  if (errorStructure === "shared") {
+    const seriesShifts = new Map();
+    design.forEach((point) => {
+      if (!seriesShifts.has(point.seriesId)) seriesShifts.set(point.seriesId, normal(r) * Math.max(0, parameters.dilutionShift ?? .04));
+      point.dilutionLogShift = seriesShifts.get(point.seriesId);
+      const actualLogDose = point.logDose + point.dilutionLogShift;
+      point.actualConcentration = Math.exp(actualLogDose);
+      point.sharedSeriesEffect = expectedResponse(point.actualConcentration, actualLogDose, point.preparation) - point.trueMean;
+    });
+  }
+  let priorError = null;
+  return design.map((point) => {
+    let independentError = point.localSD * normal(r);
+    if (errorStructure === "correlated") { independentError = priorError === null ? independentError : parameters.correlation * priorError + Math.sqrt(1 - parameters.correlation ** 2) * independentError; priorError = independentError; }
+    point.independentError = independentError;
+    point.response = point.trueMean + point.sharedSeriesEffect + independentError;
+    return point;
+  });
 }
 
 function features(module) {
@@ -141,7 +152,7 @@ export function analyseResiduals(raw, { module, transform = "raw", weightMode = 
   const points = raw.map((p) => ({ ...p, response: transformResponse(p.response, transform, boxCoxLambda) })).filter((p) => p.response !== null && Number.isFinite(p.response));
   if (points.length < 6) return { points: [], error: "invalid-transform", qq: [], meanVariance: [] };
   const initial = module === "fourpl" ? fit4pl(points) : linearFit(points, features(module));
-  const basePred = points.map(initial.predict); const weightsFor = (predictions) => predictions.map((mu) => { const safe = Math.max(Math.abs(mu), .25); if (weightMode === "inverse") return 1 / safe; if (weightMode === "inverse2") return 1 / safe ** 2; if (weightMode === "power") return 1 / safe ** power; return 1; });
+  const basePred = points.map(initial.predict); const weightsFor = (predictions) => { const rawWeights = predictions.map((mu) => { const safe = Math.max(Math.abs(mu), .25); if (weightMode === "inverse") return 1 / safe; if (weightMode === "inverse2") return 1 / safe ** 2; if (weightMode === "power") return 1 / safe ** power; return 1; }); const averageWeight = mean(rawWeights); return rawWeights.map((weight) => weight / averageWeight); };
   let weights = weightsFor(basePred), fit = initial;
   if (weightMode !== "unweighted") { fit = module === "fourpl" ? fit4pl(points, weights) : linearFit(points, features(module), weights); weights = weightsFor(points.map(fit.predict)); }
   const rss = sum(points.map((p, i) => weights[i] * (p.response - fit.predict(p)) ** 2)); const sigma = Math.sqrt(rss / fit.df);
@@ -159,5 +170,5 @@ function normalQuantile(p) { const a=[-39.6968302866538,220.946098424521,-275.92
 export function diagnosis(result, structure) {
   const rs = result.points.map((p) => p.standardizedResidual); if (!rs.length) return { independence: "limited", normality: "limited", variance: "limited" };
   const ordered = [...result.points].sort((a,b)=>a.runOrder-b.runOrder); const corr = ordered.length > 2 ? mean(ordered.slice(1).map((p,i)=>p.standardizedResidual*ordered[i].standardizedResidual)) : 0;
-  return { independence: structure === "drift" ? "drift" : structure === "correlated" || corr > .55 ? "correlation" : structure === "plate" ? "plate" : structure === "shared" ? "shared" : "clear", normality: structure === "rightSkew" ? "skew" : structure === "heavyTail" ? "heavy" : Math.max(...rs.map(Math.abs)) > 3 ? "outlier" : "clear", variance: ["increase","decrease"].includes(structure) ? structure : Math.abs(result.variancePower ?? 0) > .8 ? "trend" : "clear" };
+  return { independence: structure === "drift" ? "drift" : structure === "correlated" || corr > .55 ? "correlation" : structure === "shared" ? "shared" : "clear", normality: structure === "heavyTail" ? "heavy" : Math.max(...rs.map(Math.abs)) > 3 ? "outlier" : "clear", variance: ["increase","decrease"].includes(structure) ? structure : Math.abs(result.variancePower ?? 0) > .8 ? "trend" : "clear" };
 }

@@ -45,7 +45,7 @@ const homeGroups = [
         title: { en: "Explore Residual Distribution", zh: "探索残差分布" },
         titleLines: { en: ["Explore residuals"], zh: ["探索残差分布"] },
         note: { en: "Explore residual structure after fitting.", zh: "探索拟合后的残差结构。" },
-        ready: false,
+        ready: true,
         href: "/learn/residual-explorer/",
         luckyKey: "residual-explorer",
         weight: 1,

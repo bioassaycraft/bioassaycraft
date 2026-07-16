@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyseResiduals, defaultResidualParameters, diagnosis, generateResidualData, transformResponse } from "../src/lib/residual/explorer-data.js";
+import { analyseResiduals, concentrationPointBounds, defaultResidualParameters, diagnosis, generateResidualData, transformResponse } from "../src/lib/residual/explorer-data.js";
 
 describe("Residual Explorer data pipeline", () => {
   const options = { ...defaultResidualParameters, seed: 23 };
@@ -51,6 +51,16 @@ describe("Residual Explorer data pipeline", () => {
     expect(result.points).toHaveLength(56);
   });
 
+  it("limits concentration points to two through sixteen more than the model parameter count", () => {
+    expect(concentrationPointBounds("single")).toEqual({ min: 4, max: 18 });
+    expect(concentrationPointBounds("fourpl")).toEqual({ min: 6, max: 20 });
+
+    const single = generateResidualData("single", { ...options, concentrationPoints: 1, replicates: 2 });
+    const fourpl = generateResidualData("fourpl", { ...options, concentrationPoints: 99, replicates: 2 });
+    expect(new Set(single.map((point) => point.dose))).toHaveLength(4);
+    expect(new Set(fourpl.map((point) => point.dose))).toHaveLength(20);
+  });
+
   it("applies each error-structure control across the generated series", () => {
     const changed = (structure, low, high) => {
       const baseline = generateResidualData("single", { ...options, ...low }, structure);
@@ -58,46 +68,59 @@ describe("Residual Explorer data pipeline", () => {
       return baseline.filter((point, index) => point.response !== adjusted[index].response).length;
     };
     [
-      ["ideal", { error: .2 }, { error: 3 }], ["increase", { hetero: 0 }, { hetero: 4 }],
-      ["decrease", { hetero: 0 }, { hetero: 4 }], ["rightSkew", { error: .2 }, { error: 3 }],
-      ["correlated", { correlation: 0 }, { correlation: .9 }], ["plate", { error: .2 }, { error: 3 }],
-      ["shared", { error: .2 }, { error: 3 }],
+      ["ideal", { error: .2 }, { error: 3 }], ["increase", { hetero: 1 }, { hetero: 25 }],
+      ["decrease", { hetero: 1 }, { hetero: 25 }], ["correlated", { correlation: 0 }, { correlation: .9 }],
+      ["shared", { dilutionShift: 0 }, { dilutionShift: .12 }],
     ].forEach(([structure, low, high]) => expect(changed(structure, low, high)).toBeGreaterThan(30));
-    expect(changed("outlier", { outlier: 0 }, { outlier: 8 })).toBe(1);
   });
 
-  it("keeps ideal random data homoscedastic and varies every response level for heteroscedastic structures", () => {
+  it("uses response-based local variance that expands across the full teaching range", () => {
     const ideal = analyseResiduals(generateResidualData("fourpl", options, "ideal"), { module: "fourpl" });
     expect(diagnosis(ideal, "ideal").variance).toBe("clear");
 
-    const baseline = generateResidualData("fourpl", { ...options, hetero: 0 }, "increase");
     ["increase", "decrease"].forEach((structure) => {
-      const adjusted = generateResidualData("fourpl", { ...options, hetero: 4 }, structure);
-      const ratios = adjusted.map((point, index) => Math.abs(point.response - point.trueY) / Math.abs(baseline[index].response - baseline[index].trueY));
-      expect(ratios.every((ratio) => ratio > 1)).toBe(true);
-      const low = ratios.filter((_, index) => index < 2).at(0);
-      const high = ratios.filter((_, index) => index >= ratios.length - 2).at(0);
-      expect(structure === "increase" ? high > low : low > high).toBe(true);
+      const adjusted = generateResidualData("fourpl", { ...options, hetero: 40 }, structure);
+      const byMean = [...adjusted].sort((left, right) => left.trueMean - right.trueMean);
+      expect(structure === "increase" ? byMean.at(-1).localSD > byMean[0].localSD : byMean[0].localSD > byMean.at(-1).localSD).toBe(true);
+      const endpointVarianceRatio = (byMean.at(-1).localSD / byMean[0].localSD) ** 2;
+      expect(structure === "increase" ? endpointVarianceRatio : 1 / endpointVarianceRatio).toBeCloseTo(41 / 3, 10);
+      expect(adjusted.reduce((total, point) => total + point.localSD ** 2, 0) / adjusted.length).toBeGreaterThan(options.error ** 2);
+      adjusted.forEach((point) => expect(point.localSD).toBeGreaterThan(0));
     });
   });
 
-  it("uses each selected model's full response range for smooth heteroscedastic scaling", () => {
-    const endpointRatios = (module, structure) => {
-      const baseline = generateResidualData(module, { ...options, hetero: 0 }, structure);
-      const adjusted = generateResidualData(module, { ...options, hetero: 4 }, structure);
-      const ratios = adjusted.map((point, index) => ({
-        trueY: point.trueY,
-        ratio: Math.abs(point.response - point.trueY) / Math.abs(baseline[index].response - baseline[index].trueY),
-      })).sort((left, right) => left.trueY - right.trueY);
-      return { low: ratios[0].ratio, high: ratios.at(-1).ratio };
-    };
-
-    ["increase", "decrease"].forEach((structure) => {
-      const linear = endpointRatios("single", structure);
-      const fourPl = endpointRatios("fourpl", structure);
-      expect(linear.low).toBeCloseTo(fourPl.low, 10);
-      expect(linear.high).toBeCloseTo(fourPl.high, 10);
+  it("rescales every observation around the model curve when heterogeneity changes", () => {
+    const baseline = generateResidualData("fourpl", { ...options, hetero: 0 }, "increase");
+    const adjusted = generateResidualData("fourpl", { ...options, hetero: 40 }, "increase");
+    adjusted.forEach((point, index) => {
+      expect(point.trueMean).toBe(baseline[index].trueMean);
+      expect(point.response).not.toBe(baseline[index].response);
+      expect(Math.abs(point.response - point.trueMean)).not.toBe(Math.abs(baseline[index].response - baseline[index].trueMean));
     });
+  });
+
+  it("keeps design and generated-error metadata available for every observation", () => {
+    const source = generateResidualData("fourpl", { ...options, replicates: 3 }, "shared");
+    source.forEach((point) => {
+      expect(point).toMatchObject({ trueMean: expect.any(Number), localSD: expect.any(Number), independentError: expect.any(Number), nominalConcentration: expect.any(Number), actualConcentration: expect.any(Number), plateRow: expect.any(Number), plateColumn: expect.any(Number) });
+      expect(point.wellId).toMatch(/^[A-Z]\d+$/);
+    });
+    expect(new Set(source.filter((point) => point.replicateIndex === 1).map((point) => point.seriesId)).size).toBe(2);
+    expect(source.some((point) => point.actualConcentration !== point.nominalConcentration)).toBe(true);
+    const series = source.filter((point) => point.seriesId === source[0].seriesId);
+    expect(new Set(series.map((point) => point.dilutionLogShift)).size).toBe(1);
+  });
+
+  it("preserves the random-error scale and adjacent correlation independently", () => {
+    const sample = [];
+    for (let seed = 1; seed <= 300; seed += 1) sample.push(...generateResidualData("single", { ...options, seed, error: 2, correlation: .7 }, "correlated"));
+    const ordered = [];
+    for (let seed = 1; seed <= 300; seed += 1) ordered.push(generateResidualData("single", { ...options, seed, error: 2, correlation: .7 }, "correlated"));
+    const squaredMean = sample.reduce((total, point) => total + point.independentError ** 2, 0) / sample.length;
+    const lagCorrelation = ordered.reduce((total, points) => total + points.slice(1).reduce((sum, point, index) => sum + point.independentError * points[index].independentError, 0), 0) / ordered.reduce((total, points) => total + points.slice(0, -1).reduce((sum, point) => sum + point.independentError ** 2, 0), 0);
+    expect(squaredMean).toBeGreaterThan(3.6);
+    expect(squaredMean).toBeLessThan(4.4);
+    expect(lagCorrelation).toBeCloseTo(.7, 1);
   });
 
   it("refits response transformations and safely rejects invalid log values", () => {
