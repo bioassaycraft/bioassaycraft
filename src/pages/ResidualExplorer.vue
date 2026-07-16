@@ -1,6 +1,7 @@
 <script setup>
 import * as d3 from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import MathFormula from "../components/common/MathFormula.vue";
 import { residualCopy } from "../i18n/residual-explorer";
@@ -74,6 +75,18 @@ onMounted(async()=>{await nextTick();drawFit();drawDiagnostic();observer=new Res
   <main ref="root" class="residual-explorer" :class="{ 'is-header-morphed': isHeaderMorphed }">
     <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
     <ToolTopbar :title="copy.title" :language="language" :language-label="copy.languageLabel" :home-label="copy.home" :is-morphed="isHeaderMorphed" @set-language="setLocale" />
+    <MobileToolHeader
+      class="mobile-residual-header"
+      :aria-label="copy.title"
+      :selector-label="copy.modulesLabel"
+      :options="[]"
+      :selected-value="module"
+      :language="language"
+      :language-label="copy.languageLabel"
+      :home-label="copy.home"
+      :show-selector="false"
+      @set-language="setLocale"
+    />
     <header class="explorer-header"><h1>{{ copy.title }}</h1></header>
     <section class="teaching-grid">
       <article class="visual-panel chart-panel"><div class="panel-title-row"><div><span>{{ copy.fit }}</span><div class="model-switch segmented-control" :aria-label="copy.modulesLabel"><button v-for="item in residualModules" :key="item" :class="{ 'is-active': module === item }" @click="setModule(item)">{{ copy.modules[item] }}</button></div></div><div class="chart-legend"><span><i class="legend-dot observed"></i>{{ copy.observed }}</span><span><i class="legend-line model"></i>{{ copy.fit }}</span><span><i class="legend-line residual"></i>{{ copy.residual }}</span></div></div><div ref="fitWrap" class="chart-wrap"><svg ref="fitSvg" class="residual-fit-chart"></svg></div><p v-if="selected" class="selected-note"><MathFormula formula="e_i=y_i-\widehat{y}_i" /> · {{ copy.actual }} {{ n(selected.response) }} · {{ copy.predicted }} {{ n(selected.fitted) }} · e {{ n(selected.rawResidual) }}</p></article>
@@ -223,4 +236,41 @@ onMounted(async()=>{await nextTick();drawFit();drawDiagnostic();observer=new Res
 @media (max-width:767px){.fit-sidebar{grid-template-columns:1fr;grid-template-rows:none;height:auto}.setup-card .setup-fields{grid-template-columns:1fr}.model-switch{width:100%}.model-switch button{flex:1}.diagnostic-cards{grid-template-columns:1fr}.diagnosis{min-height:64px}}
 @media (prefers-color-scheme: dark){.residual-explorer{--observed-point:#ffffff}}
 .legend-dot { background:var(--observed-point); }
+
+@media (max-width: 767px) {
+  .residual-explorer {
+    --mobile-safe-top: max(env(safe-area-inset-top), 12px);
+    --mobile-control-height: 36px;
+    --mobile-header-control-height: var(--mobile-control-height);
+    --mobile-header-control-radius: 11px;
+    --mobile-header-control-font-size: 0.72rem;
+    --mobile-header-control-font-weight: 650;
+    --mobile-glass-blur: 16px;
+    --mobile-glass-bg: var(--bc-bg-glass);
+    --mobile-glass-border: var(--bc-border-subtle);
+    --mobile-glass-shadow: var(--bc-shadow-card);
+    --mobile-glass-radius: 14px;
+    --mobile-header-control-border: var(--mobile-glass-border);
+    --mobile-header-control-bg: var(--mobile-glass-bg);
+    --mobile-header-control-shadow: var(--mobile-glass-shadow);
+    --residual-mobile-header-height: calc(
+      var(--mobile-safe-top) + var(--mobile-header-control-height) + 8px
+    );
+    padding-top: 0;
+  }
+
+  .mobile-residual-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    padding: var(--mobile-safe-top) 0 8px;
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .module-sticky {
+    top: var(--residual-mobile-header-height);
+    padding: 0 0 8px;
+  }
+}
 </style>
