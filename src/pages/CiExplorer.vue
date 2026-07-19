@@ -1,6 +1,7 @@
 <script setup>
 import { scaleLinear } from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import MobileStepController from "../components/anova/MobileStepController.vue";
 import AdvancedApplications from "../components/ci/AdvancedApplications.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
@@ -14,8 +15,11 @@ import {
   sampleStandardDeviation,
 } from "../lib/ci/statistics.ts";
 import { useLocale } from "../utils/locale";
+import { readQueryViewState } from "../utils/query-view-state";
 
 const { locale: language, setLocale } = useLocale();
+const route = useRoute();
+const router = useRouter();
 
 const specificationLower = 97.5;
 const specificationUpper = 102.5;
@@ -26,7 +30,7 @@ const pageRoot = ref(null);
 const contentRoot = ref(null);
 const sectionPanel = ref(null);
 const isHeaderMorphed = ref(false);
-const activeSection = ref(readInitialSection());
+const activeSection = ref(readQueryViewState(route.query.section, sections, "intuition").value);
 const intuitionStep = ref(0);
 const populationMean = ref(100);
 const targetBias = ref(4);
@@ -491,12 +495,6 @@ const axisSummary = computed(() => {
 });
 const sampleMeanTarget = computed(() => populationMean.value + targetBias.value);
 
-function readInitialSection() {
-  if (typeof window === "undefined") return "intuition";
-  const candidate = new URLSearchParams(window.location.search).get("section");
-  return sections.includes(candidate) ? candidate : "intuition";
-}
-
 function formatNumber(value, digits = 2) {
   if (!Number.isFinite(value)) return "--";
   const normalized = Math.abs(value) < 1e-10 ? 0 : value;
@@ -512,7 +510,10 @@ function formatPercent(value) {
 
 function setSection(section, scroll = true) {
   if (!sections.includes(section)) return;
-  activeSection.value = section;
+  if (section !== activeSection.value) {
+    activeSection.value = section;
+    router.push({ query: { ...route.query, section } });
+  }
   if (scroll) {
     nextTick(() => {
       if (isDesktopViewport()) {
@@ -606,13 +607,20 @@ function requestScrollState() {
   });
 }
 
-watch(activeSection, async (section) => {
-  if (typeof window !== "undefined") {
-    const url = new URL(window.location.href);
-    url.searchParams.set("section", section);
-    window.history.replaceState({}, "", url);
-  }
-});
+watch(
+  () => route.query.section,
+  (section) => {
+    const { value, isInvalid } = readQueryViewState(section, sections, "intuition");
+    if (activeSection.value !== value) activeSection.value = value;
+
+    if (isInvalid) {
+      const query = { ...route.query };
+      delete query.section;
+      router.replace({ query });
+    }
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   requestScrollState();

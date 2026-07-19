@@ -1,6 +1,7 @@
 <script setup>
 import * as d3 from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import MobileAnovaSummary from "../components/anova/MobileAnovaSummary.vue";
 import MobileSegmentedNavigation from "../components/anova/MobileSegmentedNavigation.vue";
 import MobileStepController from "../components/anova/MobileStepController.vue";
@@ -16,9 +17,24 @@ import {
   stepOrder,
 } from "../lib/anova/explorer-data";
 import { useLocale } from "../utils/locale";
+import { readQueryViewState } from "../utils/query-view-state";
 
 const { locale: language, setLocale } = useLocale();
-const activeModule = ref("single");
+const route = useRoute();
+const router = useRouter();
+const modelByModule = {
+  single: "linear",
+  sra: "sra",
+  pla: "pla",
+  fourpl: "4pl",
+};
+const moduleByModel = Object.fromEntries(
+  Object.entries(modelByModule).map(([module, model]) => [model, module]),
+);
+const anovaModels = Object.keys(moduleByModel);
+const activeModule = ref(
+  moduleByModel[readQueryViewState(route.query.model, anovaModels, "linear").value],
+);
 const activeStep = ref("mean");
 const explorerRoot = ref(null);
 const chartSvg = ref(null);
@@ -144,8 +160,29 @@ const updateMobileContentTop = () => {
 };
 
 const setModule = (module) => {
+  if (module === activeModule.value) return;
   activeModule.value = module;
   activeStep.value = stepOrder[module][0];
+  const query = { ...route.query };
+  const model = modelByModule[module];
+  if (model === "linear") delete query.model;
+  else query.model = model;
+  router.push({ query });
+};
+
+const syncModuleFromRoute = (model) => {
+  const { value, isInvalid } = readQueryViewState(model, anovaModels, "linear");
+  const module = moduleByModel[value];
+  if (activeModule.value !== module) {
+    activeModule.value = module;
+    activeStep.value = stepOrder[module][0];
+  }
+
+  if (isInvalid) {
+    const query = { ...route.query };
+    delete query.model;
+    router.replace({ query });
+  }
 };
 
 const goToAdjacentStep = (direction) => {
@@ -1210,6 +1247,12 @@ watch([scene, language, ssScaleMode], async () => {
   await nextTick();
   drawChart();
 });
+
+watch(
+  () => route.query.model,
+  (model) => syncModuleFromRoute(model),
+  { immediate: true },
+);
 
 watch([activeModule, activeStep], async () => {
   selectedMobileNodeId.value = null;

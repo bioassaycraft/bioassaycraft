@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
@@ -7,9 +8,21 @@ import EndotoxinCalculator from "../components/specification/EndotoxinCalculator
 import HcdCalculator from "../components/specification/HcdCalculator.vue";
 import ProductInformationCard from "../components/specification/ProductInformationCard.vue";
 import { useLocale } from "../utils/locale";
+import { readQueryViewState } from "../utils/query-view-state";
 
 const { locale: language, setLocale } = useLocale();
-const activeModuleId = ref("endotoxin");
+const route = useRoute();
+const router = useRouter();
+const moduleByAttribute = {
+  endotoxin: "endotoxin",
+  HCD: "hcd",
+};
+const calculatorAttributes = Object.keys(moduleByAttribute);
+const activeModuleId = ref(
+  moduleByAttribute[
+    readQueryViewState(route.query.attribute, calculatorAttributes, "endotoxin").value
+  ],
+);
 const isHeaderMorphed = ref(false);
 const headerMorphTrigger = ref(null);
 const contentPanel = ref(null);
@@ -94,8 +107,14 @@ function setLanguage(nextLanguage) {
 }
 
 function setActiveModule(nextModuleId) {
-  if (nextModuleId === activeModuleId.value) return;
+  if (
+    !Object.values(moduleByAttribute).includes(nextModuleId) ||
+    nextModuleId === activeModuleId.value
+  )
+    return;
   activeModuleId.value = nextModuleId;
+  const attribute = nextModuleId === "hcd" ? "HCD" : "endotoxin";
+  router.push({ query: { ...route.query, attribute } });
 }
 
 function updateProductInformation({ key, value }) {
@@ -104,6 +123,22 @@ function updateProductInformation({ key, value }) {
     [key]: value,
   };
 }
+
+watch(
+  () => route.query.attribute,
+  (attribute) => {
+    const { value, isInvalid } = readQueryViewState(attribute, calculatorAttributes, "endotoxin");
+    const moduleId = moduleByAttribute[value];
+    if (activeModuleId.value !== moduleId) activeModuleId.value = moduleId;
+
+    if (isInvalid) {
+      const query = { ...route.query };
+      delete query.attribute;
+      router.replace({ query });
+    }
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   if ("IntersectionObserver" in window && headerMorphTrigger.value) {
