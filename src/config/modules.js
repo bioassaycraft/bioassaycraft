@@ -232,3 +232,6 @@ export const getFeaturedModules = (type) =>
     .filter((module) => module.featured)
     .sort((a, b) => a.homeOrder - b.homeOrder)
     .slice(0, 4);
+
+export const getLuckyModules = () =>
+  modules.filter((module) => module.status === "ready" && module.route);

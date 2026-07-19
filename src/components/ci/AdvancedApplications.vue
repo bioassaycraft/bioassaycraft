@@ -554,9 +554,7 @@ onBeforeUnmount(() => {
         @toggle="basisOpen = $event.currentTarget.open"
       >
         <summary :aria-expanded="basisOpen">
-          <span
-            ><strong>{{ copy.basisTitle }}</strong></span
-          >
+          <span><strong>{{ copy.basisTitle }}</strong></span>
         </summary>
         <div class="basis-copy">
           <p>{{ copy.basisBody }}</p>
@@ -599,13 +597,11 @@ onBeforeUnmount(() => {
                 v-if="touched[field] && errors[field]"
                 :id="`${field}-message`"
                 class="field-error"
-                >{{ copy[`${field}Error`] }}</small
-              >
+              >{{ copy[`${field}Error`] }}</small>
               <small
                 v-else-if="field === 'sd' && valid && parsed.sd === 0"
                 :id="`${field}-message`"
-                >{{ copy.zeroSd }}</small
-              >
+              >{{ copy.zeroSd }}</small>
             </label>
           </div>
         </div>
@@ -673,15 +669,13 @@ onBeforeUnmount(() => {
 
       <section v-if="result" class="ci-card result-card">
         <p class="interval-line">
-          <span>{{ copy.confidenceIntervalLabel }}：</span
-          ><strong>[{{ format(result.lower) }}, {{ format(result.upper) }}]</strong>
+          <span>{{ copy.confidenceIntervalLabel }}：</span><strong>[{{ format(result.lower) }}, {{ format(result.upper) }}]</strong>
         </p>
       </section>
 
       <section class="ci-card confidence-card">
         <p class="confidence-line">
-          <strong>{{ confidenceLabel }}</strong
-          ><span>{{ copy.confidenceIntervalLabel }}</span>
+          <strong>{{ confidenceLabel }}</strong><span>{{ copy.confidenceIntervalLabel }}</span>
         </p>
         <input
           v-model.number="inputs.confidence"
@@ -735,33 +729,22 @@ onBeforeUnmount(() => {
         @toggle="formulaOpen = $event.currentTarget.open"
       >
         <summary :aria-expanded="formulaOpen">
-          <span
-            ><strong>{{ copy.formulaTitle }}</strong
-            ><small>{{ copy.formulaSummary }}</small></span
-          >
+          <span><strong>{{ copy.formulaTitle }}</strong><small>{{ copy.formulaSummary }}</small></span>
         </summary>
         <div class="display-formula"><MathFormula formula="\bar{x} \pm t_{1-\alpha/2,\,n-1}\frac{s}{\sqrt{n}}" display aria-label="Mean confidence interval formula" /></div>
         <ol class="formula-steps">
           <li>
-            <span>1 · {{ copy.df }}</span
-            ><strong>df = {{ result.n }} − 1 = {{ result.df }}</strong>
+            <span>1 · {{ copy.df }}</span><strong>df = {{ result.n }} − 1 = {{ result.df }}</strong>
           </li>
           <li>
-            <span>2 · {{ copy.se }}</span
-            ><strong
-              >SE = {{ format(result.sd) }} / √{{ result.n }} = {{ format(result.se) }}</strong
-            >
+            <span>2 · {{ copy.se }}</span><strong>SE = {{ format(result.sd) }} / √{{ result.n }} = {{ format(result.se) }}</strong>
           </li>
           <li>
-            <span>3 · {{ copy.me }}</span
-            ><strong
-              >{{ copy.me }} = {{ format(result.criticalValue, 4) }} × {{ format(result.se) }} =
-              {{ format(result.marginOfError) }}</strong
-            >
+            <span>3 · {{ copy.me }}</span><strong>{{ copy.me }} = {{ format(result.criticalValue, 4) }} × {{ format(result.se) }} =
+              {{ format(result.marginOfError) }}</strong>
           </li>
           <li>
-            <span>4 · {{ copy.ci }}</span
-            ><strong>CI = [{{ format(result.lower) }}, {{ format(result.upper) }}]</strong>
+            <span>4 · {{ copy.ci }}</span><strong>CI = [{{ format(result.lower) }}, {{ format(result.upper) }}]</strong>
           </li>
         </ol>
         <p class="coverage-copy">{{ copy.coverage(confidenceLabel) }}</p>
@@ -775,9 +758,7 @@ onBeforeUnmount(() => {
         @toggle="basisOpen = $event.currentTarget.open"
       >
         <summary :aria-expanded="basisOpen">
-          <span
-            ><strong>{{ copy.variability.basisTitle }}</strong></span
-          >
+          <span><strong>{{ copy.variability.basisTitle }}</strong></span>
         </summary>
         <div class="basis-copy">
           <p>{{ copy.variability.basisBody }}</p>
@@ -789,28 +770,24 @@ onBeforeUnmount(() => {
       <section class="ci-card sample-card">
         <h3>{{ copy.variability.sampleTitle }}</h3>
         <div class="sample-fields sd-sample-fields">
-          <label class="sample-size-field"
-            ><span>{{ copy.variability.n }}</span
-            ><input
-              v-model="variabilityInputs.n"
-              type="text"
-              inputmode="numeric"
-              :aria-invalid="variabilityTouched.n && variabilityErrors.n"
-              aria-describedby="variability-n-message"
-              @input="markChanged"
-              @blur="variabilityTouched.n = true"
-            /><small v-if="variabilityTouched.n && variabilityErrors.n" id="variability-n-message" class="field-error">{{ rsdCopy.nError }}</small></label>
-          <label class="sample-value-field"
-              ><span>{{ copy.sd }}</span
-              ><input
-                v-model="variabilityInputs.sd"
-                type="text"
-                inputmode="decimal"
-                :aria-invalid="variabilityTouched.sd && variabilityErrors.sd"
-                aria-describedby="variability-sd-message"
-                @input="markChanged"
-                @blur="variabilityTouched.sd = true"
-            /><small v-if="variabilityTouched.sd && variabilityErrors.sd" id="variability-sd-message" class="field-error">{{ rsdCopy.sdError }}</small><small v-else-if="variabilityValid && variabilityParsed.sd === 0" id="variability-sd-message">{{ rsdCopy.zeroSd }}</small></label>
+          <label class="sample-size-field"><span>{{ copy.variability.n }}</span><input
+            v-model="variabilityInputs.n"
+            type="text"
+            inputmode="numeric"
+            :aria-invalid="variabilityTouched.n && variabilityErrors.n"
+            aria-describedby="variability-n-message"
+            @input="markChanged"
+            @blur="variabilityTouched.n = true"
+          /><small v-if="variabilityTouched.n && variabilityErrors.n" id="variability-n-message" class="field-error">{{ rsdCopy.nError }}</small></label>
+          <label class="sample-value-field"><span>{{ copy.sd }}</span><input
+            v-model="variabilityInputs.sd"
+            type="text"
+            inputmode="decimal"
+            :aria-invalid="variabilityTouched.sd && variabilityErrors.sd"
+            aria-describedby="variability-sd-message"
+            @input="markChanged"
+            @blur="variabilityTouched.sd = true"
+          /><small v-if="variabilityTouched.sd && variabilityErrors.sd" id="variability-sd-message" class="field-error">{{ rsdCopy.sdError }}</small><small v-else-if="variabilityValid && variabilityParsed.sd === 0" id="variability-sd-message">{{ rsdCopy.zeroSd }}</small></label>
         </div>
       </section>
 
@@ -863,15 +840,13 @@ onBeforeUnmount(() => {
 
       <section v-if="variabilityResult" class="ci-card result-card">
         <p class="interval-line">
-          <span>{{ copy.variability.resultLabel }}：</span
-          ><strong>[{{ format(variabilityResult.lowerSd) }}, {{ format(variabilityResult.upperSd) }}]</strong>
+          <span>{{ copy.variability.resultLabel }}：</span><strong>[{{ format(variabilityResult.lowerSd) }}, {{ format(variabilityResult.upperSd) }}]</strong>
         </p>
       </section>
 
       <section class="ci-card confidence-card">
         <p class="confidence-line">
-          <strong>{{ variabilityConfidenceLabel }}</strong
-          ><span>{{ copy.variability.confidenceSuffix }}</span>
+          <strong>{{ variabilityConfidenceLabel }}</strong><span>{{ copy.variability.confidenceSuffix }}</span>
         </p>
         <input
           v-model.number="variabilityInputs.confidence"
@@ -910,20 +885,15 @@ onBeforeUnmount(() => {
         @toggle="formulaOpen = $event.currentTarget.open"
       >
         <summary :aria-expanded="formulaOpen">
-          <span
-            ><strong>{{ copy.variability.formulaTitle }}</strong
-            ><small>{{ copy.variability.formulaSummary }}</small></span
-          >
+          <span><strong>{{ copy.variability.formulaTitle }}</strong><small>{{ copy.variability.formulaSummary }}</small></span>
         </summary>
         <div class="display-formula"><MathFormula formula="\mathrm{CI}_{\mathrm{SD}} = \left[s\sqrt{\frac{df}{\chi^2_{1-\alpha/2}}},\;s\sqrt{\frac{df}{\chi^2_{\alpha/2}}}\right]" display aria-label="Standard deviation confidence interval formula" /></div>
         <ol class="formula-steps">
           <li>
-            <span>1 · {{ copy.df }}</span
-            ><strong>df = {{ variabilityResult.n }} − 1 = {{ variabilityResult.df }}</strong>
+            <span>1 · {{ copy.df }}</span><strong>df = {{ variabilityResult.n }} − 1 = {{ variabilityResult.df }}</strong>
           </li>
           <li>
-            <span>2 · χ² 临界值</span
-            ><strong>χ<sup>2</sup><sub>α/2</sub> = {{ format(variabilityResult.lowerCriticalValue, 4) }}；χ<sup>2</sup><sub>1−α/2</sub> = {{ format(variabilityResult.upperCriticalValue, 4) }}</strong>
+            <span>2 · χ² 临界值</span><strong>χ<sup>2</sup><sub>α/2</sub> = {{ format(variabilityResult.lowerCriticalValue, 4) }}；χ<sup>2</sup><sub>1−α/2</sub> = {{ format(variabilityResult.upperCriticalValue, 4) }}</strong>
           </li>
           <li>
             <span>3 · {{ copy.variability.resultLabel }}</span><strong>[{{ format(variabilityResult.lowerSd) }}, {{ format(variabilityResult.upperSd) }}]</strong>
@@ -960,7 +930,7 @@ onBeforeUnmount(() => {
       <section class="ci-card result-card rsd-result-card">
         <h3>{{ rsdCopy.resultTitle }}</h3>
         <p class="observed-rsd"><span>{{ rsdCopy.observed }}：</span><strong>{{ observedRsd === null ? "—" : `${formatRsd(observedRsd)}` }}</strong></p>
-        <dl class="rsd-results" v-if="!rsdMeanInvalid">
+        <dl v-if="!rsdMeanInvalid" class="rsd-results">
           <div v-for="method in ['naive', 'mckay', 'vangel', 'exact']" :key="method"><dt>{{ rsdCopy.methods[method] }}</dt><dd>{{ formatMethodInterval(rsdMethods[method]) }}</dd></div>
         </dl>
       </section>
@@ -1033,9 +1003,9 @@ onBeforeUnmount(() => {
             <li><span>3</span><MathFormula :formula="String.raw`L = \frac{K}{\sqrt{\left(\frac{u_1+2}{n}-1\right)K^2+\frac{u_1}{n-1}}} = \frac{K}{\sqrt{${formatFormulaValue(rsdMethods.vangel?.intermediateValues?.lowerDenominator)}}} = ${formatFormulaValue(rsdMethods.vangel?.lower)}`" /><MathFormula :formula="String.raw`U = \frac{K}{\sqrt{\left(\frac{u_2+2}{n}-1\right)K^2+\frac{u_2}{n-1}}} = \frac{K}{\sqrt{${formatFormulaValue(rsdMethods.vangel?.intermediateValues?.upperDenominator)}}} = ${formatFormulaValue(rsdMethods.vangel?.upper)}`" /></li>
             <li><span>4</span><strong>{{ formatMethodInterval(rsdMethods.vangel) }}</strong></li>
           </ol>
-          <p class="coverage-copy" v-if="method === 'naive'">{{ props.language === 'zh' ? '该方法忽略样本均值自身的抽样不确定性，因此实际覆盖率可能偏离标称置信水平，尤其是在小样本、RSD 较高或均值接近零时。' : 'This method ignores sampling uncertainty in the sample mean, so actual coverage can depart from the nominal level, especially for small samples, high RSD, or a mean near zero.' }}</p>
-          <p class="coverage-copy" v-if="method === 'exact' && rsdMethods.exact?.converged">{{ rsdCopy.exactSteps.converged }}</p>
-          <p class="coverage-copy field-error" v-else-if="method === 'exact' && !exactRsdLoading">{{ rsdCopy.exactSteps.failed }}</p>
+          <p v-if="method === 'naive'" class="coverage-copy">{{ props.language === 'zh' ? '该方法忽略样本均值自身的抽样不确定性，因此实际覆盖率可能偏离标称置信水平，尤其是在小样本、RSD 较高或均值接近零时。' : 'This method ignores sampling uncertainty in the sample mean, so actual coverage can depart from the nominal level, especially for small samples, high RSD, or a mean near zero.' }}</p>
+          <p v-if="method === 'exact' && rsdMethods.exact?.converged" class="coverage-copy">{{ rsdCopy.exactSteps.converged }}</p>
+          <p v-else-if="method === 'exact' && !exactRsdLoading" class="coverage-copy field-error">{{ rsdCopy.exactSteps.failed }}</p>
         </div>
       </details>
 

@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useLocale } from "../utils/locale";
 import { animateElement, hoverTransition } from "../utils/motion";
-import { getFeaturedModules, getModules } from "../config/modules";
+import { getFeaturedModules, getLuckyModules, getModules } from "../config/modules";
 
 const emit = defineEmits(["activate-group", "clear-group"]);
 
@@ -98,7 +98,7 @@ const homeCopy = {
     journeyNote: "结构化学习路径。",
     ready: "已就绪",
     planned: "规划中",
-    lucky: "随机探索",
+    lucky: "I'm Feeling Lucky!",
   },
 };
 
@@ -197,16 +197,11 @@ const heroTitleStyle = computed(() => {
 });
 
 const readyMobileDestinations = computed(() =>
-  homeGroups.flatMap((group) =>
-    group.items
-      .filter((item) => item.ready && item.href && item.luckyEligible)
-      .map((item) => ({
-        ...item,
-        group: group.key,
-        luckyKey: item.luckyKey || item.href,
-        weight: Math.max(1, Number(item.weight) || 1),
-      })),
-  ),
+  getLuckyModules().map((module) => ({
+    ...module,
+    luckyKey: module.luckyKey || module.route,
+    weight: Math.max(1, Number(module.weight) || 1),
+  })),
 );
 
 const readLuckyHistory = () => {

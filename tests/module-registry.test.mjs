@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getFeaturedModules, getModules } from "../src/config/modules.js";
+import { getFeaturedModules, getLuckyModules, getModules, modules } from "../src/config/modules.js";
 
 describe("module registry", () => {
   it("uses one ordered source for mobile featured modules", () => {
@@ -32,5 +32,13 @@ describe("module registry", () => {
     );
     expect(validationSimulator).toMatchObject({ status: "planned" });
     expect(validationSimulator).not.toHaveProperty("route");
+  });
+
+  it("makes every ready, routable module eligible for lucky navigation", () => {
+    const readyRoutableModuleIds = modules
+      .filter((module) => module.status === "ready" && module.route)
+      .map((module) => module.id);
+
+    expect(getLuckyModules().map((module) => module.id)).toEqual(readyRoutableModuleIds);
   });
 });

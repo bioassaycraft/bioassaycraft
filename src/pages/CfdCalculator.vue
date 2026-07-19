@@ -211,62 +211,47 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
               <h2>{{ copy.design }}</h2>
             </div>
             <div class="fields two-up">
-              <label
-                >{{ copy.independent }}<input
-                  v-model="independentMeasurements"
-                  type="number"
-                  min="1"
-                  step="1"
-                  inputmode="numeric"
-                /><small v-if="inputErrors.c" class="error">{{ copy.positiveInteger }}</small></label
-              >
-              <label
-                >{{ copy.replicates }}<input
-                  v-model="replicatesPerMeasurement"
-                  type="number"
-                  min="1"
-                  step="1"
-                  inputmode="numeric"
-                /><small v-if="inputErrors.k" class="error">{{ copy.positiveInteger }}</small></label
-              >
+              <label>{{ copy.independent }}<input
+                v-model="independentMeasurements"
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+              /><small v-if="inputErrors.c" class="error">{{ copy.positiveInteger }}</small></label>
+              <label>{{ copy.replicates }}<input
+                v-model="replicatesPerMeasurement"
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+              /><small v-if="inputErrors.k" class="error">{{ copy.positiveInteger }}</small></label>
             </div>
             <details ref="advancedDetails">
               <summary>{{ copy.advanced }} <span>{{ copy.advancedNote }}</span></summary>
               <div class="details-content fields two-up">
-                <label
-                  >{{ copy.coefficient }}<input
-                    v-model="criticalCoefficient"
-                    :disabled="useExactT"
-                    type="number"
-                    min="0"
-                    step="any"
-                  /><small v-if="inputErrors.coefficient && !useExactT" class="error"
-                    >{{ copy.positiveCoefficient }}</small
-                  ></label
-                >
-                <label
-                  >{{ copy.decimals }}<input
-                    v-model="precision"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="1"
-                    inputmode="numeric"
+                <label>{{ copy.coefficient }}<input
+                  v-model="criticalCoefficient"
+                  :disabled="useExactT"
+                  type="number"
+                  min="0"
+                  step="any"
+                /><small v-if="inputErrors.coefficient && !useExactT" class="error">{{ copy.positiveCoefficient }}</small></label>
+                <label>{{ copy.decimals }}<input
+                  v-model="precision"
+                  type="number"
+                  min="0"
+                  max="8"
+                  step="1"
+                  inputmode="numeric"
                 /></label>
-                <label class="toggle"
-                  ><input v-model="useExactT" type="checkbox" />{{ copy.exactT }}</label
-                >
-                <label v-if="useExactT"
-                  >{{ copy.tCritical }}<input
-                    v-model="exactTCritical"
-                    type="number"
-                    min="0"
-                    step="any"
-                    :placeholder="copy.tPlaceholder"
-                  /><small v-if="inputErrors.coefficient" class="error"
-                    >{{ copy.positiveT }}</small
-                  ></label
-                >
+                <label class="toggle"><input v-model="useExactT" type="checkbox" />{{ copy.exactT }}</label>
+                <label v-if="useExactT">{{ copy.tCritical }}<input
+                  v-model="exactTCritical"
+                  type="number"
+                  min="0"
+                  step="any"
+                  :placeholder="copy.tPlaceholder"
+                /><small v-if="inputErrors.coefficient" class="error">{{ copy.positiveT }}</small></label>
               </div>
             </details>
           </section>
@@ -281,27 +266,27 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
                 <span>{{ copy.details }}</span>
               </summary>
               <dl>
-              <div>
-                <dt>{{ copy.vrr }}</dt>
-                <dd>{{ result.ok ? format(result.vrr) : "—" }}</dd>
-              </div>
-              <div>
-                <dt>{{ copy.strategy }}</dt>
-                <dd>
-                  c {{ independentMeasurements || "—" }} × k {{ replicatesPerMeasurement || "—" }}
-                </dd>
-              </div>
-              <div>
-                <dt>{{ copy.formula }}</dt>
-                <dd>
-                  {{ selected.formula.replace("a", result.ok ? String(result.coefficient) : "2") }}
-                </dd>
-              </div>
-              <div>
-                <dt>{{ copy.basis }}</dt>
-                <dd v-if="mode === 'unpaired'">{{ copy.unpairedMethod }}<br />USP &lt;1033&gt; Eq. 12 (Unpaired)</dd>
-                <dd v-else>{{ copy.pairedMethod }}</dd>
-              </div>
+                <div>
+                  <dt>{{ copy.vrr }}</dt>
+                  <dd>{{ result.ok ? format(result.vrr) : "—" }}</dd>
+                </div>
+                <div>
+                  <dt>{{ copy.strategy }}</dt>
+                  <dd>
+                    c {{ independentMeasurements || "—" }} × k {{ replicatesPerMeasurement || "—" }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{{ copy.formula }}</dt>
+                  <dd>
+                    {{ selected.formula.replace("a", result.ok ? String(result.coefficient) : "2") }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{{ copy.basis }}</dt>
+                  <dd v-if="mode === 'unpaired'">{{ copy.unpairedMethod }}<br />USP &lt;1033&gt; Eq. 12 (Unpaired)</dd>
+                  <dd v-else>{{ copy.pairedMethod }}</dd>
+                </div>
               </dl>
             </details>
           </aside>
@@ -318,23 +303,19 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
           </button>
           <div v-if="comparisonOpen" class="comparison-content">
             <div class="fields comparison-fields">
-              <label
-                >{{ copy.valueA }}<input
-                  v-model="valueA"
-                  type="number"
-                  min="0"
-                  step="any"
-                  inputmode="decimal"
-                /><small v-if="inputErrors.valueA" class="error">{{ copy.positiveValue }}</small></label
-              ><label
-                >{{ copy.valueB }}<input
-                  v-model="valueB"
-                  type="number"
-                  min="0"
-                  step="any"
-                  inputmode="decimal"
-                /><small v-if="inputErrors.valueB" class="error">{{ copy.positiveValue }}</small></label
-              ><label>{{ copy.unit }}<input v-model="unit" :placeholder="copy.unitPlaceholder" /></label>
+              <label>{{ copy.valueA }}<input
+                v-model="valueA"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+              /><small v-if="inputErrors.valueA" class="error">{{ copy.positiveValue }}</small></label><label>{{ copy.valueB }}<input
+                v-model="valueB"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+              /><small v-if="inputErrors.valueB" class="error">{{ copy.positiveValue }}</small></label><label>{{ copy.unit }}<input v-model="unit" :placeholder="copy.unitPlaceholder" /></label>
             </div>
             <div
               v-if="comparison.ok"
