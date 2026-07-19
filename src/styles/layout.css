@@ -19,7 +19,8 @@ body,
 #anova-explorer-app,
 #ci-explorer-app,
 #concentration-converter-app,
-#specification-limit-calculator-app {
+#specification-limit-calculator-app,
+#cfd-calculator-app {
   min-height: 100%;
   background: var(--app-bg);
 }
