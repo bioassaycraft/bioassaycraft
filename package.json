@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build && node scripts/copy-static-site.mjs",
+    "build": "vite build && node scripts/copy-static-site.mjs && node scripts/generate-site-files.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -20,11 +20,13 @@
   },
   "dependencies": {
     "@floating-ui/vue": "^2.0.0",
+    "@unhead/vue": "^2.1.15",
     "cdflib_wasm": "^1.0.2",
     "d3": "^7.9.0",
     "katex": "^0.17.0",
     "motion": "^12.42.2",
-    "vue": "^3.5.0"
+    "vue": "^3.5.0",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

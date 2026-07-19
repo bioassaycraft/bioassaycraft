@@ -8,6 +8,7 @@ const emit = defineEmits(["activate-group", "clear-group"]);
 
 const heroProgress = ref(0);
 const hasScrolled = ref(false);
+const viewport = ref({ width: 1440, height: 900 });
 const { locale: language, setLocale } = useLocale();
 const luckyStorageKey = "bioassaycraft:mobile-home:lucky-history";
 
@@ -149,6 +150,7 @@ const updateScrollState = () => {
   scrollFrame = null;
 
   const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  viewport.value = { width: window.innerWidth, height: window.innerHeight };
   const transitionDistance = Math.max(280, window.innerHeight * 0.44);
   heroProgress.value = clamp(scrollY / transitionDistance, 0, 1);
   hasScrolled.value = scrollY > 12;
@@ -188,9 +190,9 @@ const requestScrollUpdate = () => {
 
 const heroTitleStyle = computed(() => {
   const progress = heroProgress.value;
-  const isMobile = window.innerWidth < 768;
-  const x = -progress * Math.min(window.innerWidth * (isMobile ? 0.14 : 0.34), isMobile ? 80 : 430);
-  const y = -progress * Math.min(window.innerHeight * (isMobile ? 0.18 : 0.3), isMobile ? 96 : 260);
+  const isMobile = viewport.value.width < 768;
+  const x = -progress * Math.min(viewport.value.width * (isMobile ? 0.14 : 0.34), isMobile ? 80 : 430);
+  const y = -progress * Math.min(viewport.value.height * (isMobile ? 0.18 : 0.3), isMobile ? 96 : 260);
   const scale = 1 - progress * (isMobile ? 0.34 : 0.72);
 
   return {
