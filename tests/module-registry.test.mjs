@@ -40,5 +40,6 @@ describe("module registry", () => {
       .map((module) => module.id);
 
     expect(getLuckyModules().map((module) => module.id)).toEqual(readyRoutableModuleIds);
+    expect(getLuckyModules().every((module) => module.route.startsWith("/"))).toBe(true);
   });
 });

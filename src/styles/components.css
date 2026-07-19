@@ -836,6 +836,31 @@ h2 {
     font-size: 0.76rem;
     font-weight: 680;
     line-height: 1;
+    letter-spacing: 0.01em;
+  }
+
+  .mobile-lucky-button-halo {
+    position: fixed;
+    right: max(-18px, calc(env(safe-area-inset-right) - 18px));
+    bottom: max(-12px, calc(env(safe-area-inset-bottom) - 12px));
+    z-index: 39;
+    width: 208px;
+    height: 92px;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at 72% 64%,
+      color-mix(in srgb, var(--bc-bg-surface-solid) 94%, transparent) 0%,
+      color-mix(in srgb, var(--bc-bg-surface-solid) 68%, transparent) 44%,
+      transparent 78%
+    );
+    filter: blur(10px);
+  }
+
+  .mobile-lucky-button-mark {
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--app-accent);
+    font-size: 0.9em;
   }
 
   .mobile-lucky-button:focus-visible {

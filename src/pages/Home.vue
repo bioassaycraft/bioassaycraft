@@ -80,6 +80,7 @@ const homeCopy = {
     ready: "Ready",
     planned: "Planned",
     lucky: "I'm Feeling Lucky!",
+    luckyLabel: "Open a ready page at random",
   },
   zh: {
     languageLabel: "语言",
@@ -98,7 +99,8 @@ const homeCopy = {
     journeyNote: "结构化学习路径。",
     ready: "已就绪",
     planned: "规划中",
-    lucky: "I'm Feeling Lucky!",
+    lucky: "手气不错",
+    luckyLabel: "随机打开一个已就绪页面",
   },
 };
 
@@ -249,7 +251,7 @@ const openLuckyModule = () => {
   const destination = chooseWeightedDestination(candidates);
 
   writeLuckyHistory(destination.luckyKey, history);
-  window.location.href = destination.href;
+  window.location.href = destination.route;
 };
 
 onMounted(() => {
@@ -423,7 +425,15 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <button type="button" class="mobile-lucky-button" @click="openLuckyModule">
+      <span class="mobile-lucky-button-halo" aria-hidden="true"></span>
+      <button
+        type="button"
+        class="mobile-lucky-button"
+        :aria-label="copy.luckyLabel"
+        :title="copy.luckyLabel"
+        @click="openLuckyModule"
+      >
+        <span class="mobile-lucky-button-mark" aria-hidden="true">✦</span>
         {{ copy.lucky }}
       </button>
     </section>
