@@ -148,7 +148,7 @@ Current strategy:
 - `assets/` remains at the project root so current static pages keep their existing asset references.
 - `npm run build` runs Vite and then copies the existing static site directories into `dist/`.
 
-This keeps `/`, `/learn/`, `/journeys/`, `/tools/`, and `/simulators/` available while Vue migration continues page by page.
+This keeps `/`, `/learn/`, `/journey/`, and `/tools/` available while Vue migration continues page by page. Historical `/journeys/` and `/simulators/` paths are Worker redirects rather than deployed pages.
 
 ## Cloudflare Workers
 

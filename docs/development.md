@@ -112,9 +112,9 @@ npm run format
 - Homepage: `/`
 - Tools entry: `/tools/`
 - Learn entry: `/learn/`
-- Journeys entry: `/journeys/`
+- Journey entry: `/journey/`
 
-Existing `tools/` and `simulators/` routes are preserved. Calculators, converters, and simulators are product-classified as Tools even when some physical routes still live under `simulators/`. Learning explorers such as ANOVA Explorer live under `learn/`.
+Calculators, converters, and simulators use `/tools/`; learning explorers use `/learn/`. Historical route aliases are permanently redirected by the Cloudflare Worker.
 
 Vite-managed routes:
 

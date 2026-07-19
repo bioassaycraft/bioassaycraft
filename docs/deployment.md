@@ -35,10 +35,10 @@ Static assets are served from:
 `wrangler.jsonc` enables:
 
 ```jsonc
-"not_found_handling": "single-page-application"
+"not_found_handling": "404-page"
 ```
 
-This ensures navigation requests that do not map to a concrete file fall back to `/index.html`.
+This ensures paths without a concrete file return the generated 404 page. The Worker handles legacy-path redirects before static assets are served.
 
 ## GitHub Actions
 

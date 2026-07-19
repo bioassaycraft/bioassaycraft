@@ -7,7 +7,7 @@ const configuredType = document.documentElement.dataset.moduleIndexType;
 const type =
   configuredType === "explore" || configuredType === "tools"
     ? configuredType
-    : window.location.pathname.startsWith("/explore")
+    : window.location.pathname.startsWith("/learn")
       ? "explore"
       : "tools";
 createApp(ModuleIndexPage, { type }).mount("#app");

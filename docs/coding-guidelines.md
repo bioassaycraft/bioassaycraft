@@ -222,9 +222,8 @@ assets/
     tools/
 docs/
 learn/
-journeys/
+journey/
 lessons/   # legacy placeholder only
-simulators/
 tools/
 tests/
 index.html
@@ -234,16 +233,16 @@ Rules while the site remains static:
 
 - Use directory routes with `index.html`.
 - Put tool pages under `tools/<tool-name>/index.html`.
-- Put simulator pages under `simulators/<simulator-name>/index.html`.
-- Treat calculators, converters, utilities, and simulators as Tools in product classification, even when a current route remains under `simulators/`. Learning explorers such as ANOVA Explorer belong under `learn/`.
+- Put simulator pages under `tools/<simulator-name>/index.html`.
+- Treat calculators, converters, utilities, and simulators as Tools in both product classification and public paths. Learning explorers such as ANOVA Explorer belong under `learn/`.
 - Keep `learn/` as the formal directory for interactive pharmacopoeia learning.
 - Do not add new content to `lessons/`; keep it only for legacy compatibility if needed.
 - Keep reusable calculations under `assets/js/lib/<domain>/`.
-- Keep page orchestration scripts under `assets/js/tools/` or `assets/js/simulators/` when simulator scripts are extracted.
-- Keep page-specific CSS under `assets/css/tools/` or `assets/css/simulators/` until a shared component stylesheet exists.
+- Keep page orchestration scripts under `assets/js/tools/` when simulator scripts are extracted.
+- Keep page-specific CSS under `assets/css/tools/` until a shared component stylesheet exists.
 - Do not create vague files such as `script.js`, `main.js`, `style.css`, or `new.html`.
 - Do not duplicate legacy routes unless an existing deployed URL must remain valid.
-- Do not move `simulators/` pages into `tools/` only for naming purity. If routes are consolidated later, update old links, redirects, and Cloudflare Workers static asset deployment behavior deliberately.
+- Route consolidation requires direct internal links, Worker redirects for legacy URLs, and Cloudflare Workers static-asset verification.
 
 Possible future Vite + Vue target structure:
 

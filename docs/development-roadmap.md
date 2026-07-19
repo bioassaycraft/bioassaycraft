@@ -38,7 +38,7 @@ Goals:
 
 - Homepage presents Learn / Journeys / Tools as the three entry points.
 - Existing tools remain easy to access.
-- Basic `/learn/`, `/journeys/`, and `/tools/` entry pages exist.
+- Basic `/learn/`, `/journey/`, and `/tools/` entry pages exist.
 - Visual language remains calm, restrained, and paper-like.
 
 Do not:

@@ -10,7 +10,7 @@ import NotFound from "./pages/NotFound.vue";
 
 export const routes = [
   { path: "/", component: Home },
-  { path: "/explore/", component: ModuleIndexPage, props: { type: "explore" } },
+  { path: "/learn/", component: ModuleIndexPage, props: { type: "explore" } },
   { path: "/tools/", component: ModuleIndexPage, props: { type: "tools" } },
   { path: "/learn/anova-explorer/", component: AnovaExplorer },
   { path: "/learn/ci-explorer/", component: CiExplorer },

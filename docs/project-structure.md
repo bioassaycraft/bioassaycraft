@@ -38,15 +38,15 @@ BioassayCraft is organized by product responsibility rather than by the current 
 - Put static tool-specific JavaScript in `assets/js/tools/<tool-name>.js` only for tools that have not moved to Vue.
 - Put public icon files and the web manifest in `assets/icons/`.
 - Put each interactive tool in `tools/<tool-name>/`.
-- Put each simulation or simulator in `simulators/<simulator-name>/`.
+- Put each simulation or simulator in `tools/<simulator-name>/`.
 - Product classification groups calculators, converters, and simulators under Tools. Learning explorers such as ANOVA Explorer live under `learn/`.
-- Every route should use the directory + `index.html` pattern, for example `tools/converter/index.html`, `learn/anova-explorer/index.html`, `learn/index.html`, and `journeys/index.html`.
+- Every route should use the directory + `index.html` pattern, for example `tools/converter/index.html`, `learn/anova-explorer/index.html`, `learn/index.html`, and `journey/index.html`.
 - Vite-managed routes keep their public `index.html` as the Vite entry and their implementation under `src/`. Current Vite-managed routes include `/learn/anova-explorer/` and `/tools/converter/`.
 - Put interactive pharmacopoeia learning pages under `learn/`.
-- Put structured practice workflow pages under `journeys/`.
+- Put structured practice workflow pages under `journey/`.
 - Treat `lessons/` as a legacy placeholder. Do not add new Learn content there, and do not develop it into a parallel Lessons or Articles module.
 - Keep legacy routes as thin redirects only when an existing URL needs to remain valid.
-- Do not move existing `simulators/` routes only to make the directory tree cleaner. Route consolidation should wait for an intentional migration plan with old-link handling.
+- Keep retired route directories out of the build; map historical URLs to canonical paths at the Worker edge.
 - Keep long-form notes, brand rules, and architecture notes in `docs/`.
 - `npm run build` outputs to `dist/`, then copies existing static routes into that build output. Vite-managed routes listed in `scripts/copy-static-site.mjs` are not overwritten by the static copy step.
 

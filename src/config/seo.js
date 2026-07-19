@@ -16,7 +16,7 @@ export const seoPages = [
     "Interactive tools and learning modules for bioassay development, validation, and statistical reasoning.",
   ),
   page(
-    "/explore/",
+    "/learn/",
     "Explore bioassay reasoning | BioassayCraft",
     "Interactive learning modules for understanding bioassay models, residuals, and statistical inference.",
   ),
@@ -26,12 +26,7 @@ export const seoPages = [
     "Practical scientific tools for bioassay method development, validation, and data processing.",
   ),
   page(
-    "/learn/",
-    "Bioassay learning | BioassayCraft",
-    "Interactive pharmacopoeia learning for bioassay chapters, formulas, examples, and practice notes.",
-  ),
-  page(
-    "/journeys/",
+    "/journey/",
     "Bioassay practice journeys | BioassayCraft",
     "Structured bioassay practice workflows for method development, validation, and data analysis.",
   ),
@@ -76,7 +71,7 @@ export const seoPages = [
     "Estimate validation sample size from accuracy, precision, confidence, and power assumptions.",
   ),
   page(
-    "/simulators/validation-simulator/",
+    "/tools/validation-simulator/",
     "Method Validation Simulator | BioassayCraft",
     "Explore procedure-based validation, method-based validation, and reportable-result risk.",
   ),

@@ -4,7 +4,7 @@ import { join } from "node:path";
 const root = process.cwd();
 const dist = join(root, "dist");
 
-const entries = ["assets", "learn", "journeys", "tools", "simulators", "lessons"];
+const entries = ["assets", "journey", "learn", "tools", "lessons"];
 const viteManagedRoutes = new Set([
   join(root, "learn", "anova-explorer"),
   join(root, "learn", "residual-explorer"),
@@ -12,7 +12,7 @@ const viteManagedRoutes = new Set([
   join(root, "tools", "converter"),
   join(root, "tools", "cfd-calculator"),
   join(root, "tools", "specification-limit-calculator"),
-  join(root, "explore"),
+  join(root, "learn", "index.html"),
   join(root, "tools", "index.html"),
 ]);
 

@@ -379,7 +379,7 @@ onBeforeUnmount(() => {
             <a
               v-if="group.key !== 'journey'"
               class="mobile-view-all"
-              :href="group.key === 'learn' ? '/explore/' : '/tools/'"
+              :href="group.key === 'learn' ? '/learn/' : '/tools/'"
               :aria-label="`${copy.viewAll} ${groupTitle(group)}`"
             >
               {{ copy.viewAll }} <span aria-hidden="true">›</span>

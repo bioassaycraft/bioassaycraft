@@ -21,11 +21,17 @@ It connects:
 
 It is not a generic article site and not merely a calculator collection.
 
-The current top-level product structure is:
+The current top-level product structure and canonical paths are:
 
 - Learn
-- Journeys
+- Journey
 - Tools
+
+```text
+/learn/
+/journey/
+/tools/
+```
 
 Do not add Articles as a top-level product module. If text-led content is needed later, place it under a more specific structure such as `learn/`, `learn/pharmacopoeia/`, `learn/tutorials/`, `learn/case-data/`, or `case-studies/`.
 
@@ -126,9 +132,7 @@ Current Tools classification:
 - ANOVA Explorer.
 - Method Validation Simulator.
 
-Current physical routes still include `tools/` and `simulators/` because the site is static and existing URLs should remain stable. Product classification treats them all as Tools until a later migration consolidates routes intentionally.
-
-Do not move `/simulators/` routes into `/tools/` only for naming purity. If a future Vite + Vue route cleanup consolidates product routes, it must handle old links, redirects, and Cloudflare Workers static asset deployment behavior explicitly.
+All public tools, including simulators, use `/tools/<module>/`. Historical paths are permanently redirected at the Cloudflare Worker edge.
 
 Future Tools may include:
 
@@ -197,9 +201,9 @@ Learn:
 
 - `/learn/`
 
-Journeys:
+Journey:
 
-- `/journeys/`
+- `/journey/`
 
 Tools:
 
@@ -207,7 +211,7 @@ Tools:
 - `/tools/converter/`
 - `/tools/validation-sample-size-calculator/`
 - `/tools/oos-risk-explorer/`
-- `/simulators/validation-simulator/`
+- `/tools/validation-simulator/`
 
 Learn modules:
 

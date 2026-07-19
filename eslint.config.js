@@ -21,6 +21,7 @@ export default [
       "src/**/*.{js,vue}",
       "scripts/**/*.mjs",
       "tests/**/*.mjs",
+      "worker.js",
       "vite.config.js",
       "eslint.config.js",
       "prettier.config.js",
@@ -31,6 +32,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
+        ...globals.serviceworker,
       },
     },
     rules: {
