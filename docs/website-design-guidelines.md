@@ -653,9 +653,9 @@ Route and folder rules:
 
 - Use one top-level area per product type.
 - Put practical tools under `tools/<tool-name>/index.html`.
-- Put interactive simulations and simulator-style learning modules under `simulators/<simulator-name>/index.html`.
-- Use `simulators/` as the canonical route directory; do not create a parallel `simulations/` directory for simulator pages.
-- Do not use root-level module files such as `tools/example.html` or `simulators/example.html` for new pages.
+- Put interactive simulations and simulator-style learning modules under `tools/<simulator-name>/index.html`.
+- Use `tools/` as the canonical route directory for simulator pages; do not create a parallel `simulations/` directory.
+- Do not use root-level module files such as `tools/example.html` for new pages.
 - Prefer stable directory URLs such as `/tools/converter/` and `/learn/anova-explorer/`.
 - Add a legacy redirect only after a URL has been published or externally shared.
 

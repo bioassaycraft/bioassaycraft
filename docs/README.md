@@ -79,9 +79,7 @@ Do not create a top-level Articles section.
 
 `learn/` is the formal home for future interactive pharmacopoeia learning.
 
-`lessons/` is a legacy placeholder only and should not receive new content.
-
-Calculators, converters, utilities, and simulators are product-classified as Tools, even when some current physical routes remain under `simulators/`. Learning explorers such as ANOVA Explorer belong under `learn/`.
+Calculators, converters, utilities, and simulators use `tools/`; learning explorers use `learn/`.
 
 ## Current Technical Boundary
 

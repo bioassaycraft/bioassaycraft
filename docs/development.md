@@ -71,7 +71,7 @@ The build command runs:
 vite build && node scripts/copy-static-site.mjs
 ```
 
-Vite builds the current Vue homepage into `dist/`. The copy script then copies the preserved static site directories into `dist/` so existing tool, simulator, learning, and journey routes continue to deploy at their current paths.
+Vite builds the Vue routes into `dist/`. The copy script then copies the preserved `assets`, `journey`, `learn`, and `tools` directories so their canonical routes deploy at the same paths.
 
 ## Preview
 

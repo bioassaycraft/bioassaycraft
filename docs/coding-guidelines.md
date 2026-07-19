@@ -23,7 +23,7 @@ The current site is a pure static HTML/CSS/JavaScript project. That is appropria
 
 Current strengths:
 
-- Routes already follow a clear category pattern: `tools/<name>/index.html` and `simulators/<name>/index.html`.
+- Routes follow a clear category pattern: `tools/<name>/index.html` and `learn/<name>/index.html`.
 - Shared brand tokens exist in `assets/css/base.css`.
 - Newer tools have better separation between HTML, page CSS, page JavaScript, and reusable calculation modules.
 - Validation calculation logic has started moving into reusable modules under `assets/js/lib/validation/`.
@@ -39,7 +39,7 @@ Current problems:
 - There is no build tool, package metadata, lint command, formatting command, or standard local preview command.
 - Deployment expectations for Cloudflare Workers static assets are documented through `wrangler.jsonc`.
 - Mobile behavior is handled page by page, which creates a risk of inconsistent breakpoints and chart readability.
-- `learn/` is the formal home for future interactive pharmacopoeia learning. `lessons/` exists only as a legacy placeholder and should not receive new content.
+- `learn/` is the formal home for future interactive pharmacopoeia learning.
 - Existing files are not yet consistently tracked and reviewed as one coherent app surface.
 
 ## Engineering Direction
@@ -198,8 +198,8 @@ Good candidates for componentization:
 - `tools/oos-risk-explorer/`
 - `tools/validation-sample-size-calculator/`
 - `tools/converter/`
-- `simulators/anova-model-comparison/`
-- `simulators/validation-simulator/`
+- `learn/anova-explorer/`
+- `tools/validation-simulator/`
 
 Good candidates for TypeScript modules:
 
@@ -223,7 +223,6 @@ assets/
 docs/
 learn/
 journey/
-lessons/   # legacy placeholder only
 tools/
 tests/
 index.html
@@ -236,7 +235,6 @@ Rules while the site remains static:
 - Put simulator pages under `tools/<simulator-name>/index.html`.
 - Treat calculators, converters, utilities, and simulators as Tools in both product classification and public paths. Learning explorers such as ANOVA Explorer belong under `learn/`.
 - Keep `learn/` as the formal directory for interactive pharmacopoeia learning.
-- Do not add new content to `lessons/`; keep it only for legacy compatibility if needed.
 - Keep reusable calculations under `assets/js/lib/<domain>/`.
 - Keep page orchestration scripts under `assets/js/tools/` when simulator scripts are extracted.
 - Keep page-specific CSS under `assets/css/tools/` until a shared component stylesheet exists.
@@ -275,8 +273,7 @@ src/
       concentration-converter.vue
       oos-risk-explorer.vue
       validation-sample-size-calculator.vue
-    simulators/
-      anova-explorer.vue
+    tools/
       validation-simulator.vue
 public/
   assets/

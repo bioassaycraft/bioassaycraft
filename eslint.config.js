@@ -11,7 +11,6 @@ export default [
       "assets/js/lib/**",
       "assets/js/tools/**",
       "tools/**",
-      "simulators/**",
     ],
   },
   js.configs.recommended,

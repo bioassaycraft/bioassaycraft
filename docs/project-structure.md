@@ -16,10 +16,8 @@ BioassayCraft is organized by product responsibility rather than by the current 
 │       └── tools/          Tool-specific JavaScript for non-migrated static tools
 ├── docs/                   Platform and brand documentation
 ├── learn/                  Interactive pharmacopoeia learning entry and pages
-├── journeys/               Structured practice workflow entry and pages
-├── lessons/                Legacy placeholder only; do not add new content here
+├── journey/                Structured practice workflow entry and pages
 ├── scripts/                Build and migration helper scripts
-├── simulators/             Existing simulator routes, product-classified as Tools
 ├── src/                    Vite + Vue source for the homepage and gradual migration
 ├── tools/                  Interactive calculators, converters, and utilities
 ├── index.html              Vite entry for the default homepage
@@ -44,7 +42,6 @@ BioassayCraft is organized by product responsibility rather than by the current 
 - Vite-managed routes keep their public `index.html` as the Vite entry and their implementation under `src/`. Current Vite-managed routes include `/learn/anova-explorer/` and `/tools/converter/`.
 - Put interactive pharmacopoeia learning pages under `learn/`.
 - Put structured practice workflow pages under `journey/`.
-- Treat `lessons/` as a legacy placeholder. Do not add new Learn content there, and do not develop it into a parallel Lessons or Articles module.
 - Keep legacy routes as thin redirects only when an existing URL needs to remain valid.
 - Keep retired route directories out of the build; map historical URLs to canonical paths at the Worker edge.
 - Keep long-form notes, brand rules, and architecture notes in `docs/`.
