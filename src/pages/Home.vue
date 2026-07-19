@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useLocale } from "../utils/locale";
 import { animateElement, hoverTransition } from "../utils/motion";
+import { getFeaturedModules, getModules } from "../config/modules";
 
 const emit = defineEmits(["activate-group", "clear-group"]);
 
@@ -10,86 +11,27 @@ const hasScrolled = ref(false);
 const { locale: language, setLocale } = useLocale();
 const luckyStorageKey = "bioassaycraft:mobile-home:lucky-history";
 
+const toHomeItem = (module) => ({
+  ...module,
+  key: module.id,
+  href: module.route,
+  note: module.homeNote || module.description,
+  titleLines: module.homeTitleLines || { en: [module.homeTitle.en], zh: [module.homeTitle.zh] },
+  ready: module.status === "ready",
+  weight: 1,
+});
+
 const homeGroups = [
-  {
-    key: "learn",
-    items: [
-      {
-        key: "anova-explorer",
-        title: { en: "Explore ANOVA", zh: "探索方差分析" },
-        titleLines: { en: ["Explore ANOVA"], zh: ["探索方差分析"] },
-        note: {
-          en: "Interactive ANOVA visualization.",
-          zh: "交互式方差分析可视化。",
-        },
-        ready: true,
-        href: "/learn/anova-explorer/",
-        luckyKey: "anova-explorer",
-        weight: 1,
-      },
-      {
-        key: "ci-explorer",
-        title: { en: "Explore Confidence Interval", zh: "探索置信区间" },
-        titleLines: { en: ["Explore CI"], zh: ["探索置信区间"] },
-        note: {
-          en: "Interactive confidence interval visualization.",
-          zh: "交互式置信区间可视化。",
-        },
-        ready: true,
-        href: "/learn/ci-explorer/",
-        luckyKey: "ci-explorer",
-        weight: 1,
-      },
-      {
-        key: "residual-explorer",
-        title: { en: "Explore Residual Distribution", zh: "探索残差分布" },
-        titleLines: { en: ["Explore residuals"], zh: ["探索残差分布"] },
-        note: { en: "Explore residual structure after fitting.", zh: "探索拟合后的残差结构。" },
-        ready: true,
-        href: "/learn/residual-explorer/",
-        luckyKey: "residual-explorer",
-        weight: 1,
-      },
-      {
-        key: "validation-explorer",
-        title: { en: "Explore Method Validation", zh: "探索方法验证" },
-        titleLines: { en: ["Explore validation"], zh: ["探索方法验证"] },
-        note: { en: "Method validation learning.", zh: "方法验证学习模块。" },
-        ready: false,
-      },
-    ],
-  },
+  { key: "learn", items: getModules("explore").map(toHomeItem) },
   {
     key: "tools",
-    items: [
-      {
-        key: "specification-limit-calculator",
-        title: { en: "Specification Limit Calculator", zh: "质量标准限度计算器" },
-        titleLines: { en: ["Specification", "Limit Calculator"], zh: ["质量标准", "限度计算器"] },
-        note: { en: "Specification limit workflow.", zh: "质量标准限度工作流。" },
-        ready: true,
-        href: "/tools/specification-limit-calculator/",
-        luckyKey: "spec-limit-calculator",
-        weight: 1,
-      },
-      {
-        key: "unit-converter",
-        title: { en: "Unit Converter", zh: "单位转换器" },
-        titleLines: { en: ["Unit", "Converter"], zh: ["单位", "转换器"] },
-        note: { en: "Scientific concentration conversion.", zh: "科学浓度换算。" },
-        ready: true,
-        href: "/tools/converter/",
-        luckyKey: "unit-converter",
-        weight: 1,
-      },
-      {
-        key: "validation-calculator",
-        title: { en: "Validation Calculator", zh: "方法验证计算器" },
-        titleLines: { en: ["Validation", "Calculator"], zh: ["方法验证", "计算器"] },
-        note: { en: "Validation utilities.", zh: "方法验证实用工具。" },
-        ready: false,
-      },
-    ],
+    items: getModules("tools")
+      .filter((module) =>
+        ["specification-limit-calculator", "unit-converter", "validation-calculator"].includes(
+          module.id,
+        ),
+      )
+      .map(toHomeItem),
   },
   {
     key: "journey",
@@ -116,6 +58,9 @@ const homeGroups = [
   },
 ];
 
+const mobileFeaturedItems = (group) =>
+  getFeaturedModules(group.key === "learn" ? "explore" : "tools").map(toHomeItem);
+
 const homeCopy = {
   en: {
     languageLabel: "Language",
@@ -128,6 +73,7 @@ const homeCopy = {
     tools: "Tools",
     toolsHeading: "Practical tools.",
     toolsNote: "Scientific utilities for exploration and calculation.",
+    viewAll: "View all",
     journey: "Journey",
     journeyHeading: "Follow the reasoning.",
     journeyNote: "Structured learning paths.",
@@ -146,6 +92,7 @@ const homeCopy = {
     tools: "工具",
     toolsHeading: "实用工具。",
     toolsNote: "用于探索与计算的科学工具。",
+    viewAll: "查看全部",
     journey: "旅程",
     journeyHeading: "沿着推理前行。",
     journeyNote: "结构化学习路径。",
@@ -252,7 +199,7 @@ const heroTitleStyle = computed(() => {
 const readyMobileDestinations = computed(() =>
   homeGroups.flatMap((group) =>
     group.items
-      .filter((item) => item.ready && item.href)
+      .filter((item) => item.ready && item.href && item.luckyEligible)
       .map((item) => ({
         ...item,
         group: group.key,
@@ -426,18 +373,28 @@ onBeforeUnmount(() => {
         :aria-labelledby="`mobile-${group.key}-title`"
       >
         <div class="mobile-section-heading">
-          <h2 :id="`mobile-${group.key}-title`">{{ groupTitle(group) }}</h2>
+          <div class="mobile-section-title-row">
+            <h2 :id="`mobile-${group.key}-title`">{{ groupTitle(group) }}</h2>
+            <a
+              v-if="group.key !== 'journey'"
+              class="mobile-view-all"
+              :href="group.key === 'learn' ? '/explore/' : '/tools/'"
+              :aria-label="`${copy.viewAll} ${groupTitle(group)}`"
+            >
+              {{ copy.viewAll }} <span aria-hidden="true">›</span>
+            </a>
+          </div>
           <p>{{ groupNote(group) }}</p>
         </div>
 
         <div
           v-if="group.key !== 'journey'"
-          class="mobile-card-rail"
+          class="mobile-card-grid"
           :aria-label="`${groupTitle(group)} modules`"
         >
           <component
             :is="item.href ? 'a' : 'article'"
-            v-for="item in group.items"
+            v-for="item in mobileFeaturedItems(group)"
             :key="item.key"
             class="mobile-hub-card"
             :class="{ 'is-ready': item.ready }"
@@ -459,6 +416,7 @@ onBeforeUnmount(() => {
               </template>
               <template v-else>{{ itemTitle(item) }}</template>
             </strong>
+            <span v-if="item.href" class="mobile-card-arrow" aria-hidden="true">›</span>
           </component>
         </div>
 

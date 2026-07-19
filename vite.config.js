@@ -8,6 +8,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: "index.html",
+        exploreIndex: "explore/index.html",
+        toolsIndex: "tools/index.html",
         anovaExplorer: "learn/anova-explorer/index.html",
         residualExplorer: "learn/residual-explorer/index.html",
         ciExplorer: "learn/ci-explorer/index.html",

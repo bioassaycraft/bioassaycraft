@@ -11,6 +11,8 @@ const viteManagedRoutes = new Set([
   join(root, "learn", "ci-explorer"),
   join(root, "tools", "converter"),
   join(root, "tools", "specification-limit-calculator"),
+  join(root, "explore"),
+  join(root, "tools", "index.html"),
 ]);
 
 await mkdir(dist, { recursive: true });
