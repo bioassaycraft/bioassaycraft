@@ -823,8 +823,10 @@ h2 {
     right: max(16px, env(safe-area-inset-right));
     bottom: max(18px, env(safe-area-inset-bottom));
     z-index: 40;
-    min-height: 40px;
-    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 16px;
     color: var(--app-text);
     border: 1px solid var(--app-rule-subtle);
     border-radius: 999px;
@@ -857,10 +859,12 @@ h2 {
   }
 
   .mobile-lucky-button-mark {
-    display: inline-block;
-    margin-right: 6px;
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
     color: var(--app-accent);
-    font-size: 0.9em;
+    fill: currentColor;
   }
 
   .mobile-lucky-button:focus-visible {

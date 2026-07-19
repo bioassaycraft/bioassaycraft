@@ -437,7 +437,15 @@ onBeforeUnmount(() => {
         :title="copy.luckyLabel"
         @click="openLuckyModule"
       >
-        <span class="mobile-lucky-button-mark" aria-hidden="true">✦</span>
+        <svg
+          class="mobile-lucky-button-mark"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="m11.8 2.6 1.7 5.5 5.5 1.7-5.5 1.7-1.7 5.5-1.7-5.5-5.5-1.7L10.1 8z" />
+          <path d="m18.2 14.3.8 2.7 2.7.8-2.7.8-.8 2.7-.8-2.7-2.7-.8 2.7-.8z" />
+        </svg>
         {{ copy.lucky }}
       </button>
     </section>
