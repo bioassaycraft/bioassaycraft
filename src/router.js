@@ -1,4 +1,3 @@
-import { createRouter, createWebHistory } from "vue-router";
 import Home from "./pages/Home.vue";
 import ModuleIndexPage from "./pages/ModuleIndexPage.vue";
 import AnovaExplorer from "./pages/AnovaExplorer.vue";
@@ -19,11 +18,6 @@ export const routes = [
   { path: "/tools/converter/", component: ConcentrationConverter },
   { path: "/tools/cfd-calculator/", component: CfdCalculator },
   { path: "/tools/specification-limit-calculator/", component: SpecificationLimitCalculator },
-  { path: "/404.html", component: NotFound },
-  { path: "/:pathMatch(.*)*", redirect: "/404.html" },
+  { path: "/404", component: NotFound },
+  { path: "/:pathMatch(.*)*", redirect: "/404" },
 ];
-
-export const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
-});

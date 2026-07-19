@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build && node scripts/copy-static-site.mjs && node scripts/generate-site-files.mjs",
+    "build": "vite-ssg build && node scripts/copy-static-site.mjs && node scripts/generate-site-files.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -36,6 +36,7 @@
     "globals": "^17.7.0",
     "prettier": "^3.9.4",
     "vite": "^8.1.3",
+    "vite-ssg": "^28.3.0",
     "vitest": "^3.2.6",
     "wrangler": "^4.107.0"
   }

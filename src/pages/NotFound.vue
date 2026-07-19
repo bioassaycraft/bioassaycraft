@@ -1,7 +1,7 @@
 <script setup>
 import { usePageSeo } from "../composables/usePageSeo";
 
-usePageSeo("/404.html");
+usePageSeo("/404");
 </script>
 
 <template>

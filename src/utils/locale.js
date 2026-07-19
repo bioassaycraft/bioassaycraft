@@ -28,10 +28,15 @@ const applyDocumentLocale = (nextLocale) => {
   document.documentElement.lang = nextLocale === "zh" ? "zh-CN" : "en";
 };
 
-const locale = ref(readStoredLocale());
+const locale = ref(DEFAULT_LOCALE);
 let storageListenerAttached = false;
 
 applyDocumentLocale(locale.value);
+
+export const hydrateStoredLocale = () => {
+  locale.value = readStoredLocale();
+  applyDocumentLocale(locale.value);
+};
 
 export const setLocale = (nextLocale) => {
   const normalized = normalizeLocale(nextLocale) || DEFAULT_LOCALE;

@@ -1,13 +1,16 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import PageShell from "./components/layout/PageShell.vue";
 import { usePageSeo } from "./composables/usePageSeo";
+import { hydrateStoredLocale } from "./utils/locale";
 
 const activeGroup = ref(null);
 const route = useRoute();
 const routePath = computed(() => route.path);
 usePageSeo(routePath);
+
+onMounted(hydrateStoredLocale);
 
 const activateGroup = (group) => {
   activeGroup.value = group;

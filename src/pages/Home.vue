@@ -191,8 +191,10 @@ const requestScrollUpdate = () => {
 const heroTitleStyle = computed(() => {
   const progress = heroProgress.value;
   const isMobile = viewport.value.width < 768;
-  const x = -progress * Math.min(viewport.value.width * (isMobile ? 0.14 : 0.34), isMobile ? 80 : 430);
-  const y = -progress * Math.min(viewport.value.height * (isMobile ? 0.18 : 0.3), isMobile ? 96 : 260);
+  const x =
+    -progress * Math.min(viewport.value.width * (isMobile ? 0.14 : 0.34), isMobile ? 80 : 430);
+  const y =
+    -progress * Math.min(viewport.value.height * (isMobile ? 0.18 : 0.3), isMobile ? 96 : 260);
   const scale = 1 - progress * (isMobile ? 0.34 : 0.72);
 
   return {

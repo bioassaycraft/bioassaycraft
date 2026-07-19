@@ -51,9 +51,11 @@ describe("shared locale state", () => {
     expect(global.document.documentElement.lang).toBe("zh-CN");
   });
 
-  it("uses a stored user locale first", async () => {
+  it("restores a stored user locale after hydration", async () => {
     const { localeModule } = await importFreshLocale({ storedLocale: "en" });
 
+    expect(localeModule.useLocale().locale.value).toBe("zh");
+    localeModule.hydrateStoredLocale();
     expect(localeModule.useLocale().locale.value).toBe("en");
     expect(global.document.documentElement.lang).toBe("en");
   });

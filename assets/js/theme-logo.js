@@ -1,4 +1,6 @@
 (function () {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
   const darkLogo = "/assets/brand/logo-dark.svg";
   const lightLogo = "/assets/brand/logo-light.svg";
   const logoSelector =
