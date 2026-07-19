@@ -65,7 +65,7 @@ const emit = defineEmits(["toggle-info"]);
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mobile-node-detail {
     display: block;
     margin-top: var(--mobile-section-gap, 7px);

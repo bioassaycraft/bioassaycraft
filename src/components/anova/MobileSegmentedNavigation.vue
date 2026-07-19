@@ -37,7 +37,7 @@ const emit = defineEmits(["set-view"]);
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mobile-view-switch {
     display: grid;
     grid-template-columns: 1fr 1fr;

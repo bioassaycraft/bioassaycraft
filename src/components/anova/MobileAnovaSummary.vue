@@ -107,7 +107,7 @@ const emit = defineEmits(["select-row", "toggle-full"]);
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mobile-anova-cards {
     display: block;
     margin-top: var(--mobile-section-gap, 7px);

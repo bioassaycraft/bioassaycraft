@@ -95,7 +95,7 @@ const emit = defineEmits(["select", "set-language"]);
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mobile-tool-header {
     display: grid;
     gap: var(--mobile-sticky-gap, 8px);

@@ -65,7 +65,7 @@ const segmentIsActive = (segment, activeIds) => activeIds.includes(segment.id);
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mobile-variance-panel {
     display: block;
     margin-top: 0;

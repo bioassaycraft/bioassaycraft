@@ -385,7 +385,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .spec-limit-shell {
     --mobile-safe-top: max(env(safe-area-inset-top), 12px);
     --mobile-control-gap: 8px;

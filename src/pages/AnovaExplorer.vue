@@ -1056,7 +1056,7 @@ const drawChart = () => {
   const current = scene.value;
   const svg = d3.select(chartSvg.value);
   const isMobileChart =
-    typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches;
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
   const width = Math.max(500, chartWrap.value.clientWidth || 620);
   const height = isMobileChart ? 300 : 414;
   const margin = isMobileChart
@@ -1217,7 +1217,7 @@ watch([activeModule, activeStep], async () => {
   fullMobileAnovaOpen.value = false;
   await nextTick();
   updateMobileContentTop();
-  if (typeof window === "undefined" || !window.matchMedia("(max-width: 768px)").matches) return;
+  if (typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches) return;
   moduleControl.value?.querySelector(".is-active")?.scrollIntoView({
     inline: "center",
     block: "nearest",
@@ -1255,7 +1255,7 @@ onMounted(async () => {
     headerMorphObserver.observe(headerMorphTrigger.value);
   }
 
-  if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
+  if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
     updateMobileContentTop();
     mobileHeaderObserver = new ResizeObserver(updateMobileContentTop);
     [
@@ -2485,7 +2485,7 @@ button {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .anova-explorer {
     --mobile-safe-top: max(env(safe-area-inset-top), 12px);
     --mobile-gap-xs: 4px;

@@ -800,7 +800,7 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   padding-top: 14px;
 }
 .formula-explanation { display: grid; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid var(--soft-line); color: var(--ink); font-size: .86rem; }
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .cfd-shell {
     --topbar-sticky-height: 0px;
     --mobile-safe-top: max(env(safe-area-inset-top), 12px);

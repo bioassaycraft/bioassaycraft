@@ -60,7 +60,7 @@ const emit = defineEmits(["previous", "next", "set-step"]);
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mobile-step-card {
     display: grid;
     gap: 8px;
