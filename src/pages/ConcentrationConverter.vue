@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
+import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
 import { useLocale } from "../utils/locale";
@@ -493,18 +494,21 @@ onBeforeUnmount(() => {
   <div class="converter-shell">
     <main class="concentration-converter" :class="{ 'is-header-morphed': isHeaderMorphed }">
       <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
+      <MobileToolHeader
+        class="converter-mobile-header"
+        :aria-label="copy.mobileControlsLabel"
+        :selector-label="copy.unitConverter"
+        :options="mobileToolOptions"
+        selected-value="unitConverter"
+        :language="language"
+        :language-label="copy.languageLabel"
+        :home-label="copy.home"
+        :page-title="copy.title"
+        :show-selector="false"
+        @set-language="setLanguage"
+      />
+      <MobilePageTitle :title="copy.title" />
       <div class="mobile-sticky-header" aria-label="Concentration Converter mobile navigation">
-        <MobileToolHeader
-          class="converter-mobile-header"
-          :aria-label="copy.mobileControlsLabel"
-          :selector-label="copy.unitConverter"
-          :options="mobileToolOptions"
-          selected-value="unitConverter"
-          :language="language"
-          :language-label="copy.languageLabel"
-          :home-label="copy.home"
-          @set-language="setLanguage"
-        />
         <section class="mobile-unit-state-bar" aria-label="Mobile unit conversion direction">
           <label>
             <span>{{ copy.currentUnit }}</span>
@@ -1357,18 +1361,20 @@ select:focus,
   }
 
   .mobile-sticky-header {
-    position: sticky;
-    top: 0;
     z-index: 70;
     display: grid;
     gap: var(--mobile-sticky-gap);
     width: 100%;
     margin-bottom: var(--mobile-sticky-gap);
-    padding-top: var(--mobile-safe-top);
+    padding-top: 0;
     background: transparent;
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
+  }
+
+  .converter-mobile-header {
+    padding-top: var(--mobile-safe-top);
   }
 
   .mobile-unit-state-bar {

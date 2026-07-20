@@ -277,3 +277,10 @@ a,
     padding-bottom: 24px;
   }
 }
+
+@media (max-width: 767px) {
+  .site-footer {
+    border-top: 0;
+    padding: 12px 0 calc(18px + env(safe-area-inset-bottom));
+  }
+}

@@ -1,6 +1,4 @@
 <script setup>
-import MobileToolHeader from "../common/MobileToolHeader.vue";
-
 defineProps({
   copy: {
     type: Object,
@@ -14,29 +12,13 @@ defineProps({
     type: Array,
     required: true,
   },
-  language: {
-    type: String,
-    required: true,
-  },
 });
 
-const emit = defineEmits(["set-module", "set-language"]);
+const emit = defineEmits(["set-module"]);
 </script>
 
 <template>
   <section class="mobile-top-controls" :aria-label="copy.mobile.controlsLabel">
-    <MobileToolHeader
-      :aria-label="copy.mobile.controlsLabel"
-      :selector-label="copy.modulesLabel"
-      :options="[]"
-      :selected-value="activeModule"
-      :language="language"
-      :language-label="copy.languageLabel"
-      :home-label="copy.home"
-      :show-selector="false"
-      @set-language="emit('set-language', $event)"
-    />
-
     <section class="mobile-model-switch" :aria-label="copy.modulesLabel">
       <button
         v-for="module in moduleOrder"

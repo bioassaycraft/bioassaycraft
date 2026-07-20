@@ -1,4 +1,6 @@
 <script setup>
+import { onBeforeUnmount, onMounted, ref } from "vue";
+
 defineProps({
   ariaLabel: {
     type: String,
@@ -32,13 +34,64 @@ defineProps({
     type: Boolean,
     default: true,
   },
+  pageTitle: {
+    type: String,
+    default: "",
+  },
 });
 
 const emit = defineEmits(["select", "set-language"]);
+const isCondensed = ref(false);
+const compactEnterOffset = 48;
+const compactExitOffset = 20;
+let scrollFrame = null;
+
+const updateScrollState = () => {
+  const isMobile = window.matchMedia("(max-width: 767px)").matches;
+  const scrollOffset = window.scrollY;
+  const shouldCondense = isCondensed.value
+    ? isMobile && scrollOffset > compactExitOffset
+    : isMobile && scrollOffset >= compactEnterOffset;
+
+  if (shouldCondense === isCondensed.value) return;
+
+  isCondensed.value = shouldCondense;
+  document.documentElement.classList.toggle("mobile-header-condensed", isCondensed.value);
+};
+
+const requestScrollStateUpdate = () => {
+  if (scrollFrame !== null) return;
+  scrollFrame = window.requestAnimationFrame(() => {
+    scrollFrame = null;
+    updateScrollState();
+  });
+};
+
+const condenseForPageControl = () => {
+  if (!window.matchMedia("(max-width: 767px)").matches) return;
+  if (isCondensed.value) return;
+  isCondensed.value = true;
+  document.documentElement.classList.add("mobile-header-condensed");
+};
+
+onMounted(() => {
+  updateScrollState();
+  window.addEventListener("scroll", requestScrollStateUpdate, { passive: true });
+  window.addEventListener("resize", updateScrollState, { passive: true });
+  window.addEventListener("mobile-header:condense", condenseForPageControl);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", requestScrollStateUpdate);
+  window.removeEventListener("resize", updateScrollState);
+  window.removeEventListener("mobile-header:condense", condenseForPageControl);
+  if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
+  document.documentElement.classList.remove("mobile-header-condensed");
+});
 </script>
 
 <template>
-  <section class="mobile-tool-header" :aria-label="ariaLabel">
+  <section class="mobile-tool-header" :class="{ 'is-condensed': isCondensed }" :aria-label="ariaLabel">
     <div class="mobile-brand-row">
       <a class="mobile-brand-link" href="/" aria-label="BioassayCraft home">
         <img
@@ -49,6 +102,7 @@ const emit = defineEmits(["select", "set-language"]);
           aria-hidden="true"
         />
         <span class="mobile-brand-name">BioassayCraft</span>
+        <span v-if="pageTitle" class="mobile-current-title">{{ pageTitle }}</span>
       </a>
 
       <div class="mobile-header-actions">
@@ -56,6 +110,7 @@ const emit = defineEmits(["select", "set-language"]);
           <button
             type="button"
             :class="{ 'is-active': language === 'zh' }"
+            :aria-pressed="language === 'zh'"
             @click="emit('set-language', 'zh')"
           >
             中文
@@ -63,6 +118,7 @@ const emit = defineEmits(["select", "set-language"]);
           <button
             type="button"
             :class="{ 'is-active': language === 'en' }"
+            :aria-pressed="language === 'en'"
             @click="emit('set-language', 'en')"
           >
             EN
@@ -97,12 +153,24 @@ const emit = defineEmits(["select", "set-language"]);
 
 @media (max-width: 767px) {
   .mobile-tool-header {
+    position: sticky;
+    /* The header box owns the viewport edge; page-specific safe-area padding
+       belongs to its content, so it is not counted again by sticky layout. */
+    top: 0;
+    z-index: 80;
     display: grid;
     gap: var(--mobile-sticky-gap, 8px);
     width: 100%;
+    margin-bottom: var(--mobile-page-title-gap, 8px);
     padding: 0;
     background: transparent;
     backdrop-filter: none;
+  }
+
+  .mobile-tool-header.is-condensed {
+    background: var(--bc-bg-glass, rgba(255, 255, 255, 0.82));
+    backdrop-filter: blur(var(--mobile-glass-blur, 16px));
+    -webkit-backdrop-filter: blur(var(--mobile-glass-blur, 16px));
   }
 
   .mobile-brand-row {
@@ -138,11 +206,29 @@ const emit = defineEmits(["select", "set-language"]);
     line-height: 1;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .mobile-current-title {
+    position: absolute;
+    left: 30px;
+    right: 0;
+    overflow: hidden;
+    opacity: 0;
+    color: var(--ink, #171717);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    pointer-events: none;
+    text-overflow: ellipsis;
+    transform: translateX(-6px);
+    transition: opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    white-space: nowrap;
   }
 
   .mobile-header-actions {
     display: inline-flex;
-    gap: var(--mobile-sticky-gap, 8px);
+    gap: 6px;
     align-items: center;
     justify-self: end;
     min-width: 0;
@@ -171,8 +257,8 @@ const emit = defineEmits(["select", "set-language"]);
 
   .mobile-header-language,
   .mobile-header-home {
-    height: var(--mobile-header-control-height, var(--mobile-control-height, 36px));
-    min-height: var(--mobile-header-control-height, var(--mobile-control-height, 36px));
+    height: 32px;
+    min-height: 32px;
     border: 1px solid var(--mobile-header-control-border, rgba(214, 217, 222, 0.54));
     border-radius: var(--mobile-header-control-radius, 11px);
     background: var(--mobile-header-control-bg, rgba(255, 255, 255, 0.48));
@@ -213,17 +299,18 @@ const emit = defineEmits(["select", "set-language"]);
   .mobile-header-language {
     display: inline-flex;
     gap: 4px;
-    width: 92px;
+    width: 80px;
     padding: 3px;
   }
 
   .mobile-header-language button {
+    position: relative;
     flex: 1;
     border: 0;
     border-radius: 8px;
     background: transparent;
     color: var(--muted, #6e7278);
-    font-size: var(--mobile-header-control-font-size, 0.72rem);
+    font-size: 0.68rem;
     font-weight: var(--mobile-header-control-font-weight, 650);
     line-height: 1;
   }
@@ -235,20 +322,38 @@ const emit = defineEmits(["select", "set-language"]);
 
   .mobile-header-home {
     display: grid;
-    width: var(--mobile-header-control-height, var(--mobile-control-height, 36px));
+    position: relative;
+    width: 32px;
     place-items: center;
     color: var(--accent, #4f5661);
     text-decoration: none;
   }
 
   .mobile-header-home svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     fill: none;
     stroke: currentColor;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 1.8;
+  }
+
+  .mobile-tool-header.is-condensed .mobile-brand-name {
+    opacity: 0;
+    transform: translateX(-5px);
+  }
+
+  .mobile-tool-header.is-condensed .mobile-current-title {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .mobile-header-language button::before,
+  .mobile-header-home::before {
+    position: absolute;
+    inset: -6px -4px;
+    content: "";
   }
 
   .mobile-header-select select:focus-visible,
@@ -262,6 +367,19 @@ const emit = defineEmits(["select", "set-language"]);
   .mobile-header-language:focus-within,
   .mobile-header-home:focus-visible {
     border-color: var(--accent, #4f5661);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-brand-name,
+  .mobile-current-title { transition: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .mobile-tool-header.is-condensed {
+    background: var(--bc-bg-surface-solid, #fff);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 </style>

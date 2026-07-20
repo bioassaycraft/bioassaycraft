@@ -127,20 +127,19 @@ const clearSearch = () => {
       :home-label="pageCopy.home"
       @set-language="setLocale"
     />
-    <div class="module-index-mobile-header">
-      <MobileToolHeader
-        :aria-label="title"
-        selector-label=""
-        :options="[]"
-        selected-value=""
-        :language="locale"
-        :language-label="pageCopy.language"
-        :home-label="pageCopy.home"
-        :show-selector="false"
-        @set-language="setLocale"
-      />
-    </div>
-
+    <MobileToolHeader
+      class="module-index-mobile-header"
+      :aria-label="title"
+      selector-label=""
+      :options="[]"
+      selected-value=""
+      :language="locale"
+      :language-label="pageCopy.language"
+      :home-label="pageCopy.home"
+      :page-title="title"
+      :show-selector="false"
+      @set-language="setLocale"
+    />
     <section class="module-index-content" :aria-labelledby="`${type}-index-title`">
       <div class="module-index-intro">
         <h1 :id="`${type}-index-title`">{{ title }}</h1>
@@ -438,8 +437,6 @@ const clearSearch = () => {
     display: none;
   }
   .module-index-mobile-header {
-    position: sticky;
-    top: 0;
     z-index: 70;
     display: block;
     width: min(100% - 32px, 1360px);
@@ -448,10 +445,10 @@ const clearSearch = () => {
     background: transparent;
   }
   .module-index-content {
-    padding-top: 24px;
+    padding-top: 16px;
   }
   .module-search-sticky {
-    top: calc(env(safe-area-inset-top) + 52px);
+    top: 36px;
     margin: 0 -8px;
     padding: 10px 8px;
   }

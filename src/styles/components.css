@@ -532,9 +532,9 @@ h2 {
   .mobile-home-header .mobile-header-language {
     display: inline-flex;
     gap: 4px;
-    width: 92px;
-    height: 36px;
-    min-height: 36px;
+    width: 80px;
+    height: 32px;
+    min-height: 32px;
     padding: 3px;
     border: 1px solid var(--app-rule-subtle);
     border-radius: 11px;
@@ -544,14 +544,21 @@ h2 {
   }
 
   .mobile-home-header .mobile-header-language button {
+    position: relative;
     flex: 1;
     border: 0;
     border-radius: 8px;
     background: transparent;
     color: var(--app-muted);
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 650;
     line-height: 1;
+  }
+
+  .mobile-home-header .mobile-header-language button::before {
+    position: absolute;
+    inset: -6px -4px;
+    content: "";
   }
 
   .mobile-home-header .mobile-header-language button.is-active {

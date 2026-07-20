@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import MobileStepController from "../components/anova/MobileStepController.vue";
 import AdvancedApplications from "../components/ci/AdvancedApplications.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
+import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import {
   confidenceInterval,
@@ -510,6 +511,7 @@ function formatPercent(value) {
 
 function setSection(section, scroll = true) {
   if (!sections.includes(section)) return;
+  window.dispatchEvent(new Event("mobile-header:condense"));
   if (section !== activeSection.value) {
     activeSection.value = section;
     router.push({ query: { ...route.query, section } });
@@ -564,12 +566,16 @@ function scrollIntuitionToStart() {
 }
 
 function goToAdjacentIntuitionStep(direction) {
+  window.dispatchEvent(new Event("mobile-header:condense"));
   intuitionStep.value = Math.min(Math.max(intuitionStep.value + direction, 0), 3);
 }
 
 function setIntuitionStepById(stepId) {
   const nextIndex = intuitionStepIds.indexOf(stepId);
-  if (nextIndex >= 0) intuitionStep.value = nextIndex;
+  if (nextIndex >= 0) {
+    window.dispatchEvent(new Event("mobile-header:condense"));
+    intuitionStep.value = nextIndex;
+  }
 }
 
 function setLanguage(locale) {
@@ -652,19 +658,21 @@ watch(intuitionStep, () => {
       @set-language="setLanguage"
     />
 
+    <MobileToolHeader
+      class="ci-mobile-top-header"
+      :aria-label="copy.sectionLabel"
+      :selector-label="copy.sectionLabel"
+      :options="[]"
+      :selected-value="activeSection"
+      :language="language"
+      :language-label="copy.languageLabel"
+      :home-label="copy.home"
+      :page-title="copy.title"
+      :show-selector="false"
+      @set-language="setLanguage"
+    />
+    <MobilePageTitle :title="copy.title" />
     <div class="ci-mobile-sticky-header" :aria-label="copy.sectionLabel">
-      <MobileToolHeader
-        :aria-label="copy.sectionLabel"
-        :selector-label="copy.sectionLabel"
-        :options="[]"
-        :selected-value="activeSection"
-        :language="language"
-        :language-label="copy.languageLabel"
-        :home-label="copy.home"
-        :show-selector="false"
-        @set-language="setLanguage"
-      />
-
       <div class="mobile-section-tabs" :aria-label="copy.sectionLabel">
         <button
           v-for="(section, index) in sections"
@@ -1005,7 +1013,9 @@ watch(intuitionStep, () => {
                   v-if="intuitionStep === 2"
                   class="decision-flow decision-bridge desktop-decision-bridge"
                 >
-                  <p v-for="paragraph in copy.desktopDecisionBridge" :key="paragraph">{{ paragraph }}</p>
+                  <p v-for="paragraph in copy.desktopDecisionBridge" :key="paragraph">
+                    {{ paragraph }}
+                  </p>
                 </section>
 
                 <label v-if="intuitionStep === 3" class="confidence-control interval-confidence">
@@ -1059,7 +1069,10 @@ watch(intuitionStep, () => {
               </details>
             </div>
 
-            <details v-if="intuitionStep === 2" class="decision-flow decision-bridge mobile-decision-bridge">
+            <details
+              v-if="intuitionStep === 2"
+              class="decision-flow decision-bridge mobile-decision-bridge"
+            >
               <summary>{{ copy.detailExplanation }}</summary>
               <p v-for="paragraph in copy.decisionBridge" :key="paragraph">{{ paragraph }}</p>
               <button type="button" class="primary-button tail-cta" @click="intuitionStep = 3">
@@ -2375,17 +2388,22 @@ input:focus-visible {
 
   .ci-mobile-sticky-header {
     position: sticky;
-    top: 0;
+    /* Match the in-flow header: safe-area padding + 32px brand row + 8px gap. */
+    top: calc(var(--mobile-safe-top) + 40px);
     z-index: 70;
     display: grid;
     gap: var(--mobile-sticky-gap, 8px);
     width: 100%;
     margin-bottom: 0;
-    padding-top: var(--mobile-safe-top);
+    padding-top: 0;
     background: transparent;
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
+  }
+
+  .ci-mobile-top-header {
+    padding-top: var(--mobile-safe-top);
   }
 
   .content-anchor {

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
+import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
 import EndotoxinCalculator from "../components/specification/EndotoxinCalculator.vue";
@@ -162,20 +163,20 @@ onBeforeUnmount(() => {
     <main class="spec-limit-calculator" :class="{ 'is-header-morphed': isHeaderMorphed }">
       <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
 
-      <div class="mobile-sticky-header" :aria-label="copy.mobileControlsLabel">
-        <MobileToolHeader
-          class="spec-limit-mobile-header"
-          :aria-label="copy.mobileControlsLabel"
-          :selector-label="copy.title"
-          :options="moduleOptions"
-          :selected-value="activeModuleId"
-          :language="language"
-          :language-label="copy.languageLabel"
-          :home-label="copy.home"
-          :show-selector="false"
-          @set-language="setLanguage"
-        />
-      </div>
+      <MobileToolHeader
+        class="spec-limit-mobile-header"
+        :aria-label="copy.mobileControlsLabel"
+        :selector-label="copy.title"
+        :options="moduleOptions"
+        :selected-value="activeModuleId"
+        :language="language"
+        :language-label="copy.languageLabel"
+        :home-label="copy.home"
+        :page-title="copy.title"
+        :show-selector="false"
+        @set-language="setLanguage"
+      />
+      <MobilePageTitle :title="copy.title" />
 
       <ToolTopbar
         :title="copy.title"
@@ -466,19 +467,18 @@ onBeforeUnmount(() => {
   }
 
   .mobile-sticky-header {
-    position: sticky;
-    top: 0;
     z-index: 70;
     display: grid;
     gap: var(--mobile-sticky-gap);
     width: 100%;
-    margin-bottom: var(--mobile-sticky-gap);
+    margin-bottom: 0;
     padding-top: var(--mobile-safe-top);
     background: transparent;
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
   }
+  .spec-limit-mobile-header { padding-top: var(--mobile-safe-top); }
 
   .inline-module-switcher {
     display: grid;

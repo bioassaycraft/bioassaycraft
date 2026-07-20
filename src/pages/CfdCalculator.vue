@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import BcTooltip from "../components/common/BcTooltip.vue";
 import MathFormula from "../components/common/MathFormula.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
+import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
 import { calculateCfd, compareReportValues, CFD_MODES } from "../lib/cfd";
@@ -29,16 +30,132 @@ let headerMorphObserver = null;
 
 const cfdCopy = {
   zh: {
-    title: "CFD 临界倍差计算器", description: "基于验证方差组分，判断两个报告值的差异是否超过方法不确定度。", mobileLabel: "CFD 临界倍差计算器移动端导航", language: "语言切换", home: "返回首页",
-    unpaired: "独立结果比较", unpairedBasis: "（ChP 9401 / USP 1033）", paired: "同批次配对比较", pairedBasis: "（USP 1033）", pairedNote: "仅适用于两个条件在相同 assay runs 中直接配对比较；独立检测结果请使用非配对模式。",
-    input: "输入", variance: "验证方差组分", reset: "重置", varianceNote: "请输入验证模型或 ANOVA 输出的对数方差组分（log²），不能直接输入 CV%、GCV% 或标准差。", within: "试验内对数方差", between: "试验间对数方差", repeats: "重复策略", design: "测定设计", independent: "独立测定次数 c", replicates: "每次独立测定的重复数 k",
-    result: "结果", cfd: "CFD 临界倍差", details: "查看计算详情", vrr: "单个报告值对数方差 V_RR", strategy: "当前重复策略", formula: "使用的计算公式", basis: "方法依据", compare: "比较两个报告值", optional: "可选", collapse: "收起", valueA: "条件 A 报告值", valueB: "条件 B 报告值", unit: "单位（可选）", limits: "适用条件与限制", formulas: "公式与变量说明", advanced: "进阶设置", advancedNote: "默认值适用于常规计算", coefficient: "临界系数", decimals: "输出小数位", exactT: "使用精确 t 分布", tCritical: "t 临界值", tPlaceholder: "直接输入 t 临界值", withinPlaceholder: "例如 0.012", betweenPlaceholder: "例如 0.006", unitPlaceholder: "例如 % 或 IU/mL", nonnegative: "请输入大于或等于 0 的方差。", positiveInteger: "请输入至少为 1 的正整数。", positiveCoefficient: "临界系数须大于 0。", positiveT: "请输入大于 0 的 t 临界值。", positiveValue: "报告值须大于 0。", observed: "观察倍数差", exceeds: "差异超过方法不确定度", notExceeded: "未检出超过方法不确定度的差异", equivalenceNote: "未超过 CFD 不等同于证明两个结果等效。若需得出等效或可比结论，应采用正式等效性检验。", limitations: "所有方差必须来自自然对数（ln）尺度的验证模型。配对模式只适用于同一 assay runs 中的直接配对；否则使用独立结果比较。", methodBasis: "方法依据", unpairedMethod: "中国药典 9401 公式（19）", pairedMethod: "USP <1033> Eq. 11（Paired）",
+    title: "CFD 临界倍差计算器",
+    description: "基于验证方差组分，判断两个报告值的差异是否超过方法不确定度。",
+    mobileLabel: "CFD 临界倍差计算器移动端导航",
+    language: "语言切换",
+    home: "返回首页",
+    unpaired: "独立结果比较",
+    unpairedBasis: "（ChP 9401 / USP 1033）",
+    paired: "同批次配对比较",
+    pairedBasis: "（USP 1033）",
+    pairedNote: "仅适用于两个条件在相同 assay runs 中直接配对比较；独立检测结果请使用非配对模式。",
+    input: "输入",
+    variance: "验证方差组分",
+    reset: "重置",
+    varianceNote:
+      "请输入验证模型或 ANOVA 输出的对数方差组分（log²），不能直接输入 CV%、GCV% 或标准差。",
+    within: "试验内对数方差",
+    between: "试验间对数方差",
+    repeats: "重复策略",
+    design: "测定设计",
+    independent: "独立测定次数 c",
+    replicates: "每次独立测定的重复数 k",
+    result: "结果",
+    cfd: "CFD 临界倍差",
+    details: "查看计算详情",
+    vrr: "单个报告值对数方差 V_RR",
+    strategy: "当前重复策略",
+    formula: "使用的计算公式",
+    basis: "方法依据",
+    compare: "比较两个报告值",
+    optional: "可选",
+    collapse: "收起",
+    valueA: "条件 A 报告值",
+    valueB: "条件 B 报告值",
+    unit: "单位（可选）",
+    limits: "适用条件与限制",
+    formulas: "公式与变量说明",
+    advanced: "进阶设置",
+    advancedNote: "默认值适用于常规计算",
+    coefficient: "临界系数",
+    decimals: "输出小数位",
+    exactT: "使用精确 t 分布",
+    tCritical: "t 临界值",
+    tPlaceholder: "直接输入 t 临界值",
+    withinPlaceholder: "例如 0.012",
+    betweenPlaceholder: "例如 0.006",
+    unitPlaceholder: "例如 % 或 IU/mL",
+    nonnegative: "请输入大于或等于 0 的方差。",
+    positiveInteger: "请输入至少为 1 的正整数。",
+    positiveCoefficient: "临界系数须大于 0。",
+    positiveT: "请输入大于 0 的 t 临界值。",
+    positiveValue: "报告值须大于 0。",
+    observed: "观察倍数差",
+    exceeds: "差异超过方法不确定度",
+    notExceeded: "未检出超过方法不确定度的差异",
+    equivalenceNote:
+      "未超过 CFD 不等同于证明两个结果等效。若需得出等效或可比结论，应采用正式等效性检验。",
+    limitations:
+      "所有方差必须来自自然对数（ln）尺度的验证模型。配对模式只适用于同一 assay runs 中的直接配对；否则使用独立结果比较。",
+    methodBasis: "方法依据",
+    unpairedMethod: "中国药典 9401 公式（19）",
+    pairedMethod: "USP <1033> Eq. 11（Paired）",
   },
   en: {
-    title: "CFD Critical Fold Difference", description: "Use validation variance components to assess whether two reported values differ beyond method uncertainty.", mobileLabel: "CFD calculator mobile navigation", language: "Language", home: "Back to home",
-    unpaired: "Independent results", unpairedBasis: "(ChP 9401 / USP 1033)", paired: "Paired within runs", pairedBasis: "(USP 1033)", pairedNote: "Use only when both conditions are directly paired in the same assay runs. Use independent results for separate testing.",
-    input: "Input", variance: "Validation variance components", reset: "Reset", varianceNote: "Enter log-scale variance components from validation or ANOVA output. Do not enter CV%, GCV%, or standard deviation.", within: "Within-run log variance", between: "Between-run log variance", repeats: "Repeat strategy", design: "Measurement design", independent: "Independent measurements c", replicates: "Replicates per measurement k",
-    result: "Result", cfd: "CFD critical fold difference", details: "Show calculation details", vrr: "Log variance of one reported value V_RR", strategy: "Current repeat strategy", formula: "Formula used", basis: "Method basis", compare: "Compare two reported values", optional: "Optional", collapse: "Collapse", valueA: "Condition A reported value", valueB: "Condition B reported value", unit: "Unit (optional)", limits: "Conditions and limitations", formulas: "Formula and variables", advanced: "Advanced settings", advancedNote: "Defaults suit standard calculations", coefficient: "Critical coefficient", decimals: "Decimal places", exactT: "Use exact t distribution", tCritical: "t critical value", tPlaceholder: "Enter t critical value", withinPlaceholder: "e.g. 0.012", betweenPlaceholder: "e.g. 0.006", unitPlaceholder: "e.g. % or IU/mL", nonnegative: "Enter a variance greater than or equal to 0.", positiveInteger: "Enter a positive integer of at least 1.", positiveCoefficient: "Critical coefficient must be greater than 0.", positiveT: "Enter a t critical value greater than 0.", positiveValue: "Reported value must be greater than 0.", observed: "Observed fold difference", exceeds: "Difference exceeds method uncertainty", notExceeded: "No difference beyond method uncertainty detected", equivalenceNote: "Not exceeding the CFD does not establish equivalence. Use a formal equivalence test for equivalence or comparability conclusions.", limitations: "All variance components must come from a validation model on the natural-log scale. Use paired mode only for direct pairs in the same assay runs; otherwise use independent results.", methodBasis: "Method basis", unpairedMethod: "Chinese Pharmacopoeia 9401, Formula (19)", pairedMethod: "USP <1033> Eq. 11 (Paired)",
+    title: "CFD Critical Fold Difference",
+    description:
+      "Use validation variance components to assess whether two reported values differ beyond method uncertainty.",
+    mobileLabel: "CFD calculator mobile navigation",
+    language: "Language",
+    home: "Back to home",
+    unpaired: "Independent results",
+    unpairedBasis: "(ChP 9401 / USP 1033)",
+    paired: "Paired within runs",
+    pairedBasis: "(USP 1033)",
+    pairedNote:
+      "Use only when both conditions are directly paired in the same assay runs. Use independent results for separate testing.",
+    input: "Input",
+    variance: "Validation variance components",
+    reset: "Reset",
+    varianceNote:
+      "Enter log-scale variance components from validation or ANOVA output. Do not enter CV%, GCV%, or standard deviation.",
+    within: "Within-run log variance",
+    between: "Between-run log variance",
+    repeats: "Repeat strategy",
+    design: "Measurement design",
+    independent: "Independent measurements c",
+    replicates: "Replicates per measurement k",
+    result: "Result",
+    cfd: "CFD critical fold difference",
+    details: "Show calculation details",
+    vrr: "Log variance of one reported value V_RR",
+    strategy: "Current repeat strategy",
+    formula: "Formula used",
+    basis: "Method basis",
+    compare: "Compare two reported values",
+    optional: "Optional",
+    collapse: "Collapse",
+    valueA: "Condition A reported value",
+    valueB: "Condition B reported value",
+    unit: "Unit (optional)",
+    limits: "Conditions and limitations",
+    formulas: "Formula and variables",
+    advanced: "Advanced settings",
+    advancedNote: "Defaults suit standard calculations",
+    coefficient: "Critical coefficient",
+    decimals: "Decimal places",
+    exactT: "Use exact t distribution",
+    tCritical: "t critical value",
+    tPlaceholder: "Enter t critical value",
+    withinPlaceholder: "e.g. 0.012",
+    betweenPlaceholder: "e.g. 0.006",
+    unitPlaceholder: "e.g. % or IU/mL",
+    nonnegative: "Enter a variance greater than or equal to 0.",
+    positiveInteger: "Enter a positive integer of at least 1.",
+    positiveCoefficient: "Critical coefficient must be greater than 0.",
+    positiveT: "Enter a t critical value greater than 0.",
+    positiveValue: "Reported value must be greater than 0.",
+    observed: "Observed fold difference",
+    exceeds: "Difference exceeds method uncertainty",
+    notExceeded: "No difference beyond method uncertainty detected",
+    equivalenceNote:
+      "Not exceeding the CFD does not establish equivalence. Use a formal equivalence test for equivalence or comparability conclusions.",
+    limitations:
+      "All variance components must come from a validation model on the natural-log scale. Use paired mode only for direct pairs in the same assay runs; otherwise use independent results.",
+    methodBasis: "Method basis",
+    unpairedMethod: "Chinese Pharmacopoeia 9401, Formula (19)",
+    pairedMethod: "USP <1033> Eq. 11 (Paired)",
   },
 };
 const copy = computed(() => cfdCopy[language.value]);
@@ -127,19 +244,20 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   <div class="cfd-shell">
     <main class="cfd-calculator" :class="{ 'is-header-morphed': isHeaderMorphed }">
       <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
-      <div class="mobile-sticky-header" :aria-label="copy.mobileLabel">
-        <MobileToolHeader
-          :aria-label="copy.mobileLabel"
-          :selector-label="copy.title"
-          :options="[]"
-          selected-value="cfd"
-          :language="language"
-          :language-label="copy.language"
-          :home-label="copy.home"
-          :show-selector="false"
-          @set-language="setLanguage"
-        />
-      </div>
+      <MobileToolHeader
+        class="cfd-mobile-header"
+        :aria-label="copy.mobileLabel"
+        :selector-label="copy.title"
+        :options="[]"
+        selected-value="cfd"
+        :language="language"
+        :language-label="copy.language"
+        :home-label="copy.home"
+        :page-title="copy.title"
+        :show-selector="false"
+        @set-language="setLanguage"
+      />
+      <MobilePageTitle :title="copy.title" />
       <ToolTopbar
         :title="copy.title"
         :language="language"
@@ -182,7 +300,12 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
             </p>
             <div class="fields two-up">
               <label>
-                <span class="field-label">{{ copy.within }} <BcTooltip text="Variance from within-run variation on the natural-log scale."><span class="help">?</span></BcTooltip></span>
+                <span class="field-label"
+                  >{{ copy.within }}
+                  <BcTooltip text="Variance from within-run variation on the natural-log scale."
+                    ><span class="help">?</span></BcTooltip
+                  ></span
+                >
                 <input
                   v-model="withinVariance"
                   type="number"
@@ -191,10 +314,17 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
                   inputmode="decimal"
                   :placeholder="copy.withinPlaceholder"
                   aria-describedby="within-error"
-                /><small v-if="inputErrors.within" id="within-error" class="error">{{ copy.nonnegative }}</small>
+                /><small v-if="inputErrors.within" id="within-error" class="error">{{
+                  copy.nonnegative
+                }}</small>
               </label>
               <label>
-                <span class="field-label">{{ copy.between }} <BcTooltip text="Variance from between-run variation on the natural-log scale."><span class="help">?</span></BcTooltip></span>
+                <span class="field-label"
+                  >{{ copy.between }}
+                  <BcTooltip text="Variance from between-run variation on the natural-log scale."
+                    ><span class="help">?</span></BcTooltip
+                  ></span
+                >
                 <input
                   v-model="betweenVariance"
                   type="number"
@@ -203,7 +333,9 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
                   inputmode="decimal"
                   :placeholder="copy.betweenPlaceholder"
                   aria-describedby="between-error"
-                /><small v-if="inputErrors.between" id="between-error" class="error">{{ copy.nonnegative }}</small>
+                /><small v-if="inputErrors.between" id="between-error" class="error">{{
+                  copy.nonnegative
+                }}</small>
               </label>
             </div>
             <div class="subheading">
@@ -211,47 +343,73 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
               <h2>{{ copy.design }}</h2>
             </div>
             <div class="fields two-up">
-              <label>{{ copy.independent }}<input
-                v-model="independentMeasurements"
-                type="number"
-                min="1"
-                step="1"
-                inputmode="numeric"
-              /><small v-if="inputErrors.c" class="error">{{ copy.positiveInteger }}</small></label>
-              <label>{{ copy.replicates }}<input
-                v-model="replicatesPerMeasurement"
-                type="number"
-                min="1"
-                step="1"
-                inputmode="numeric"
-              /><small v-if="inputErrors.k" class="error">{{ copy.positiveInteger }}</small></label>
-            </div>
-            <details ref="advancedDetails">
-              <summary>{{ copy.advanced }} <span>{{ copy.advancedNote }}</span></summary>
-              <div class="details-content fields two-up">
-                <label>{{ copy.coefficient }}<input
-                  v-model="criticalCoefficient"
-                  :disabled="useExactT"
+              <label
+                >{{ copy.independent
+                }}<input
+                  v-model="independentMeasurements"
                   type="number"
-                  min="0"
-                  step="any"
-                /><small v-if="inputErrors.coefficient && !useExactT" class="error">{{ copy.positiveCoefficient }}</small></label>
-                <label>{{ copy.decimals }}<input
-                  v-model="precision"
-                  type="number"
-                  min="0"
-                  max="8"
+                  min="1"
                   step="1"
                   inputmode="numeric"
-                /></label>
-                <label class="toggle"><input v-model="useExactT" type="checkbox" />{{ copy.exactT }}</label>
-                <label v-if="useExactT">{{ copy.tCritical }}<input
-                  v-model="exactTCritical"
+                /><small v-if="inputErrors.c" class="error">{{
+                  copy.positiveInteger
+                }}</small></label
+              >
+              <label
+                >{{ copy.replicates
+                }}<input
+                  v-model="replicatesPerMeasurement"
                   type="number"
-                  min="0"
-                  step="any"
-                  :placeholder="copy.tPlaceholder"
-                /><small v-if="inputErrors.coefficient" class="error">{{ copy.positiveT }}</small></label>
+                  min="1"
+                  step="1"
+                  inputmode="numeric"
+                /><small v-if="inputErrors.k" class="error">{{
+                  copy.positiveInteger
+                }}</small></label
+              >
+            </div>
+            <details ref="advancedDetails">
+              <summary>
+                {{ copy.advanced }} <span>{{ copy.advancedNote }}</span>
+              </summary>
+              <div class="details-content fields two-up">
+                <label
+                  >{{ copy.coefficient
+                  }}<input
+                    v-model="criticalCoefficient"
+                    :disabled="useExactT"
+                    type="number"
+                    min="0"
+                    step="any"
+                  /><small v-if="inputErrors.coefficient && !useExactT" class="error">{{
+                    copy.positiveCoefficient
+                  }}</small></label
+                >
+                <label
+                  >{{ copy.decimals
+                  }}<input
+                    v-model="precision"
+                    type="number"
+                    min="0"
+                    max="8"
+                    step="1"
+                    inputmode="numeric"
+                /></label>
+                <label class="toggle"
+                  ><input v-model="useExactT" type="checkbox" />{{ copy.exactT }}</label
+                >
+                <label v-if="useExactT"
+                  >{{ copy.tCritical
+                  }}<input
+                    v-model="exactTCritical"
+                    type="number"
+                    min="0"
+                    step="any"
+                    :placeholder="copy.tPlaceholder"
+                  /><small v-if="inputErrors.coefficient" class="error">{{
+                    copy.positiveT
+                  }}</small></label
+                >
               </div>
             </details>
           </section>
@@ -279,12 +437,16 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
                 <div>
                   <dt>{{ copy.formula }}</dt>
                   <dd>
-                    {{ selected.formula.replace("a", result.ok ? String(result.coefficient) : "2") }}
+                    {{
+                      selected.formula.replace("a", result.ok ? String(result.coefficient) : "2")
+                    }}
                   </dd>
                 </div>
                 <div>
                   <dt>{{ copy.basis }}</dt>
-                  <dd v-if="mode === 'unpaired'">{{ copy.unpairedMethod }}<br />USP &lt;1033&gt; Eq. 12 (Unpaired)</dd>
+                  <dd v-if="mode === 'unpaired'">
+                    {{ copy.unpairedMethod }}<br />USP &lt;1033&gt; Eq. 12 (Unpaired)
+                  </dd>
                   <dd v-else>{{ copy.pairedMethod }}</dd>
                 </div>
               </dl>
@@ -299,23 +461,36 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
             :aria-expanded="comparisonOpen"
             @click="comparisonOpen = !comparisonOpen"
           >
-            <span>{{ copy.compare }}</span><span>{{ comparisonOpen ? copy.collapse : copy.optional }}</span>
+            <span>{{ copy.compare }}</span
+            ><span>{{ comparisonOpen ? copy.collapse : copy.optional }}</span>
           </button>
           <div v-if="comparisonOpen" class="comparison-content">
             <div class="fields comparison-fields">
-              <label>{{ copy.valueA }}<input
-                v-model="valueA"
-                type="number"
-                min="0"
-                step="any"
-                inputmode="decimal"
-              /><small v-if="inputErrors.valueA" class="error">{{ copy.positiveValue }}</small></label><label>{{ copy.valueB }}<input
-                v-model="valueB"
-                type="number"
-                min="0"
-                step="any"
-                inputmode="decimal"
-              /><small v-if="inputErrors.valueB" class="error">{{ copy.positiveValue }}</small></label><label>{{ copy.unit }}<input v-model="unit" :placeholder="copy.unitPlaceholder" /></label>
+              <label
+                >{{ copy.valueA
+                }}<input
+                  v-model="valueA"
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputmode="decimal"
+                /><small v-if="inputErrors.valueA" class="error">{{
+                  copy.positiveValue
+                }}</small></label
+              ><label
+                >{{ copy.valueB
+                }}<input
+                  v-model="valueB"
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputmode="decimal"
+                /><small v-if="inputErrors.valueB" class="error">{{
+                  copy.positiveValue
+                }}</small></label
+              ><label
+                >{{ copy.unit }}<input v-model="unit" :placeholder="copy.unitPlaceholder"
+              /></label>
             </div>
             <div
               v-if="comparison.ok"
@@ -323,14 +498,11 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
               :class="{ exceeds: comparison.exceedsMethodUncertainty }"
             >
               <p>
-                {{ copy.observed }} <strong>{{ format(comparison.observedFoldDifference) }}×</strong>
+                {{ copy.observed }}
+                <strong>{{ format(comparison.observedFoldDifference) }}×</strong>
               </p>
               <h3>
-                {{
-                  comparison.exceedsMethodUncertainty
-                    ? copy.exceeds
-                    : copy.notExceeded
-                }}
+                {{ comparison.exceedsMethodUncertainty ? copy.exceeds : copy.notExceeded }}
               </h3>
               <p v-if="!comparison.exceedsMethodUncertainty">
                 {{ copy.equivalenceNote }}
@@ -349,14 +521,30 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
           <details>
             <summary>{{ copy.formulas }}</summary>
             <div class="formula-explanation">
-              <MathFormula formula="V_{RR}=\frac{\sigma^2_{\mathrm{within}}}{c\times k}+\frac{\sigma^2_{\mathrm{between}}}{c}" display aria-label="V RR formula" />
-              <MathFormula v-if="mode === 'unpaired'" formula="\mathrm{CFD}=\exp\left\{2\sqrt{2V_{RR}}\right\}" display aria-label="Unpaired CFD formula" />
-              <MathFormula v-else formula="\mathrm{CFD}=\exp\left\{2\sqrt{V_{RR}}\right\}" display aria-label="Paired CFD formula" />
+              <MathFormula
+                formula="V_{RR}=\frac{\sigma^2_{\mathrm{within}}}{c\times k}+\frac{\sigma^2_{\mathrm{between}}}{c}"
+                display
+                aria-label="V RR formula"
+              />
+              <MathFormula
+                v-if="mode === 'unpaired'"
+                formula="\mathrm{CFD}=\exp\left\{2\sqrt{2V_{RR}}\right\}"
+                display
+                aria-label="Unpaired CFD formula"
+              />
+              <MathFormula
+                v-else
+                formula="\mathrm{CFD}=\exp\left\{2\sqrt{V_{RR}}\right\}"
+                display
+                aria-label="Paired CFD formula"
+              />
             </div>
           </details>
           <details>
             <summary>{{ copy.methodBasis }}</summary>
-            <p v-if="mode === 'unpaired'">{{ copy.unpairedMethod }}<br />USP &lt;1033&gt; Eq. 12 (Unpaired)</p>
+            <p v-if="mode === 'unpaired'">
+              {{ copy.unpairedMethod }}<br />USP &lt;1033&gt; Eq. 12 (Unpaired)
+            </p>
             <p v-else>{{ copy.pairedMethod }}</p>
           </details>
         </section>
@@ -478,9 +666,19 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
     color 160ms ease,
     box-shadow 160ms ease;
 }
-.mode-switch button > span { font-weight: 700; }
-.mode-switch button small { color: var(--muted); font-size: 0.65rem; font-weight: 500; line-height: 1.1; text-align: center; }
-.mode-switch button.active small { color: var(--ink); }
+.mode-switch button > span {
+  font-weight: 700;
+}
+.mode-switch button small {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 500;
+  line-height: 1.1;
+  text-align: center;
+}
+.mode-switch button.active small {
+  color: var(--ink);
+}
 .mode-switch button:hover {
   color: var(--accent);
 }
@@ -588,7 +786,11 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   border-radius: 999px;
   font-size: 0.6rem;
 }
-.field-label { display: inline-flex; align-items: center; gap: 4px; }
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 .fields input {
   width: 100%;
   min-height: 32px;
@@ -667,10 +869,29 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.result-details { margin: 0; }
-.result-details summary { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); cursor: pointer; font-size: .72rem; font-weight: 600; list-style: none; }
-.result-details summary::-webkit-details-marker { display: none; }
-.result-details summary span { color: var(--accent); font-size: .68rem; font-weight: 650; }
+.result-details {
+  margin: 0;
+}
+.result-details summary {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  list-style: none;
+}
+.result-details summary::-webkit-details-marker {
+  display: none;
+}
+.result-details summary span {
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 650;
+}
 .result-panel dl {
   display: grid;
   gap: 0;
@@ -780,7 +1001,14 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   line-height: 1.48;
   padding-top: 14px;
 }
-.formula-explanation { display: grid; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid var(--soft-line); color: var(--ink); font-size: .86rem; }
+.formula-explanation {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--soft-line);
+  color: var(--ink);
+  font-size: 0.86rem;
+}
 @media (max-width: 767px) {
   .cfd-shell {
     --topbar-sticky-height: 0px;
@@ -818,14 +1046,13 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
     display: none;
   }
   .mobile-sticky-header {
-    position: sticky;
-    top: 0;
     z-index: 70;
     display: grid;
     width: 100%;
-    margin-bottom: 8px;
+    margin-bottom: 0;
     padding-top: var(--mobile-safe-top);
   }
+  .cfd-mobile-header { padding-top: var(--mobile-safe-top); }
   .cfd-content {
     gap: 8px;
     margin-top: 0;

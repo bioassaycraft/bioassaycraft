@@ -2,79 +2,452 @@
 import * as d3 from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
+import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import MathFormula from "../components/common/MathFormula.vue";
 import { residualCopy } from "../i18n/residual-explorer";
-import { analyseResiduals, concentrationPointBounds, defaultResidualParameters, diagnosis, generateResidualData, residualModules } from "../lib/residual/explorer-data";
+import {
+  analyseResiduals,
+  concentrationPointBounds,
+  defaultResidualParameters,
+  diagnosis,
+  generateResidualData,
+  residualModules,
+} from "../lib/residual/explorer-data";
 import { useLocale } from "../utils/locale";
 
 const { locale: language, setLocale } = useLocale();
-const module = ref("single"), structure = ref("ideal"), residualType = ref("raw"), view = ref("fitted"), varianceView = ref("scale"), transform = ref("raw"), weightMode = ref("unweighted"), selectedId = ref(null), root = ref(null), fitSvg = ref(null), diagnosticSvg = ref(null), fitWrap = ref(null), diagnosticWrap = ref(null), headerMorphTrigger = ref(null), isHeaderMorphed = ref(false);
-const parameters = ref({ ...defaultResidualParameters }); let observer; let headerObserver;
+const module = ref("single"),
+  structure = ref("ideal"),
+  residualType = ref("raw"),
+  view = ref("fitted"),
+  varianceView = ref("scale"),
+  transform = ref("raw"),
+  weightMode = ref("unweighted"),
+  selectedId = ref(null),
+  root = ref(null),
+  fitSvg = ref(null),
+  diagnosticSvg = ref(null),
+  fitWrap = ref(null),
+  diagnosticWrap = ref(null),
+  headerMorphTrigger = ref(null),
+  isHeaderMorphed = ref(false);
+const parameters = ref({ ...defaultResidualParameters });
+let observer;
+let headerObserver;
 const copy = computed(() => residualCopy[language.value]);
-const concentrationPoints = computed(() => parameters.value.concentrationPoints ?? (module.value === "fourpl" ? 12 : 6));
+const concentrationPoints = computed(
+  () => parameters.value.concentrationPoints ?? (module.value === "fourpl" ? 12 : 6),
+);
 const concentrationPointRange = computed(() => concentrationPointBounds(module.value));
-const replicates = computed(() => parameters.value.replicates ?? (module.value === "fourpl" ? 2 : 3));
+const replicates = computed(
+  () => parameters.value.replicates ?? (module.value === "fourpl" ? 2 : 3),
+);
 const raw = computed(() => generateResidualData(module.value, parameters.value, structure.value));
-const result = computed(() => analyseResiduals(raw.value, { module: module.value, transform: transform.value, weightMode: weightMode.value, power: parameters.value.power, boxCoxLambda: parameters.value.boxCoxLambda }));
-const currentResidual = (p) => residualType.value === "raw" ? p.rawResidual : residualType.value === "weighted" ? p.weightedResidual : p.standardizedResidual;
-const displayedPoints = computed(() => result.value.points.filter((p) => p.preparation === "reference"));
+const result = computed(() =>
+  analyseResiduals(raw.value, {
+    module: module.value,
+    transform: transform.value,
+    weightMode: weightMode.value,
+    power: parameters.value.power,
+    boxCoxLambda: parameters.value.boxCoxLambda,
+  }),
+);
+const currentResidual = (p) =>
+  residualType.value === "raw"
+    ? p.rawResidual
+    : residualType.value === "weighted"
+      ? p.weightedResidual
+      : p.standardizedResidual;
+const displayedPoints = computed(() =>
+  result.value.points.filter((p) => p.preparation === "reference"),
+);
 const selected = computed(() => result.value.points.find((p) => p.id === selectedId.value) || null);
 const diagnosisResult = computed(() => diagnosis(result.value, structure.value));
 const structureNote = computed(() => copy.value.structureNotes[structure.value]);
-const modelFormula = computed(() => module.value === "fourpl"
-  ? "y=A+\\frac{D-A}{1+\\left(\\frac{C}{x}\\right)^B}"
-  : "y=ax+b");
+const modelFormula = computed(() =>
+  module.value === "fourpl" ? "y=A+\\frac{D-A}{1+\\left(\\frac{C}{x}\\right)^B}" : "y=ax+b",
+);
 const fitDetails = computed(() => {
   if (result.value.error) return [];
   if (module.value === "fourpl") {
     const p = result.value.fit.parameters.reference;
-    return [["A · Bottom", p.lower], ["D · Top", p.upper], ["C · EC50", p.ec50], ["B · Hill", p.hill]];
+    return [
+      ["A · Bottom", p.lower],
+      ["D · Top", p.upper],
+      ["C · EC50", p.ec50],
+      ["B · Hill", p.hill],
+    ];
   }
   const [intercept, slope] = result.value.fit.parameters;
-  return [["a · Slope", slope], ["b · Intercept", intercept]];
+  return [
+    ["a · Slope", slope],
+    ["b · Intercept", intercept],
+  ];
 });
-const n = (v) => new Intl.NumberFormat(language.value === "zh" ? "zh-CN" : "en-US", { maximumFractionDigits: 2 }).format(v);
-const errorControl = computed(() => ({
-  ideal: { key: "error", label: copy.value.error, min: .2, max: 6, step: .1 },
-  increase: { key: "hetero", label: copy.value.heterogeneity, min: 0, max: 40, step: .25 },
-  decrease: { key: "hetero", label: copy.value.heterogeneity, min: 0, max: 40, step: .25 },
-  correlated: { key: "correlation", label: copy.value.correlationStrength, min: 0, max: .95, step: .05 },
-  shared: { key: "dilutionShift", label: copy.value.sharedStrength, min: 0, max: .2, step: .01 },
-}[structure.value]));
-function update(key, value) { parameters.value = { ...parameters.value, [key]: Number(value) }; }
-function resample() { parameters.value = { ...parameters.value, seed: parameters.value.seed + 1 }; }
-function selectPoint(p) { selectedId.value = selectedId.value === p.id ? null : p.id; }
-function setModule(next) { module.value = next; selectedId.value = null; parameters.value = { ...parameters.value, concentrationPoints: next === "fourpl" ? 12 : 6, replicates: next === "fourpl" ? 2 : 3 }; }
-function fitDomain(values, pad = .1) { const e = d3.extent(values); const d = (e[1] - e[0]) || 1; return [e[0] - d * pad, e[1] + d * pad]; }
+const n = (v) =>
+  new Intl.NumberFormat(language.value === "zh" ? "zh-CN" : "en-US", {
+    maximumFractionDigits: 2,
+  }).format(v);
+const errorControl = computed(
+  () =>
+    ({
+      ideal: { key: "error", label: copy.value.error, min: 0.2, max: 6, step: 0.1 },
+      increase: { key: "hetero", label: copy.value.heterogeneity, min: 0, max: 40, step: 0.25 },
+      decrease: { key: "hetero", label: copy.value.heterogeneity, min: 0, max: 40, step: 0.25 },
+      correlated: {
+        key: "correlation",
+        label: copy.value.correlationStrength,
+        min: 0,
+        max: 0.95,
+        step: 0.05,
+      },
+      shared: {
+        key: "dilutionShift",
+        label: copy.value.sharedStrength,
+        min: 0,
+        max: 0.2,
+        step: 0.01,
+      },
+    })[structure.value],
+);
+function update(key, value) {
+  parameters.value = { ...parameters.value, [key]: Number(value) };
+}
+function resample() {
+  parameters.value = { ...parameters.value, seed: parameters.value.seed + 1 };
+}
+function selectPoint(p) {
+  selectedId.value = selectedId.value === p.id ? null : p.id;
+}
+function setModule(next) {
+  module.value = next;
+  selectedId.value = null;
+  parameters.value = {
+    ...parameters.value,
+    concentrationPoints: next === "fourpl" ? 12 : 6,
+    replicates: next === "fourpl" ? 2 : 3,
+  };
+}
+function fitDomain(values, pad = 0.1) {
+  const e = d3.extent(values);
+  const d = e[1] - e[0] || 1;
+  return [e[0] - d * pad, e[1] + d * pad];
+}
 function drawFit() {
-  if (!fitSvg.value || !fitWrap.value || result.value.error) return; const points = displayedPoints.value, svg = d3.select(fitSvg.value), mobile = matchMedia("(max-width: 767px)").matches, width = Math.max(500, fitWrap.value.clientWidth || 620), height = mobile ? 300 : 414, m = mobile ? { top: 14, right: 14, bottom: 36, left: 42 } : { top: 18, right: 18, bottom: 42, left: 46 }, xDomain = fitDomain(points.map((p) => p.logDose)), x = d3.scaleLinear().domain(xDomain).range([m.left, width-m.right]), y = d3.scaleLinear().domain(fitDomain(points.flatMap((p) => [p.response,p.fitted]))).range([height-m.bottom,m.top]);
-  svg.attr("viewBox", `0 0 ${width} ${height}`).attr("role","img"); svg.selectAll("*").remove();
-  svg.append("rect").attr("class","plot-bg").attr("x",m.left).attr("y",m.top).attr("width",width-m.left-m.right).attr("height",height-m.top-m.bottom).attr("rx",8);
-  svg.append("g").attr("class","x-axis").attr("transform",`translate(0,${height-m.bottom})`).call(d3.axisBottom(x).ticks(mobile?4:6).tickSizeOuter(0)); svg.append("g").attr("class","y-axis").attr("transform",`translate(${m.left},0)`).call(d3.axisLeft(y).ticks(5).tickSizeOuter(0));
-  const line = d3.line().x((p)=>x(p.logDose)).y((p)=>y(p.fitted)).curve(d3.curveCatmullRom.alpha(.5)); const reference = points.filter((p)=>p.preparation==="reference").sort((a,b)=>a.logDose-b.logDose); const curve = module.value === "fourpl" ? Array.from({ length: 120 }, (_, index) => { const logDose = xDomain[0] + (xDomain[1] - xDomain[0]) * index / 119; const point = { preparation:"reference", logDose, dose:Math.exp(logDose) }; return { ...point, fitted:result.value.fit.predict(point) }; }) : reference; svg.append("path").datum(curve).attr("class","model-line").attr("stroke","var(--bc-chart-line)").attr("d",line);
-  svg.append("g").selectAll("line").data(points).join("line").attr("class",(p)=>`residual-line ${p.id===selectedId.value?"is-selected":""}`).attr("x1",p=>x(p.logDose)).attr("x2",p=>x(p.logDose)).attr("y1",p=>y(p.response)).attr("y2",p=>y(p.fitted));
-  svg.append("g").selectAll("circle").data(points).join("circle").attr("class",(p)=>`observed-point ${p.id===selectedId.value?"is-selected":""}`).attr("cx",(p)=>x(p.logDose)).attr("cy",(p)=>y(p.response)).attr("r",(p)=>p.id===selectedId.value?6:4.4).attr("fill","var(--observed-point)").on("click",(_,p)=>selectPoint(p)).append("title").text((p)=>`${copy.value.actual}: ${n(p.response)}\n${copy.value.predicted}: ${n(p.fitted)}\ne: ${n(p.rawResidual)}`);
-  svg.append("text").attr("class","axis-label").attr("x",width/2).attr("y",height-7).text(copy.value.dose); svg.append("text").attr("class","axis-label").attr("transform",`translate(13 ${height/2}) rotate(-90)`).text(`${copy.value.observed} (${copy.value.current})`);
+  if (!fitSvg.value || !fitWrap.value || result.value.error) return;
+  const points = displayedPoints.value,
+    svg = d3.select(fitSvg.value),
+    mobile = matchMedia("(max-width: 767px)").matches,
+    width = Math.max(500, fitWrap.value.clientWidth || 620),
+    height = mobile ? 300 : 414,
+    m = mobile
+      ? { top: 14, right: 14, bottom: 36, left: 42 }
+      : { top: 18, right: 18, bottom: 42, left: 46 },
+    xDomain = fitDomain(points.map((p) => p.logDose)),
+    x = d3
+      .scaleLinear()
+      .domain(xDomain)
+      .range([m.left, width - m.right]),
+    y = d3
+      .scaleLinear()
+      .domain(fitDomain(points.flatMap((p) => [p.response, p.fitted])))
+      .range([height - m.bottom, m.top]);
+  svg.attr("viewBox", `0 0 ${width} ${height}`).attr("role", "img");
+  svg.selectAll("*").remove();
+  svg
+    .append("rect")
+    .attr("class", "plot-bg")
+    .attr("x", m.left)
+    .attr("y", m.top)
+    .attr("width", width - m.left - m.right)
+    .attr("height", height - m.top - m.bottom)
+    .attr("rx", 8);
+  svg
+    .append("g")
+    .attr("class", "x-axis")
+    .attr("transform", `translate(0,${height - m.bottom})`)
+    .call(
+      d3
+        .axisBottom(x)
+        .ticks(mobile ? 4 : 6)
+        .tickSizeOuter(0),
+    );
+  svg
+    .append("g")
+    .attr("class", "y-axis")
+    .attr("transform", `translate(${m.left},0)`)
+    .call(d3.axisLeft(y).ticks(5).tickSizeOuter(0));
+  const line = d3
+    .line()
+    .x((p) => x(p.logDose))
+    .y((p) => y(p.fitted))
+    .curve(d3.curveCatmullRom.alpha(0.5));
+  const reference = points
+    .filter((p) => p.preparation === "reference")
+    .sort((a, b) => a.logDose - b.logDose);
+  const curve =
+    module.value === "fourpl"
+      ? Array.from({ length: 120 }, (_, index) => {
+          const logDose = xDomain[0] + ((xDomain[1] - xDomain[0]) * index) / 119;
+          const point = { preparation: "reference", logDose, dose: Math.exp(logDose) };
+          return { ...point, fitted: result.value.fit.predict(point) };
+        })
+      : reference;
+  svg
+    .append("path")
+    .datum(curve)
+    .attr("class", "model-line")
+    .attr("stroke", "var(--bc-chart-line)")
+    .attr("d", line);
+  svg
+    .append("g")
+    .selectAll("line")
+    .data(points)
+    .join("line")
+    .attr("class", (p) => `residual-line ${p.id === selectedId.value ? "is-selected" : ""}`)
+    .attr("x1", (p) => x(p.logDose))
+    .attr("x2", (p) => x(p.logDose))
+    .attr("y1", (p) => y(p.response))
+    .attr("y2", (p) => y(p.fitted));
+  svg
+    .append("g")
+    .selectAll("circle")
+    .data(points)
+    .join("circle")
+    .attr("class", (p) => `observed-point ${p.id === selectedId.value ? "is-selected" : ""}`)
+    .attr("cx", (p) => x(p.logDose))
+    .attr("cy", (p) => y(p.response))
+    .attr("r", (p) => (p.id === selectedId.value ? 6 : 4.4))
+    .attr("fill", "var(--observed-point)")
+    .on("click", (_, p) => selectPoint(p))
+    .append("title")
+    .text(
+      (p) =>
+        `${copy.value.actual}: ${n(p.response)}\n${copy.value.predicted}: ${n(p.fitted)}\ne: ${n(p.rawResidual)}`,
+    );
+  svg
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("x", width / 2)
+    .attr("y", height - 7)
+    .text(copy.value.dose);
+  svg
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("transform", `translate(13 ${height / 2}) rotate(-90)`)
+    .text(`${copy.value.observed} (${copy.value.current})`);
 }
 function drawDiagnostic() {
-  if (!diagnosticSvg.value || !diagnosticWrap.value || result.value.error) return; const points=displayedPoints.value, svg=d3.select(diagnosticSvg.value), mobile=matchMedia("(max-width: 767px)").matches,width=Math.max(300,diagnosticWrap.value.clientWidth),height=mobile?320:456,m={top:18,right:18,bottom:42,left:48}; let data=points.map((p)=>({ ...p,x:p.fitted,y:currentResidual(p) })), xlabel=copy.value.views.fitted,ylabel=copy.value.types[residualType.value], refLine=0;
-  if(view.value==="dose"){data=data.map((p)=>({...p,x:p.logDose}));xlabel=copy.value.dose;} if(view.value==="order"){data=data.map((p)=>({...p,x:p.runOrder}));xlabel=copy.value.runOrder;} if(view.value==="qq"){data=result.value.qq.filter((p)=>p.preparation==="reference").map((p)=>({...p,x:p.theoretical,y:p.residual}));xlabel="Normal quantile";ylabel=copy.value.types.standardized;refLine=null;} if(view.value==="scale"){ if(varianceView.value==="meanVariance"){data=result.value.meanVariance.filter((p)=>p.preparation==="reference").map((p,i)=>({id:`mv-${i}`,x:Math.log(p.mean),y:Math.log(p.variance),preparation:"reference"}));xlabel="log(mean)";ylabel="log(variance)";refLine=null;}else {data=data.map((p)=>({...p,x:p.fitted,y:Math.sqrt(Math.abs(p.standardizedResidual))}));xlabel=copy.value.views.fitted;ylabel="√|rᵢ|";refLine=null;} }
-  const x=d3.scaleLinear().domain(fitDomain(data.map((p)=>p.x))).range([m.left,width-m.right]),y=d3.scaleLinear().domain(fitDomain(data.map((p)=>p.y))).range([height-m.bottom,m.top]); svg.attr("viewBox",`0 0 ${width} ${height}`).attr("role","img");svg.selectAll("*").remove();svg.append("rect").attr("class","plot-bg").attr("x",m.left).attr("y",m.top).attr("width",width-m.left-m.right).attr("height",height-m.top-m.bottom).attr("rx",8);svg.append("g").attr("class","axis").attr("transform",`translate(0,${height-m.bottom})`).call(d3.axisBottom(x).ticks(mobile?4:6));svg.append("g").attr("class","axis").attr("transform",`translate(${m.left},0)`).call(d3.axisLeft(y).ticks(5));
-  if(refLine!==null && refLine>=y.domain()[0] && refLine<=y.domain()[1]) svg.append("line").attr("class","zero-line").attr("x1",m.left).attr("x2",width-m.right).attr("y1",y(refLine)).attr("y2",y(refLine));
-  if(view.value==="qq" && data.length){const slope=(d3.quantile(data.map(p=>p.y).sort(d3.ascending),.75)-d3.quantile(data.map(p=>p.y).sort(d3.ascending),.25))/1.349, intercept=d3.mean(data,p=>p.y)-slope*d3.mean(data,p=>p.x);svg.append("line").attr("class","qq-line").attr("x1",x.range()[0]).attr("x2",x.range()[1]).attr("y1",y(intercept+slope*x.domain()[0])).attr("y2",y(intercept+slope*x.domain()[1]));}
-  if(view.value==="order") svg.append("path").datum([...data].sort((a,b)=>a.x-b.x)).attr("class","order-line").attr("d",d3.line().x(p=>x(p.x)).y(p=>y(p.y)));
-  svg.append("g").selectAll("circle").data(data).join("circle").attr("class",p=>`chart-point ${p.id===selectedId.value?"is-selected":""}`).attr("cx",p=>x(p.x)).attr("cy",p=>y(p.y)).attr("r",p=>p.id===selectedId.value?6:4.2).attr("fill","var(--observed-point)").on("click",(_,p)=>p.id?.startsWith("mv-")||selectPoint(p)).append("title").text(p=>`${xlabel}: ${n(p.x)}\n${ylabel}: ${n(p.y)}`);svg.append("text").attr("class","axis-label").attr("x",width/2).attr("y",height-7).text(xlabel);svg.append("text").attr("class","axis-label").attr("transform",`translate(13 ${height/2}) rotate(-90)`).text(ylabel);
+  if (!diagnosticSvg.value || !diagnosticWrap.value || result.value.error) return;
+  const points = displayedPoints.value,
+    svg = d3.select(diagnosticSvg.value),
+    mobile = matchMedia("(max-width: 767px)").matches,
+    width = Math.max(300, diagnosticWrap.value.clientWidth),
+    height = mobile ? 320 : 456,
+    m = { top: 18, right: 18, bottom: 42, left: 48 };
+  let data = points.map((p) => ({ ...p, x: p.fitted, y: currentResidual(p) })),
+    xlabel = copy.value.views.fitted,
+    ylabel = copy.value.types[residualType.value],
+    refLine = 0;
+  if (view.value === "dose") {
+    data = data.map((p) => ({ ...p, x: p.logDose }));
+    xlabel = copy.value.dose;
+  }
+  if (view.value === "order") {
+    data = data.map((p) => ({ ...p, x: p.runOrder }));
+    xlabel = copy.value.runOrder;
+  }
+  if (view.value === "qq") {
+    data = result.value.qq
+      .filter((p) => p.preparation === "reference")
+      .map((p) => ({ ...p, x: p.theoretical, y: p.residual }));
+    xlabel = "Normal quantile";
+    ylabel = copy.value.types.standardized;
+    refLine = null;
+  }
+  if (view.value === "scale") {
+    if (varianceView.value === "meanVariance") {
+      data = result.value.meanVariance
+        .filter((p) => p.preparation === "reference")
+        .map((p, i) => ({
+          id: `mv-${i}`,
+          x: Math.log(p.mean),
+          y: Math.log(p.variance),
+          preparation: "reference",
+        }));
+      xlabel = "log(mean)";
+      ylabel = "log(variance)";
+      refLine = null;
+    } else {
+      data = data.map((p) => ({
+        ...p,
+        x: p.fitted,
+        y: Math.sqrt(Math.abs(p.standardizedResidual)),
+      }));
+      xlabel = copy.value.views.fitted;
+      ylabel = "√|rᵢ|";
+      refLine = null;
+    }
+  }
+  const x = d3
+      .scaleLinear()
+      .domain(fitDomain(data.map((p) => p.x)))
+      .range([m.left, width - m.right]),
+    y = d3
+      .scaleLinear()
+      .domain(fitDomain(data.map((p) => p.y)))
+      .range([height - m.bottom, m.top]);
+  svg.attr("viewBox", `0 0 ${width} ${height}`).attr("role", "img");
+  svg.selectAll("*").remove();
+  svg
+    .append("rect")
+    .attr("class", "plot-bg")
+    .attr("x", m.left)
+    .attr("y", m.top)
+    .attr("width", width - m.left - m.right)
+    .attr("height", height - m.top - m.bottom)
+    .attr("rx", 8);
+  svg
+    .append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${height - m.bottom})`)
+    .call(d3.axisBottom(x).ticks(mobile ? 4 : 6));
+  svg
+    .append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(${m.left},0)`)
+    .call(d3.axisLeft(y).ticks(5));
+  if (refLine !== null && refLine >= y.domain()[0] && refLine <= y.domain()[1])
+    svg
+      .append("line")
+      .attr("class", "zero-line")
+      .attr("x1", m.left)
+      .attr("x2", width - m.right)
+      .attr("y1", y(refLine))
+      .attr("y2", y(refLine));
+  if (view.value === "qq" && data.length) {
+    const slope =
+        (d3.quantile(data.map((p) => p.y).sort(d3.ascending), 0.75) -
+          d3.quantile(data.map((p) => p.y).sort(d3.ascending), 0.25)) /
+        1.349,
+      intercept = d3.mean(data, (p) => p.y) - slope * d3.mean(data, (p) => p.x);
+    svg
+      .append("line")
+      .attr("class", "qq-line")
+      .attr("x1", x.range()[0])
+      .attr("x2", x.range()[1])
+      .attr("y1", y(intercept + slope * x.domain()[0]))
+      .attr("y2", y(intercept + slope * x.domain()[1]));
+  }
+  if (view.value === "order")
+    svg
+      .append("path")
+      .datum([...data].sort((a, b) => a.x - b.x))
+      .attr("class", "order-line")
+      .attr(
+        "d",
+        d3
+          .line()
+          .x((p) => x(p.x))
+          .y((p) => y(p.y)),
+      );
+  svg
+    .append("g")
+    .selectAll("circle")
+    .data(data)
+    .join("circle")
+    .attr("class", (p) => `chart-point ${p.id === selectedId.value ? "is-selected" : ""}`)
+    .attr("cx", (p) => x(p.x))
+    .attr("cy", (p) => y(p.y))
+    .attr("r", (p) => (p.id === selectedId.value ? 6 : 4.2))
+    .attr("fill", "var(--observed-point)")
+    .on("click", (_, p) => p.id?.startsWith("mv-") || selectPoint(p))
+    .append("title")
+    .text((p) => `${xlabel}: ${n(p.x)}\n${ylabel}: ${n(p.y)}`);
+  svg
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("x", width / 2)
+    .attr("y", height - 7)
+    .text(xlabel);
+  svg
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("transform", `translate(13 ${height / 2}) rotate(-90)`)
+    .text(ylabel);
 }
-const statusText=(kind,status)=>{const c=copy.value.diag;if(kind==="independence")return c[{clear:"clearInd",drift:"drift",correlation:"correlation",shared:"shared",limited:"limited"}[status]];if(kind==="normality")return c[{clear:"clearNorm",heavy:"heavy",outlier:"outlier",limited:"limited"}[status]];return c[{clear:"clearVar",increase:"increase",decrease:"decrease",trend:"trend",limited:"limited"}[status]];};
-watch([result,view,residualType,varianceView,language,selectedId],async()=>{await nextTick();drawFit();drawDiagnostic();});watch(weightMode,(next)=>{if(next!=="unweighted")residualType.value="standardized";});
-onMounted(async()=>{await nextTick();drawFit();drawDiagnostic();observer=new ResizeObserver(()=>{drawFit();drawDiagnostic();});if(fitWrap.value)observer.observe(fitWrap.value);if(diagnosticWrap.value)observer.observe(diagnosticWrap.value);if("IntersectionObserver" in window&&headerMorphTrigger.value){headerObserver=new IntersectionObserver(([entry])=>{isHeaderMorphed.value=!entry.isIntersecting;},{threshold:0});headerObserver.observe(headerMorphTrigger.value);}});onBeforeUnmount(()=>{observer?.disconnect();headerObserver?.disconnect();});
+const statusText = (kind, status) => {
+  const c = copy.value.diag;
+  if (kind === "independence")
+    return c[
+      {
+        clear: "clearInd",
+        drift: "drift",
+        correlation: "correlation",
+        shared: "shared",
+        limited: "limited",
+      }[status]
+    ];
+  if (kind === "normality")
+    return c[
+      { clear: "clearNorm", heavy: "heavy", outlier: "outlier", limited: "limited" }[status]
+    ];
+  return c[
+    {
+      clear: "clearVar",
+      increase: "increase",
+      decrease: "decrease",
+      trend: "trend",
+      limited: "limited",
+    }[status]
+  ];
+};
+watch([result, view, residualType, varianceView, language, selectedId], async () => {
+  await nextTick();
+  drawFit();
+  drawDiagnostic();
+});
+watch(weightMode, (next) => {
+  if (next !== "unweighted") residualType.value = "standardized";
+});
+onMounted(async () => {
+  await nextTick();
+  drawFit();
+  drawDiagnostic();
+  observer = new ResizeObserver(() => {
+    drawFit();
+    drawDiagnostic();
+  });
+  if (fitWrap.value) observer.observe(fitWrap.value);
+  if (diagnosticWrap.value) observer.observe(diagnosticWrap.value);
+  if ("IntersectionObserver" in window && headerMorphTrigger.value) {
+    headerObserver = new IntersectionObserver(
+      ([entry]) => {
+        isHeaderMorphed.value = !entry.isIntersecting;
+      },
+      { threshold: 0 },
+    );
+    headerObserver.observe(headerMorphTrigger.value);
+  }
+});
+onBeforeUnmount(() => {
+  observer?.disconnect();
+  headerObserver?.disconnect();
+});
 </script>
 
 <template>
   <main ref="root" class="residual-explorer" :class="{ 'is-header-morphed': isHeaderMorphed }">
     <div ref="headerMorphTrigger" class="header-morph-trigger" aria-hidden="true"></div>
-    <ToolTopbar :title="copy.title" :language="language" :language-label="copy.languageLabel" :home-label="copy.home" :is-morphed="isHeaderMorphed" @set-language="setLocale" />
+    <ToolTopbar
+      :title="copy.title"
+      :language="language"
+      :language-label="copy.languageLabel"
+      :home-label="copy.home"
+      :is-morphed="isHeaderMorphed"
+      @set-language="setLocale"
+    />
     <MobileToolHeader
       class="mobile-residual-header"
       :aria-label="copy.title"
@@ -84,54 +457,627 @@ onMounted(async()=>{await nextTick();drawFit();drawDiagnostic();observer=new Res
       :language="language"
       :language-label="copy.languageLabel"
       :home-label="copy.home"
+      :page-title="copy.title"
       :show-selector="false"
       @set-language="setLocale"
     />
-    <header class="explorer-header"><h1>{{ copy.title }}</h1></header>
+    <MobilePageTitle :title="copy.title" />
+    <header class="explorer-header">
+      <h1>{{ copy.title }}</h1>
+    </header>
     <section class="teaching-grid">
-      <article class="visual-panel chart-panel"><div class="panel-title-row"><div><span>{{ copy.fit }}</span><div class="model-switch segmented-control" :aria-label="copy.modulesLabel"><button v-for="item in residualModules" :key="item" :class="{ 'is-active': module === item }" @click="setModule(item)">{{ copy.modules[item] }}</button></div></div><div class="chart-legend"><span><i class="legend-dot observed"></i>{{ copy.observed }}</span><span><i class="legend-line model"></i>{{ copy.fit }}</span><span><i class="legend-line residual"></i>{{ copy.residual }}</span></div></div><div ref="fitWrap" class="chart-wrap"><svg ref="fitSvg" class="residual-fit-chart"></svg></div><p v-if="selected" class="selected-note"><MathFormula formula="e_i=y_i-\widehat{y}_i" /> · {{ copy.actual }} {{ n(selected.response) }} · {{ copy.predicted }} {{ n(selected.fitted) }} · e {{ n(selected.rawResidual) }}</p></article>
+      <article class="visual-panel chart-panel">
+        <div class="panel-title-row">
+          <div>
+            <span>{{ copy.fit }}</span>
+            <div class="model-switch segmented-control" :aria-label="copy.modulesLabel">
+              <button
+                v-for="item in residualModules"
+                :key="item"
+                :class="{ 'is-active': module === item }"
+                @click="setModule(item)"
+              >
+                {{ copy.modules[item] }}
+              </button>
+            </div>
+          </div>
+          <div class="chart-legend">
+            <span><i class="legend-dot observed"></i>{{ copy.observed }}</span
+            ><span><i class="legend-line model"></i>{{ copy.fit }}</span
+            ><span><i class="legend-line residual"></i>{{ copy.residual }}</span>
+          </div>
+        </div>
+        <div ref="fitWrap" class="chart-wrap">
+          <svg ref="fitSvg" class="residual-fit-chart"></svg>
+        </div>
+        <p v-if="selected" class="selected-note">
+          <MathFormula formula="e_i=y_i-\widehat{y}_i" /> · {{ copy.actual }}
+          {{ n(selected.response) }} · {{ copy.predicted }} {{ n(selected.fitted) }} · e
+          {{ n(selected.rawResidual) }}
+        </p>
+      </article>
       <aside class="fit-sidebar">
         <div class="setup-card" :aria-label="copy.controls">
-          <div class="controls-head"><span>{{ copy.controls }}</span><button class="quiet-button" @click="resample">{{ copy.regenerate }}</button></div>
+          <div class="controls-head">
+            <span>{{ copy.controls }}</span
+            ><button class="quiet-button" @click="resample">{{ copy.regenerate }}</button>
+          </div>
           <div class="setup-fields">
-            <label class="select-label"><span>{{ copy.errorStructure }}</span><select v-model="structure"><option v-for="(_,key) in copy.structures" :key="key" :value="key">{{ copy.structures[key] }}</option></select></label>
-            <label><span>{{ errorControl.label }} <output>{{ n(parameters[errorControl.key]) }}</output></span><input type="range" :value="parameters[errorControl.key]" :min="errorControl.min" :max="errorControl.max" :step="errorControl.step" @input="update(errorControl.key,$event.target.value)"></label>
-            <label><span>{{ copy.concentrationPoints }} <output>{{ concentrationPoints }}</output></span><input type="range" :value="concentrationPoints" :min="concentrationPointRange.min" :max="concentrationPointRange.max" step="1" @input="update('concentrationPoints',$event.target.value)"></label>
-            <label><span>{{ copy.replicateCount }} <output>{{ replicates }}</output></span><input type="range" :value="replicates" min="2" max="6" step="1" @input="update('replicates',$event.target.value)"></label>
-            <label class="select-label"><span>{{ copy.transform }}</span><select v-model="transform"><option value="raw">{{ copy.raw }}</option><option value="sqrt">{{ copy.sqrt }}</option><option value="log">{{ copy.log }}</option><option value="boxcox">{{ copy.boxcox }}</option></select></label>
-            <label class="select-label"><span>{{ copy.weights }}</span><select v-model="weightMode"><option value="unweighted">{{ copy.unweighted }}</option><option value="inverse">{{ copy.inverse }}</option><option value="inverse2">{{ copy.inverse2 }}</option><option value="power">{{ copy.powerWeight }}</option></select></label>
-            <div class="setup-dynamic-slot"><label v-if="transform==='boxcox'"><span>{{ copy.boxCoxLambda }} <output>{{ n(parameters.boxCoxLambda) }}</output></span><input type="range" :value="parameters.boxCoxLambda" min="-2" max="2" step=".1" @input="update('boxCoxLambda',$event.target.value)"></label><label v-else-if="weightMode==='power'"><span>{{ copy.power }} <output>{{ n(parameters.power) }}</output></span><input type="range" :value="parameters.power" min="0" max="3" step=".1" @input="update('power',$event.target.value)"></label></div>
+            <label class="select-label"
+              ><span>{{ copy.errorStructure }}</span
+              ><select v-model="structure">
+                <option v-for="(_, key) in copy.structures" :key="key" :value="key">
+                  {{ copy.structures[key] }}
+                </option>
+              </select></label
+            >
+            <label
+              ><span
+                >{{ errorControl.label }}
+                <output>{{ n(parameters[errorControl.key]) }}</output></span
+              ><input
+                type="range"
+                :value="parameters[errorControl.key]"
+                :min="errorControl.min"
+                :max="errorControl.max"
+                :step="errorControl.step"
+                @input="update(errorControl.key, $event.target.value)"
+            /></label>
+            <label
+              ><span
+                >{{ copy.concentrationPoints }} <output>{{ concentrationPoints }}</output></span
+              ><input
+                type="range"
+                :value="concentrationPoints"
+                :min="concentrationPointRange.min"
+                :max="concentrationPointRange.max"
+                step="1"
+                @input="update('concentrationPoints', $event.target.value)"
+            /></label>
+            <label
+              ><span
+                >{{ copy.replicateCount }} <output>{{ replicates }}</output></span
+              ><input
+                type="range"
+                :value="replicates"
+                min="2"
+                max="6"
+                step="1"
+                @input="update('replicates', $event.target.value)"
+            /></label>
+            <label class="select-label"
+              ><span>{{ copy.transform }}</span
+              ><select v-model="transform">
+                <option value="raw">{{ copy.raw }}</option>
+                <option value="sqrt">{{ copy.sqrt }}</option>
+                <option value="log">{{ copy.log }}</option>
+                <option value="boxcox">{{ copy.boxcox }}</option>
+              </select></label
+            >
+            <label class="select-label"
+              ><span>{{ copy.weights }}</span
+              ><select v-model="weightMode">
+                <option value="unweighted">{{ copy.unweighted }}</option>
+                <option value="inverse">{{ copy.inverse }}</option>
+                <option value="inverse2">{{ copy.inverse2 }}</option>
+                <option value="power">{{ copy.powerWeight }}</option>
+              </select></label
+            >
+            <div class="setup-dynamic-slot">
+              <label v-if="transform === 'boxcox'"
+                ><span
+                  >{{ copy.boxCoxLambda }} <output>{{ n(parameters.boxCoxLambda) }}</output></span
+                ><input
+                  type="range"
+                  :value="parameters.boxCoxLambda"
+                  min="-2"
+                  max="2"
+                  step=".1"
+                  @input="update('boxCoxLambda', $event.target.value)" /></label
+              ><label v-else-if="weightMode === 'power'"
+                ><span
+                  >{{ copy.power }} <output>{{ n(parameters.power) }}</output></span
+                ><input
+                  type="range"
+                  :value="parameters.power"
+                  min="0"
+                  max="3"
+                  step=".1"
+                  @input="update('power', $event.target.value)"
+              /></label>
+            </div>
           </div>
           <p class="structure-note">{{ structureNote }}</p>
         </div>
         <section class="insight-panel fit-information" :aria-label="copy.fitInformation">
-          <div class="controls-head"><span>{{ copy.fitInformation }}</span></div>
-          <div class="fit-formula-summary"><span>{{ copy.fittedModel }}</span><MathFormula :formula="modelFormula" /><i aria-hidden="true"></i><span>{{ copy.residualCalculation }}</span><MathFormula formula="e_i=y_i-\widehat{y}_i" /></div>
-          <div class="parameter-list"><span>{{ copy.parameterValues }}</span><dl class="fit-parameter-grid"><div v-for="[key, value] in fitDetails" :key="key"><dt>{{ key }}</dt><dd>{{ n(value) }}</dd></div></dl></div>
+          <div class="controls-head">
+            <span>{{ copy.fitInformation }}</span>
+          </div>
+          <div class="fit-formula-summary">
+            <span>{{ copy.fittedModel }}</span
+            ><MathFormula :formula="modelFormula" /><i aria-hidden="true"></i
+            ><span>{{ copy.residualCalculation }}</span
+            ><MathFormula formula="e_i=y_i-\widehat{y}_i" />
+          </div>
+          <div class="parameter-list">
+            <span>{{ copy.parameterValues }}</span>
+            <dl class="fit-parameter-grid">
+              <div v-for="[key, value] in fitDetails" :key="key">
+                <dt>{{ key }}</dt>
+                <dd>{{ n(value) }}</dd>
+              </div>
+            </dl>
+          </div>
           <p v-if="result.error" class="warning">{{ copy.invalidTransform }}</p>
         </section>
       </aside>
     </section>
     <section class="panel diagnostics" :aria-label="copy.residual">
-      <header class="diagnostic-head"><div class="diagnostic-title"><strong>{{ copy.residual }}</strong></div></header>
-      <div class="diagnostic-controls"><div class="diagnostic-type"><div class="segmented compact"><button v-for="(_,key) in copy.types" :key="key" :class="{active:residualType===key}" @click="residualType=key">{{ copy.types[key] }}</button></div></div><nav class="diagnostic-views" :aria-label="copy.residual"><button v-for="(_,key) in copy.views" :key="key" :class="{active:view===key}" @click="view=key">{{ copy.views[key] }}</button></nav></div>
-      <div v-if="view==='scale'" class="sub-switch"><button v-for="(_,key) in copy.varianceViews" :key="key" :class="{active:varianceView===key}" @click="varianceView=key">{{ copy.varianceViews[key] }}</button></div>
+      <header class="diagnostic-head">
+        <div class="diagnostic-title">
+          <strong>{{ copy.residual }}</strong>
+        </div>
+      </header>
+      <div class="diagnostic-controls">
+        <div class="diagnostic-type">
+          <div class="segmented compact">
+            <button
+              v-for="(_, key) in copy.types"
+              :key="key"
+              :class="{ active: residualType === key }"
+              @click="residualType = key"
+            >
+              {{ copy.types[key] }}
+            </button>
+          </div>
+        </div>
+        <nav class="diagnostic-views" :aria-label="copy.residual">
+          <button
+            v-for="(_, key) in copy.views"
+            :key="key"
+            :class="{ active: view === key }"
+            @click="view = key"
+          >
+            {{ copy.views[key] }}
+          </button>
+        </nav>
+      </div>
+      <div v-if="view === 'scale'" class="sub-switch">
+        <button
+          v-for="(_, key) in copy.varianceViews"
+          :key="key"
+          :class="{ active: varianceView === key }"
+          @click="varianceView = key"
+        >
+          {{ copy.varianceViews[key] }}
+        </button>
+      </div>
       <div ref="diagnosticWrap" class="chart-wrap"><svg ref="diagnosticSvg"></svg></div>
-      <p v-if="view==='qq'" class="caption">{{ copy.qqNote }}</p><p v-if="view==='scale'&&varianceView==='meanVariance'" class="caption">{{ copy.pLabel }}: <strong>{{ result.variancePower===null?'—':n(result.variancePower) }}</strong></p>
+      <p v-if="view === 'qq'" class="caption">{{ copy.qqNote }}</p>
+      <p v-if="view === 'scale' && varianceView === 'meanVariance'" class="caption">
+        {{ copy.pLabel }}:
+        <strong>{{ result.variancePower === null ? "—" : n(result.variancePower) }}</strong>
+      </p>
     </section>
-    <aside class="diagnostic-cards" :aria-label="copy.residual"><article v-for="kind in ['independence','normality','variance']" :key="kind" class="panel diagnosis"><span>{{ copy.cards[kind] }}</span><strong>{{ statusText(kind,diagnosisResult[kind]) }}</strong></article></aside>
+    <aside class="diagnostic-cards" :aria-label="copy.residual">
+      <article
+        v-for="kind in ['independence', 'normality', 'variance']"
+        :key="kind"
+        class="panel diagnosis"
+      >
+        <span>{{ copy.cards[kind] }}</span
+        ><strong>{{ statusText(kind, diagnosisResult[kind]) }}</strong>
+      </article>
+    </aside>
   </main>
 </template>
 
 <style scoped>
-.fit-formula-summary{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:3px 6px;min-height:24px;padding:2px 0 5px;border-bottom:1px solid var(--soft-line)}
-.fit-formula-summary>span{color:var(--muted);font-size:.59rem;font-weight:600;text-transform:uppercase;white-space:nowrap}
-.fit-formula-summary>i{width:1px;height:13px;background:var(--soft-line)}
-@media(max-width:767px){.fit-formula-summary{justify-content:flex-start}.fit-formula-summary>i{display:none}}
+.fit-formula-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  min-height: 24px;
+  padding: 2px 0 5px;
+  border-bottom: 1px solid var(--soft-line);
+}
+.fit-formula-summary > span {
+  color: var(--muted);
+  font-size: 0.59rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fit-formula-summary > i {
+  width: 1px;
+  height: 13px;
+  background: var(--soft-line);
+}
+@media (max-width: 767px) {
+  .fit-formula-summary {
+    justify-content: flex-start;
+  }
+  .fit-formula-summary > i {
+    display: none;
+  }
+}
 </style>
 
 <style scoped>
-.residual-explorer{--ink:var(--bc-text-primary,#171717);--muted:var(--bc-text-secondary,#6e7278);--panel:var(--bc-bg-surface-elevated,#fff);--line:var(--bc-border-subtle,rgba(208,215,222,.72));--accent:var(--bc-accent,#2457b3);width:min(1280px,calc(100% - 48px));margin:0 auto;padding:92px 0 48px;color:var(--ink)}.explorer-header{display:flex;justify-content:space-between;gap:32px;align-items:end;margin:0 0 18px}.explorer-header h1{margin:0;font-size:clamp(1.5rem,3vw,2.4rem)}.explorer-header p{max-width:600px;margin:0;color:var(--muted);font-size:.82rem;line-height:1.6}.panel,.switch-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:var(--bc-shadow-card,0 8px 22px rgba(23,23,23,.024))}.switch-card{display:grid;gap:10px;margin-bottom:12px;padding:10px 12px}.switch-row,.diagnostic-head,.controls-head,.panel header{display:flex;align-items:center;justify-content:space-between;gap:12px}.switch-row>span,.panel header>span,.diagnosis>span{color:var(--muted);font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em}.segmented{display:flex;gap:4px;padding:3px;border:1px solid var(--line);border-radius:8px}.segmented button,.sub-switch button{min-height:30px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--muted);font:600 .7rem var(--font-sans,inherit)}.segmented button.active,.sub-switch button.active{background:var(--bc-accent-soft,rgba(36,86,179,.08));color:var(--accent)}.workspace-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,.75fr);gap:12px}.chart-panel,.model-note,.diagnostics,.treatment{padding:12px}.panel header strong{font-size:.83rem}.legend{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.67rem}.legend i{display:inline-block;width:8px;height:8px;border-radius:50%}.legend .ref{background:var(--bc-chart-line)}.legend .test{background:var(--bc-chart-point)}.chart-wrap{width:100%;margin-top:8px}.chart-wrap svg{display:block;width:100%;height:auto}.selected-note,.caption,.treatment p{margin:7px 0 0;color:var(--muted);font-size:.71rem;line-height:1.45}.model-note p{font-size:.75rem;line-height:1.55;color:var(--muted)}.annotation{width:22px;height:22px;border:1px solid var(--line);border-radius:50%;background:var(--bc-accent-soft);color:var(--accent);font-weight:700}.warning{color:#9a5318!important}.controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px;padding:12px}.controls-head{grid-column:1/-1}.quiet{border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--accent);padding:6px 10px;font-size:.7rem;font-weight:600}.controls label,.treatment label{display:grid;gap:6px;color:var(--muted);font-size:.68rem}.controls label span{display:flex;justify-content:space-between}.controls output,.treatment output{color:var(--accent);font-family:var(--font-mono,monospace)}input[type=range]{accent-color:var(--accent)}select{min-height:32px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);padding:0 8px}.diagnostics{margin-top:12px}.views{width:max-content;max-width:100%;margin-top:10px;overflow:auto}.compact{flex-wrap:wrap}.sub-switch{display:flex;gap:5px;margin:9px 0}.sub-switch button{border:1px solid var(--line)}.diagnostic-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}.diagnosis{display:grid;gap:8px;padding:12px;min-height:88px}.diagnosis strong{font-size:.82rem;line-height:1.45}.treatment{margin-top:12px}.treatment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.treatment-grid label{font-size:.72rem}.treatment-grid input{width:100%}:deep(.plot-bg){fill:var(--bc-bg-surface,#fff);stroke:var(--line)}:deep(.axis path),:deep(.axis line){stroke:var(--bc-chart-grid,#d0d7de)}:deep(.axis text),:deep(.axis-label){fill:var(--muted);font-size:10px}:deep(.axis-label){text-anchor:middle;font-weight:600}:deep(.fit-line){fill:none;stroke-width:2.4}:deep(.chart-point){stroke:var(--bc-bg-surface-solid,#fff);stroke-width:1.3;cursor:pointer}:deep(.chart-point.is-selected){stroke:var(--accent);stroke-width:2.5}:deep(.residual-segment){stroke:var(--bc-danger,#b14b4b);stroke-width:1.5;stroke-dasharray:4 3}:deep(.zero-line){stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3;opacity:.7}:deep(.qq-line){stroke:var(--accent);stroke-width:1.2;opacity:.65}:deep(.order-line){fill:none;stroke:var(--muted);stroke-width:1;opacity:.38}@media(max-width:1199px){.workspace-grid{grid-template-columns:1fr}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:767px){.residual-explorer{width:min(100% - 32px,1280px);padding-top:18px}.tool-topbar{display:none}.explorer-header{display:grid;gap:8px;margin-bottom:12px}.explorer-header h1{font-size:1.5rem}.switch-card{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--panel) 93%,transparent);backdrop-filter:blur(12px)}.switch-row{align-items:flex-start;display:grid;gap:5px}.segmented{width:100%;overflow:auto}.segmented button{white-space:nowrap;flex:1}.controls{grid-template-columns:1fr;padding:10px}.diagnostic-head{align-items:flex-start;display:grid}.compact{width:max-content}.diagnostic-cards{grid-template-columns:1fr;gap:8px}.diagnosis{min-height:0}.treatment-grid{grid-template-columns:1fr}.views button{min-width:max-content}.chart-panel,.model-note,.diagnostics{padding:10px}}
+.residual-explorer {
+  --ink: var(--bc-text-primary, #171717);
+  --muted: var(--bc-text-secondary, #6e7278);
+  --panel: var(--bc-bg-surface-elevated, #fff);
+  --line: var(--bc-border-subtle, rgba(208, 215, 222, 0.72));
+  --accent: var(--bc-accent, #2457b3);
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 92px 0 48px;
+  color: var(--ink);
+}
+.explorer-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  align-items: end;
+  margin: 0 0 18px;
+}
+.explorer-header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+}
+.explorer-header p {
+  max-width: 600px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.panel,
+.switch-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--bc-shadow-card, 0 8px 22px rgba(23, 23, 23, 0.024));
+}
+.switch-card {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+}
+.switch-row,
+.diagnostic-head,
+.controls-head,
+.panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.switch-row > span,
+.panel header > span,
+.diagnosis > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.segmented button,
+.sub-switch button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: 600 0.7rem var(--font-sans, inherit);
+}
+.segmented button.active,
+.sub-switch button.active {
+  background: var(--bc-accent-soft, rgba(36, 86, 179, 0.08));
+  color: var(--accent);
+}
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(260px, 0.75fr);
+  gap: 12px;
+}
+.chart-panel,
+.model-note,
+.diagnostics,
+.treatment {
+  padding: 12px;
+}
+.panel header strong {
+  font-size: 0.83rem;
+}
+.legend {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+.legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.legend .ref {
+  background: var(--bc-chart-line);
+}
+.legend .test {
+  background: var(--bc-chart-point);
+}
+.chart-wrap {
+  width: 100%;
+  margin-top: 8px;
+}
+.chart-wrap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.selected-note,
+.caption,
+.treatment p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 0.71rem;
+  line-height: 1.45;
+}
+.model-note p {
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.annotation {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--bc-accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+.warning {
+  color: #9a5318 !important;
+}
+.controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+}
+.controls-head {
+  grid-column: 1/-1;
+}
+.quiet {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--accent);
+  padding: 6px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.controls label,
+.treatment label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.controls label span {
+  display: flex;
+  justify-content: space-between;
+}
+.controls output,
+.treatment output {
+  color: var(--accent);
+  font-family: var(--font-mono, monospace);
+}
+input[type="range"] {
+  accent-color: var(--accent);
+}
+select {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0 8px;
+}
+.diagnostics {
+  margin-top: 12px;
+}
+.views {
+  width: max-content;
+  max-width: 100%;
+  margin-top: 10px;
+  overflow: auto;
+}
+.compact {
+  flex-wrap: wrap;
+}
+.sub-switch {
+  display: flex;
+  gap: 5px;
+  margin: 9px 0;
+}
+.sub-switch button {
+  border: 1px solid var(--line);
+}
+.diagnostic-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+.diagnosis {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  min-height: 88px;
+}
+.diagnosis strong {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.treatment {
+  margin-top: 12px;
+}
+.treatment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.treatment-grid label {
+  font-size: 0.72rem;
+}
+.treatment-grid input {
+  width: 100%;
+}
+:deep(.plot-bg) {
+  fill: var(--bc-bg-surface, #fff);
+  stroke: var(--line);
+}
+:deep(.axis path),
+:deep(.axis line) {
+  stroke: var(--bc-chart-grid, #d0d7de);
+}
+:deep(.axis text),
+:deep(.axis-label) {
+  fill: var(--muted);
+  font-size: 10px;
+}
+:deep(.axis-label) {
+  text-anchor: middle;
+  font-weight: 600;
+}
+:deep(.fit-line) {
+  fill: none;
+  stroke-width: 2.4;
+}
+:deep(.chart-point) {
+  stroke: var(--bc-bg-surface-solid, #fff);
+  stroke-width: 1.3;
+  cursor: pointer;
+}
+:deep(.chart-point.is-selected) {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+:deep(.residual-segment) {
+  stroke: var(--bc-danger, #b14b4b);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+:deep(.zero-line) {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+:deep(.qq-line) {
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  opacity: 0.65;
+}
+:deep(.order-line) {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 0.38;
+}
+@media (max-width: 1199px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+  .controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  .residual-explorer {
+    width: min(100% - 32px, 1280px);
+    padding-top: 18px;
+  }
+  .tool-topbar {
+    display: none;
+  }
+  .explorer-header {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .explorer-header h1 {
+    font-size: 1.5rem;
+  }
+  .switch-card {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--panel) 93%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .switch-row {
+    align-items: flex-start;
+    display: grid;
+    gap: 5px;
+  }
+  .segmented {
+    width: 100%;
+    overflow: auto;
+  }
+  .segmented button {
+    white-space: nowrap;
+    flex: 1;
+  }
+  .controls {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+  .diagnostic-head {
+    align-items: flex-start;
+    display: grid;
+  }
+  .compact {
+    width: max-content;
+  }
+  .diagnostic-cards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .diagnosis {
+    min-height: 0;
+  }
+  .treatment-grid {
+    grid-template-columns: 1fr;
+  }
+  .views button {
+    min-width: max-content;
+  }
+  .chart-panel,
+  .model-note,
+  .diagnostics {
+    padding: 10px;
+  }
+}
 /* ANOVA Explorer-aligned workspace shell. These rules intentionally override the
    early prototype card styles above while retaining the diagnostic cards below. */
 .residual-explorer {
@@ -156,86 +1102,900 @@ onMounted(async()=>{await nextTick();drawFit();drawDiagnostic();observer=new Res
   position: relative;
   padding: calc(var(--topbar-sticky-height) + 10px) 0 24px;
 }
-.header-morph-trigger { position:absolute; top:128px; left:0; width:1px; height:1px; pointer-events:none; }
-.residual-explorer .explorer-header { padding:4px 0 5px; margin:0; }
-.residual-explorer .explorer-header h1 { margin:0; font-size:clamp(1.5rem,2.25vw,2.25rem); font-weight:600; line-height:1; transition:opacity 280ms ease, transform 280ms ease; }
-.residual-explorer.is-header-morphed .explorer-header h1 { opacity:0; transform:translateY(-10px) scale(.92); }
-.module-sticky { position:sticky; top:var(--topbar-sticky-height); z-index:30; display:grid; grid-template-columns:minmax(230px,.72fr) minmax(0,1.4fr); gap:12px; align-items:end; margin:0 calc(var(--bc-container-inline,48px) / -2); padding:6px calc(var(--bc-container-inline,48px) / 2); background:color-mix(in srgb,var(--paper) 92%,transparent); backdrop-filter:blur(14px); }
-.control-group { display:grid; gap:7px; min-width:0; }.control-group>span,.panel-title-row span,.controls-head>span { color:var(--muted); font-size:.68rem; font-weight:600; text-transform:uppercase; }.module-group{opacity:.78}.segmented-control,.step-control { display:flex; gap:4px; padding:2px; overflow-x:auto; border:1px solid var(--soft-line); border-radius:8px; background:var(--panel-soft); }.segmented-control button,.step-control button { min-height:28px; padding:0 8px; border:0; border-radius:6px; background:transparent; color:var(--muted); font-size:.66rem; font-weight:600; white-space:nowrap; }.segmented-control button.is-active { background:var(--selected-bg); color:var(--ink); }.step-control { background:var(--panel); }.step-control button { min-height:31px; padding:0 10px; }.step-control button.is-active { background:var(--accent); color:var(--bc-text-inverse); }
-.teaching-grid { --teaching-panel-height:500px; display:grid; grid-template-columns:minmax(0,.76fr) minmax(340px,.5fr); gap:12px; align-items:stretch; margin-top:12px; }.visual-panel,.insight-panel { min-width:0; height:var(--teaching-panel-height); border:1px solid var(--soft-line); border-radius:8px; background:var(--panel); }.visual-panel.chart-panel { display:flex; flex-direction:column; padding:10px 12px; }.panel-title-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }.panel-title-row>div:first-child { display:grid; gap:2px; }.panel-title-row strong { font-size:.82rem; font-weight:600; }.chart-legend { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; color:var(--muted); font-size:.64rem; }.chart-legend span { display:inline-flex; gap:5px; align-items:center; }.legend-dot,.legend-line { display:inline-block; flex:0 0 auto; }.legend-dot { width:7px; height:7px; border:1px solid var(--soft-line); border-radius:50%; background:var(--bc-bg-surface-solid); }.legend-line { width:13px; height:0; border-top:2px solid var(--bc-chart-line); }.legend-line.residual { border-top:1px dashed var(--danger); }.visual-panel .chart-wrap { flex:1 1 auto; min-height:0; margin-top:8px; }.residual-fit-chart { height:414px; min-height:414px; }.selected-note { min-height:1.45em; margin:4px 0 0; color:var(--muted); font-size:.7rem; }
-.insight-panel.controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; align-content:start; margin-top:0; padding:12px; }.controls .controls-head { grid-column:1/-1; }.controls-head { display:flex; justify-content:space-between; align-items:center; gap:8px; }.quiet-button { min-height:28px; padding:0 9px; border:1px solid var(--accent-border); border-radius:7px; background:transparent; color:var(--accent); font-size:.66rem; font-weight:600; }.controls label { display:grid; gap:5px; min-width:0; color:var(--muted); font-size:.62rem; font-weight:600; line-height:1.2; }.controls label span { display:flex; justify-content:space-between; gap:6px; }.controls output { color:var(--accent); font-family:var(--font-mono,monospace); font-size:.68rem; }.controls input[type=range] { width:100%; min-height:28px; accent-color:var(--accent); }.controls select { width:100%; min-height:28px; padding:0 7px; border:1px solid var(--soft-line); border-radius:7px; background:var(--field-bg); color:var(--ink); font-family:var(--font-sans,Inter,sans-serif); font-size:.68rem; font-weight:500; line-height:1; }.controls .warning { grid-column:1/-1; margin:0; font-size:.68rem; }
-.controls .error-structure { grid-column:1; grid-row:3; }.controls .error-control { grid-column:2; grid-row:3; }.controls .transform-control { grid-column:1; grid-row:4; }.controls .weight-control { grid-column:2; grid-row:4; }
-.controls .boxcox-control { grid-column:1; grid-row:5; }
-:deep(.x-axis path),:deep(.y-axis path),:deep(.x-axis line),:deep(.y-axis line){color:var(--bc-chart-grid)}:deep(.x-axis text),:deep(.y-axis text),:deep(.axis-label){fill:var(--muted);font-size:.72rem}:deep(.axis-label){text-anchor:middle;font-weight:600}:deep(.model-line){fill:none;stroke-width:2.6}:deep(.residual-line){stroke:var(--danger);stroke-width:1.35;stroke-dasharray:4 4;opacity:.3}:deep(.residual-line.is-selected){opacity:.85;stroke-width:1.7}:deep(.observed-point){stroke:var(--bc-bg-surface-solid);stroke-width:1.4;cursor:pointer}:deep(.observed-point.is-selected){stroke:var(--accent);stroke-width:2.5}
-@media (max-width:1199px){.module-sticky,.teaching-grid{grid-template-columns:1fr}.visual-panel,.insight-panel{height:auto;min-height:0}.residual-fit-chart{height:auto;min-height:340px}.insight-panel.controls{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:767px){.residual-explorer{width:min(100% - 32px,1360px);padding-top:12px}.residual-explorer .tool-topbar{display:none}.residual-explorer .explorer-header{display:none}.module-sticky{top:0;gap:8px;margin:0;padding:var(--mobile-safe-top,12px) 0 8px;background:color-mix(in srgb,var(--paper) 94%,transparent)}.control-group{gap:5px}.segmented-control,.step-control{width:100%}.segmented-control button,.step-control button{flex:1}.teaching-grid{margin-top:0}.visual-panel.chart-panel,.insight-panel.controls{padding:12px;border-radius:16px}.chart-legend{display:none}.residual-fit-chart{height:178px;min-height:0}.insight-panel.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.controls .controls-head{margin-bottom:2px}.diagnostics{margin-top:8px}}
-.diagnostics { margin-top:12px; padding:14px 16px 12px; border-radius:10px; }
-.diagnostic-head { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; }
-.diagnostic-title { display:grid; gap:3px; min-width:0; }.diagnostic-title > span,.diagnostic-type > span { color:var(--muted); font-size:.62rem; font-weight:650; letter-spacing:.04em; line-height:1.1; text-transform:uppercase; }.diagnostic-title strong { color:var(--ink); font-size:.94rem; font-weight:600; line-height:1.2; }
-.diagnostic-type { display:flex; gap:8px; align-items:center; min-width:0; }.diagnostic-type > span { white-space:nowrap; }.diagnostic-type .segmented { flex-wrap:nowrap; width:auto; padding:2px; background:var(--panel-soft); }.diagnostic-type .segmented button { min-height:27px; padding:0 9px; font-size:.65rem; }
-.diagnostic-controls { display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center; margin-top:9px; }.diagnostic-views { display:flex; gap:3px; align-items:center; width:max-content; max-width:100%; margin:0; padding:3px; overflow-x:auto; border:1px solid var(--soft-line); border-radius:8px; background:var(--panel-soft); }.diagnostic-views button { min-height:28px; padding:0 10px; border:0; border-radius:6px; background:transparent; color:var(--muted); font-family:var(--font-sans,Inter,sans-serif); font-size:.66rem; font-weight:600; white-space:nowrap; }.diagnostic-views button.active { background:var(--selected-bg); color:var(--ink); }
-.diagnostics .chart-wrap { margin-top:12px; }.diagnostics .caption { margin:8px 0 0; font-size:.68rem; line-height:1.45; }.diagnostic-cards { gap:10px; margin-top:10px; }.diagnosis { gap:6px; min-height:78px; padding:12px 14px; align-content:start; border-radius:10px; }.diagnosis > span { color:var(--muted); font-size:.62rem; font-weight:650; letter-spacing:.04em; line-height:1.1; text-transform:uppercase; }.diagnosis strong { color:var(--ink); font-size:.77rem; font-weight:550; line-height:1.45; }
-@media (max-width:767px){.diagnostics{margin-top:10px;padding:12px}.diagnostic-head{display:grid;gap:10px;align-items:start}.diagnostic-controls{display:grid;gap:8px;margin-top:10px}.diagnostic-type{justify-content:space-between}.diagnostic-type .segmented{width:auto}.diagnostic-views{width:100%}.diagnostic-views button{flex:1;padding:0 8px}.diagnostics .chart-wrap{margin-top:10px}.diagnosis{min-height:74px;padding:11px 12px}.diagnosis strong{font-size:.75rem}}
+.header-morph-trigger {
+  position: absolute;
+  top: 128px;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.residual-explorer .explorer-header {
+  padding: 4px 0 5px;
+  margin: 0;
+}
+.residual-explorer .explorer-header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.25vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    opacity 280ms ease,
+    transform 280ms ease;
+}
+.residual-explorer.is-header-morphed .explorer-header h1 {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.92);
+}
+.module-sticky {
+  position: sticky;
+  top: var(--topbar-sticky-height);
+  z-index: 30;
+  display: grid;
+  grid-template-columns: minmax(230px, 0.72fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: end;
+  margin: 0 calc(var(--bc-container-inline, 48px) / -2);
+  padding: 6px calc(var(--bc-container-inline, 48px) / 2);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(14px);
+}
+.control-group {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.control-group > span,
+.panel-title-row span,
+.controls-head > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.module-group {
+  opacity: 0.78;
+}
+.segmented-control,
+.step-control {
+  display: flex;
+  gap: 4px;
+  padding: 2px;
+  overflow-x: auto;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+.segmented-control button,
+.step-control button {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.segmented-control button.is-active {
+  background: var(--selected-bg);
+  color: var(--ink);
+}
+.step-control {
+  background: var(--panel);
+}
+.step-control button {
+  min-height: 31px;
+  padding: 0 10px;
+}
+.step-control button.is-active {
+  background: var(--accent);
+  color: var(--bc-text-inverse);
+}
+.teaching-grid {
+  --teaching-panel-height: 500px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.76fr) minmax(340px, 0.5fr);
+  gap: 12px;
+  align-items: stretch;
+  margin-top: 12px;
+}
+.visual-panel,
+.insight-panel {
+  min-width: 0;
+  height: var(--teaching-panel-height);
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.visual-panel.chart-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+}
+.panel-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.panel-title-row > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+.panel-title-row strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.64rem;
+}
+.chart-legend span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+.legend-dot,
+.legend-line {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+.legend-dot {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--soft-line);
+  border-radius: 50%;
+  background: var(--bc-bg-surface-solid);
+}
+.legend-line {
+  width: 13px;
+  height: 0;
+  border-top: 2px solid var(--bc-chart-line);
+}
+.legend-line.residual {
+  border-top: 1px dashed var(--danger);
+}
+.visual-panel .chart-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 8px;
+}
+.residual-fit-chart {
+  height: 414px;
+  min-height: 414px;
+}
+.selected-note {
+  min-height: 1.45em;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.insight-panel.controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  align-content: start;
+  margin-top: 0;
+  padding: 12px;
+}
+.controls .controls-head {
+  grid-column: 1/-1;
+}
+.controls-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.quiet-button {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--accent-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+.controls label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.controls label span {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.controls output {
+  color: var(--accent);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+}
+.controls input[type="range"] {
+  width: 100%;
+  min-height: 28px;
+  accent-color: var(--accent);
+}
+.controls select {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 7px;
+  border: 1px solid var(--soft-line);
+  border-radius: 7px;
+  background: var(--field-bg);
+  color: var(--ink);
+  font-family: var(--font-sans, Inter, sans-serif);
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+}
+.controls .warning {
+  grid-column: 1/-1;
+  margin: 0;
+  font-size: 0.68rem;
+}
+.controls .error-structure {
+  grid-column: 1;
+  grid-row: 3;
+}
+.controls .error-control {
+  grid-column: 2;
+  grid-row: 3;
+}
+.controls .transform-control {
+  grid-column: 1;
+  grid-row: 4;
+}
+.controls .weight-control {
+  grid-column: 2;
+  grid-row: 4;
+}
+.controls .boxcox-control {
+  grid-column: 1;
+  grid-row: 5;
+}
+:deep(.x-axis path),
+:deep(.y-axis path),
+:deep(.x-axis line),
+:deep(.y-axis line) {
+  color: var(--bc-chart-grid);
+}
+:deep(.x-axis text),
+:deep(.y-axis text),
+:deep(.axis-label) {
+  fill: var(--muted);
+  font-size: 0.72rem;
+}
+:deep(.axis-label) {
+  text-anchor: middle;
+  font-weight: 600;
+}
+:deep(.model-line) {
+  fill: none;
+  stroke-width: 2.6;
+}
+:deep(.residual-line) {
+  stroke: var(--danger);
+  stroke-width: 1.35;
+  stroke-dasharray: 4 4;
+  opacity: 0.3;
+}
+:deep(.residual-line.is-selected) {
+  opacity: 0.85;
+  stroke-width: 1.7;
+}
+:deep(.observed-point) {
+  stroke: var(--bc-bg-surface-solid);
+  stroke-width: 1.4;
+  cursor: pointer;
+}
+:deep(.observed-point.is-selected) {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+@media (max-width: 1199px) {
+  .module-sticky,
+  .teaching-grid {
+    grid-template-columns: 1fr;
+  }
+  .visual-panel,
+  .insight-panel {
+    height: auto;
+    min-height: 0;
+  }
+  .residual-fit-chart {
+    height: auto;
+    min-height: 340px;
+  }
+  .insight-panel.controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  .residual-explorer {
+    width: min(100% - 32px, 1360px);
+    padding-top: 12px;
+  }
+  .residual-explorer .tool-topbar {
+    display: none;
+  }
+  .residual-explorer .explorer-header {
+    display: none;
+  }
+  .module-sticky {
+    top: 0;
+    gap: 8px;
+    margin: 0;
+    padding: var(--mobile-safe-top, 12px) 0 8px;
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+  }
+  .control-group {
+    gap: 5px;
+  }
+  .segmented-control,
+  .step-control {
+    width: 100%;
+  }
+  .segmented-control button,
+  .step-control button {
+    flex: 1;
+  }
+  .teaching-grid {
+    margin-top: 0;
+  }
+  .visual-panel.chart-panel,
+  .insight-panel.controls {
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .chart-legend {
+    display: none;
+  }
+  .residual-fit-chart {
+    height: 178px;
+    min-height: 0;
+  }
+  .insight-panel.controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .controls .controls-head {
+    margin-bottom: 2px;
+  }
+  .diagnostics {
+    margin-top: 8px;
+  }
+}
+.diagnostics {
+  margin-top: 12px;
+  padding: 14px 16px 12px;
+  border-radius: 10px;
+}
+.diagnostic-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+.diagnostic-title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.diagnostic-title > span,
+.diagnostic-type > span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.diagnostic-title strong {
+  color: var(--ink);
+  font-size: 0.94rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.diagnostic-type {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.diagnostic-type > span {
+  white-space: nowrap;
+}
+.diagnostic-type .segmented {
+  flex-wrap: nowrap;
+  width: auto;
+  padding: 2px;
+  background: var(--panel-soft);
+}
+.diagnostic-type .segmented button {
+  min-height: 27px;
+  padding: 0 9px;
+  font-size: 0.65rem;
+}
+.diagnostic-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+  margin-top: 9px;
+}
+.diagnostic-views {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 3px;
+  overflow-x: auto;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+.diagnostic-views button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-sans, Inter, sans-serif);
+  font-size: 0.66rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.diagnostic-views button.active {
+  background: var(--selected-bg);
+  color: var(--ink);
+}
+.diagnostics .chart-wrap {
+  margin-top: 12px;
+}
+.diagnostics .caption {
+  margin: 8px 0 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+.diagnostic-cards {
+  gap: 10px;
+  margin-top: 10px;
+}
+.diagnosis {
+  gap: 6px;
+  min-height: 78px;
+  padding: 12px 14px;
+  align-content: start;
+  border-radius: 10px;
+}
+.diagnosis > span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.diagnosis strong {
+  color: var(--ink);
+  font-size: 0.77rem;
+  font-weight: 550;
+  line-height: 1.45;
+}
+@media (max-width: 767px) {
+  .diagnostics {
+    margin-top: 10px;
+    padding: 12px;
+  }
+  .diagnostic-head {
+    display: grid;
+    gap: 10px;
+    align-items: start;
+  }
+  .diagnostic-controls {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .diagnostic-type {
+    justify-content: space-between;
+  }
+  .diagnostic-type .segmented {
+    width: auto;
+  }
+  .diagnostic-views {
+    width: 100%;
+  }
+  .diagnostic-views button {
+    flex: 1;
+    padding: 0 8px;
+  }
+  .diagnostics .chart-wrap {
+    margin-top: 10px;
+  }
+  .diagnosis {
+    min-height: 74px;
+    padding: 11px 12px;
+  }
+  .diagnosis strong {
+    font-size: 0.75rem;
+  }
+}
 
 /* The setup pair stays visible as one calm, aligned control strip while the charts scroll. */
-.module-sticky { grid-template-columns:minmax(0,1.5fr) minmax(340px,1fr); align-items:stretch; }
-.module-group,.setup-card { min-height:124px; padding:12px; border:1px solid var(--soft-line); border-radius:8px; background:var(--panel); }
-.module-group { opacity:1; align-content:start; }
-.setup-card { display:grid; gap:10px; }
-.setup-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 12px; }
-.setup-card label,.fit-options label { display:grid; gap:4px; min-width:0; color:var(--muted); font-size:.62rem; font-weight:600; line-height:1.2; }
-.setup-card label span,.fit-options label span { display:flex; justify-content:space-between; gap:6px; }
-.setup-card output { color:var(--accent); font-family:var(--font-mono,monospace); font-size:.68rem; }
-.setup-card input[type=range] { width:100%; min-height:24px; accent-color:var(--accent); }
-.setup-card select,.fit-options select { width:100%; min-height:28px; padding:0 7px; border:1px solid var(--soft-line); border-radius:7px; background:var(--field-bg); color:var(--ink); font:inherit; }
-.fit-information { display:flex; flex-direction:column; gap:12px; padding:14px; }
-.fit-information > dl,.parameter-list dl { display:grid; gap:7px; margin:0; }
-.fit-information dl > div,.parameter-list dl > div { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
-.fit-information dt,.parameter-list > span { color:var(--muted); font-size:.63rem; font-weight:600; text-transform:uppercase; }
-.fit-information dd { margin:0; color:var(--ink); font-size:.75rem; font-weight:550; text-align:right; }
-.parameter-list { display:grid; gap:6px; padding-top:10px; border-top:1px solid var(--soft-line); }
-.parameter-list dd { margin:0; color:var(--accent); font-family:var(--font-mono,monospace); font-size:.72rem; }
-.fit-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:auto; }
-.diagnostic-layout { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(340px,1fr); gap:12px; align-items:stretch; margin-top:12px; }
-.diagnostic-layout .diagnostics { min-width:0; height:500px; margin-top:0; }
-.diagnostic-layout .diagnostic-cards { display:grid; grid-template-columns:1fr; grid-template-rows:repeat(3,1fr); min-width:0; margin-top:0; }
-.diagnostic-layout .diagnosis { min-height:0; }
-@media (max-width:1199px){.module-sticky,.diagnostic-layout{grid-template-columns:1fr}.module-group,.setup-card{min-height:0}.diagnostic-layout .diagnostics{height:auto;min-height:390px}.diagnostic-layout .diagnostic-cards{grid-template-columns:repeat(3,1fr);grid-template-rows:none}.fit-information{min-height:330px}}
-@media (max-width:767px){.module-group,.setup-card{padding:12px;border-radius:12px}.setup-fields,.fit-options{grid-template-columns:1fr}.diagnostic-layout{margin-top:10px}.diagnostic-layout .diagnostic-cards{grid-template-columns:1fr;grid-template-rows:repeat(3,minmax(74px,1fr))}.diagnostic-layout .diagnostics{min-height:0}.fit-information{min-height:0}}
+.module-sticky {
+  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
+  align-items: stretch;
+}
+.module-group,
+.setup-card {
+  min-height: 124px;
+  padding: 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.module-group {
+  opacity: 1;
+  align-content: start;
+}
+.setup-card {
+  display: grid;
+  gap: 10px;
+}
+.setup-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.setup-card label,
+.fit-options label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.setup-card label span,
+.fit-options label span {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.setup-card output {
+  color: var(--accent);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+}
+.setup-card input[type="range"] {
+  width: 100%;
+  min-height: 24px;
+  accent-color: var(--accent);
+}
+.setup-card select,
+.fit-options select {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 7px;
+  border: 1px solid var(--soft-line);
+  border-radius: 7px;
+  background: var(--field-bg);
+  color: var(--ink);
+  font: inherit;
+}
+.fit-information {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+.fit-information > dl,
+.parameter-list dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+.fit-information dl > div,
+.parameter-list dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+.fit-information dt,
+.parameter-list > span {
+  color: var(--muted);
+  font-size: 0.63rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.fit-information dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 550;
+  text-align: right;
+}
+.parameter-list {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--soft-line);
+}
+.parameter-list dd {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+}
+.fit-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: auto;
+}
+.diagnostic-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  margin-top: 12px;
+}
+.diagnostic-layout .diagnostics {
+  min-width: 0;
+  height: 500px;
+  margin-top: 0;
+}
+.diagnostic-layout .diagnostic-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  min-width: 0;
+  margin-top: 0;
+}
+.diagnostic-layout .diagnosis {
+  min-height: 0;
+}
+@media (max-width: 1199px) {
+  .module-sticky,
+  .diagnostic-layout {
+    grid-template-columns: 1fr;
+  }
+  .module-group,
+  .setup-card {
+    min-height: 0;
+  }
+  .diagnostic-layout .diagnostics {
+    height: auto;
+    min-height: 390px;
+  }
+  .diagnostic-layout .diagnostic-cards {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: none;
+  }
+  .fit-information {
+    min-height: 330px;
+  }
+}
+@media (max-width: 767px) {
+  .module-group,
+  .setup-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .setup-fields,
+  .fit-options {
+    grid-template-columns: 1fr;
+  }
+  .diagnostic-layout {
+    margin-top: 10px;
+  }
+  .diagnostic-layout .diagnostic-cards {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, minmax(74px, 1fr));
+  }
+  .diagnostic-layout .diagnostics {
+    min-height: 0;
+  }
+  .fit-information {
+    min-height: 0;
+  }
+}
 
 /* Compact scientific workbench: controls are adjacent to their plot, not a separate module. */
-.teaching-grid { grid-template-columns:minmax(0,1.5fr) minmax(340px,1fr); }
-.fit-sidebar { display:grid; grid-template-rows:minmax(0,1.36fr) minmax(0,.64fr); gap:12px; min-width:0; height:var(--teaching-panel-height); }
-.model-switch { width:max-content; max-width:100%; margin-top:5px; }
-.model-switch button { min-width:74px; }
-.setup-card { min-height:0; padding:16px 14px 14px; gap:14px; border:1px solid var(--soft-line); border-radius:8px; background:var(--panel); }
-.setup-card .setup-fields { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 16px; align-content:start; }
-.setup-card label { display:grid; gap:5px; min-width:0; color:var(--muted); font-size:.62rem; font-weight:600; line-height:1.2; }
-.setup-card label span { display:flex; justify-content:space-between; gap:5px; }
-.setup-card select { min-height:30px; font-size:.67rem; }
-.setup-card input[type=range] { min-height:22px; }
-.setup-card { grid-template-rows:auto 1fr; align-content:start; }
-.setup-card .controls-head { align-self:start; }
-.setup-dynamic-slot { grid-column:1/-1; min-height:42px; }
-.setup-dynamic-slot label { max-width:calc(50% - 6px); }
-.structure-note { min-height:2.6em; margin:0; padding-top:8px; border-top:1px solid var(--soft-line); color:var(--muted); font-size:.61rem; line-height:1.35; }
-.fit-information { min-height:0; height:auto; gap:7px; padding:11px 12px; border-color:var(--line); background:var(--panel); box-shadow:var(--bc-shadow-card,0 8px 22px rgba(23,23,23,.024)); }
-.fit-information > dl,.parameter-list dl { gap:4px; }
-.fit-information dt,.parameter-list > span { font-size:.59rem; }
-.fit-information dd,.parameter-list dd { font-size:.68rem; }
-.parameter-list { gap:4px; padding-top:6px; }
-.fit-parameter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:14px!important; row-gap:5px!important; }
-.fit-parameter-grid > div { padding-top:2px; border-top:1px solid var(--soft-line); }
-.fit-parameter-grid dt { font-size:.58rem; }
-.fit-parameter-grid dd { font-size:.71rem!important; }
-.diagnostics { margin-top:12px; min-height:0; }
-.diagnostic-cards { grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:12px; }
-.diagnosis { min-height:64px; padding:10px 12px; gap:4px; }
-.diagnosis strong { font-size:.73rem; line-height:1.35; }
-@media (max-width:1199px){.teaching-grid{grid-template-columns:1fr}.fit-sidebar{height:auto;grid-template-columns:1.25fr .75fr;grid-template-rows:none}.setup-card,.fit-information{min-height:200px}}
-@media (max-width:767px){.fit-sidebar{grid-template-columns:1fr;grid-template-rows:none;height:auto}.setup-card .setup-fields{grid-template-columns:1fr}.model-switch{width:100%}.model-switch button{flex:1}.diagnostic-cards{grid-template-columns:1fr}.diagnosis{min-height:64px}}
-@media (prefers-color-scheme: dark){.residual-explorer{--observed-point:#ffffff}}
-.legend-dot { background:var(--observed-point); }
+.teaching-grid {
+  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
+}
+.fit-sidebar {
+  display: grid;
+  grid-template-rows: minmax(0, 1.36fr) minmax(0, 0.64fr);
+  gap: 12px;
+  min-width: 0;
+  height: var(--teaching-panel-height);
+}
+.model-switch {
+  width: max-content;
+  max-width: 100%;
+  margin-top: 5px;
+}
+.model-switch button {
+  min-width: 74px;
+}
+.setup-card {
+  min-height: 0;
+  padding: 16px 14px 14px;
+  gap: 14px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.setup-card .setup-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-content: start;
+}
+.setup-card label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.setup-card label span {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+}
+.setup-card select {
+  min-height: 30px;
+  font-size: 0.67rem;
+}
+.setup-card input[type="range"] {
+  min-height: 22px;
+}
+.setup-card {
+  grid-template-rows: auto 1fr;
+  align-content: start;
+}
+.setup-card .controls-head {
+  align-self: start;
+}
+.setup-dynamic-slot {
+  grid-column: 1/-1;
+  min-height: 42px;
+}
+.setup-dynamic-slot label {
+  max-width: calc(50% - 6px);
+}
+.structure-note {
+  min-height: 2.6em;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--soft-line);
+  color: var(--muted);
+  font-size: 0.61rem;
+  line-height: 1.35;
+}
+.fit-information {
+  min-height: 0;
+  height: auto;
+  gap: 7px;
+  padding: 11px 12px;
+  border-color: var(--line);
+  background: var(--panel);
+  box-shadow: var(--bc-shadow-card, 0 8px 22px rgba(23, 23, 23, 0.024));
+}
+.fit-information > dl,
+.parameter-list dl {
+  gap: 4px;
+}
+.fit-information dt,
+.parameter-list > span {
+  font-size: 0.59rem;
+}
+.fit-information dd,
+.parameter-list dd {
+  font-size: 0.68rem;
+}
+.parameter-list {
+  gap: 4px;
+  padding-top: 6px;
+}
+.fit-parameter-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px !important;
+  row-gap: 5px !important;
+}
+.fit-parameter-grid > div {
+  padding-top: 2px;
+  border-top: 1px solid var(--soft-line);
+}
+.fit-parameter-grid dt {
+  font-size: 0.58rem;
+}
+.fit-parameter-grid dd {
+  font-size: 0.71rem !important;
+}
+.diagnostics {
+  margin-top: 12px;
+  min-height: 0;
+}
+.diagnostic-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.diagnosis {
+  min-height: 64px;
+  padding: 10px 12px;
+  gap: 4px;
+}
+.diagnosis strong {
+  font-size: 0.73rem;
+  line-height: 1.35;
+}
+@media (max-width: 1199px) {
+  .teaching-grid {
+    grid-template-columns: 1fr;
+  }
+  .fit-sidebar {
+    height: auto;
+    grid-template-columns: 1.25fr 0.75fr;
+    grid-template-rows: none;
+  }
+  .setup-card,
+  .fit-information {
+    min-height: 200px;
+  }
+}
+@media (max-width: 767px) {
+  .fit-sidebar {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    height: auto;
+  }
+  .setup-card .setup-fields {
+    grid-template-columns: 1fr;
+  }
+  .model-switch {
+    width: 100%;
+  }
+  .model-switch button {
+    flex: 1;
+  }
+  .diagnostic-cards {
+    grid-template-columns: 1fr;
+  }
+  .diagnosis {
+    min-height: 64px;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .residual-explorer {
+    --observed-point: #ffffff;
+  }
+}
+.legend-dot {
+  background: var(--observed-point);
+}
 
 @media (max-width: 767px) {
   .residual-explorer {
@@ -260,10 +2020,8 @@ onMounted(async()=>{await nextTick();drawFit();drawDiagnostic();observer=new Res
   }
 
   .mobile-residual-header {
-    position: sticky;
-    top: 0;
     z-index: 40;
-    padding: var(--mobile-safe-top) 0 8px;
+    padding: var(--mobile-safe-top) 0 0;
     background: color-mix(in srgb, var(--paper) 94%, transparent);
     backdrop-filter: blur(14px);
   }

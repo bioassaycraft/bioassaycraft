@@ -8,6 +8,8 @@ import MobileStepController from "../components/anova/MobileStepController.vue";
 import MobileTopControls from "../components/anova/MobileTopControls.vue";
 import MobileVarianceDetailCard from "../components/anova/MobileVarianceDetailCard.vue";
 import MobileVarianceTree from "../components/anova/MobileVarianceTree.vue";
+import MobilePageTitle from "../components/common/MobilePageTitle.vue";
+import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import { anovaCopy } from "../i18n/anova-explorer";
 import {
@@ -161,6 +163,7 @@ const updateMobileContentTop = () => {
 
 const setModule = (module) => {
   if (module === activeModule.value) return;
+  window.dispatchEvent(new Event("mobile-header:condense"));
   activeModule.value = module;
   activeStep.value = stepOrder[module][0];
   const query = { ...route.query };
@@ -188,7 +191,18 @@ const syncModuleFromRoute = (model) => {
 const goToAdjacentStep = (direction) => {
   const nextIndex = activeStepIndex.value + direction;
   if (nextIndex < 0 || nextIndex >= moduleSteps.value.length) return;
+  window.dispatchEvent(new Event("mobile-header:condense"));
   activeStep.value = moduleSteps.value[nextIndex];
+};
+
+const setMobileView = (view) => {
+  window.dispatchEvent(new Event("mobile-header:condense"));
+  mobileView.value = view;
+};
+
+const setMobileStep = (step) => {
+  window.dispatchEvent(new Event("mobile-header:condense"));
+  activeStep.value = step;
 };
 
 const setLanguage = (lang) => {
@@ -1350,6 +1364,20 @@ onBeforeUnmount(() => {
       :is-morphed="isHeaderMorphed"
       @set-language="setLanguage"
     />
+    <MobileToolHeader
+      class="anova-mobile-top-header"
+      :aria-label="copy.mobile.controlsLabel"
+      :selector-label="copy.modulesLabel"
+      :options="[]"
+      :selected-value="activeModule"
+      :language="language"
+      :language-label="copy.languageLabel"
+      :home-label="copy.home"
+      :page-title="copy.title"
+      :show-selector="false"
+      @set-language="setLanguage"
+    />
+    <MobilePageTitle :title="copy.title" />
 
     <section class="explorer-header" aria-labelledby="anova-explorer-title">
       <div>
@@ -1362,15 +1390,13 @@ onBeforeUnmount(() => {
         :copy="copy"
         :active-module="activeModule"
         :module-order="moduleOrder"
-        :language="language"
         @set-module="setModule"
-        @set-language="setLanguage"
       />
 
       <MobileSegmentedNavigation
         :copy="copy"
         :active-view="mobileView"
-        @set-view="mobileView = $event"
+        @set-view="setMobileView"
       />
 
       <MobileStepController
@@ -1381,7 +1407,7 @@ onBeforeUnmount(() => {
         :step-name="mobileStepName"
         @previous="goToAdjacentStep(-1)"
         @next="goToAdjacentStep(1)"
-        @set-step="activeStep = $event"
+        @set-step="setMobileStep"
       />
     </div>
 
@@ -2590,17 +2616,22 @@ button {
 
   .mobile-sticky-header {
     position: sticky;
-    top: 0;
+    /* Match the in-flow header: safe-area padding + 32px brand row + 8px gap. */
+    top: calc(var(--mobile-safe-top) + 40px);
     z-index: 70;
     display: grid;
     gap: var(--mobile-sticky-gap, 8px);
     width: 100%;
     margin-bottom: var(--mobile-sticky-gap, 8px);
-    padding-top: var(--mobile-safe-top);
+    padding-top: 0;
     background: transparent;
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
+  }
+
+  .anova-mobile-top-header {
+    padding-top: var(--mobile-safe-top);
   }
 
   .teaching-grid {

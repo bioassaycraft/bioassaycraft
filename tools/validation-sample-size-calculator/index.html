@@ -1,352 +1,546 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Estimate validation sample size from accuracy, precision, confidence, and power assumptions for bioassay validation design.">
-  <title>BioassayCraft</title>
-  <meta property="og:title" content="BioassayCraft">
-  <meta name="twitter:title" content="BioassayCraft">
-  <meta name="apple-mobile-web-app-title" content="BioassayCraft">
-    <link rel="icon" href="/assets/icons/favicon-v1.ico" sizes="any">
-    <link rel="shortcut icon" href="/assets/icons/favicon-v1.ico">
-    <link rel="icon" href="/assets/icons/favicon-v1.svg" type="image/svg+xml">
-    <link rel="icon" href="/assets/icons/favicon-32x32-v1.png" type="image/png" sizes="32x32">
-    <link rel="icon" href="/assets/icons/favicon-16x16-v1.png" type="image/png" sizes="16x16">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Estimate validation sample size from accuracy, precision, confidence, and power assumptions for bioassay validation design."
+    />
+    <title>BioassayCraft</title>
+    <meta property="og:title" content="BioassayCraft" />
+    <meta name="twitter:title" content="BioassayCraft" />
+    <meta name="apple-mobile-web-app-title" content="BioassayCraft" />
+    <link rel="icon" href="/assets/icons/favicon-v1.ico" sizes="any" />
+    <link rel="shortcut icon" href="/assets/icons/favicon-v1.ico" />
+    <link rel="icon" href="/assets/icons/favicon-v1.svg" type="image/svg+xml" />
+    <link rel="icon" href="/assets/icons/favicon-32x32-v1.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/assets/icons/favicon-16x16-v1.png" type="image/png" sizes="16x16" />
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-v1.png" sizes="180x180" />
-  <link rel="manifest" href="/assets/icons/site.webmanifest">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
-  <script type="module" src="/assets/js/theme-logo.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../assets/css/base.css">
-  <link rel="stylesheet" href="../../assets/css/tools/validation-sample-size-calculator.css">
-</head>
-<body>
-  <main class="page">
-    <header class="site-header">
-      <a class="brand-link" href="../../" aria-label="BioassayCraft home">
-        <img class="brand-mark" src="/assets/brand/logo-dark.svg" data-theme-logo alt="" aria-hidden="true">
-        <span class="brand-name">bioassaycraft</span>
-      </a>
-      <a class="back-link" href="../../">Back to home</a>
-    </header>
+    <link rel="manifest" href="/assets/icons/site.webmanifest" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)" />
+    <script type="module" src="/assets/js/theme-logo.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../assets/css/base.css" />
+    <link rel="stylesheet" href="../../assets/css/tools/validation-sample-size-calculator.css" />
+    <link rel="stylesheet" href="../../assets/css/mobile-page-title.css" />
+  </head>
+  <body>
+    <main class="page page-has-mobile-title">
+      <header class="site-header">
+        <a class="brand-link" href="../../" aria-label="BioassayCraft home">
+          <img
+            class="brand-mark"
+            src="/assets/brand/logo-dark.svg"
+            data-theme-logo
+            alt=""
+            aria-hidden="true"
+          />
+          <span class="brand-name">bioassaycraft</span>
+        </a>
+        <a class="back-link" href="../../">Back to home</a>
+      </header>
+      <div class="mobile-page-title">Validation Sample Size Calculator</div>
 
-    <section class="hero" aria-labelledby="page-title">
-      <div>
-        <span class="eyebrow">Calculator</span>
-        <h1 id="page-title">Validation Sample Size Calculator</h1>
-        <p class="subtitle">This page helps you understand why validation sample size depends on the distance between expected variability and the acceptance criterion.</p>
-      </div>
-      <div class="hero-note">
-        <span class="note-label">Scientific question</span>
-        <p>How many independent measurements are needed before a validation study has enough chance to demonstrate the planned accuracy or precision criterion?</p>
-      </div>
-    </section>
-
-    <section class="reasoning-lead" aria-label="Scientific idea">
-      <div class="lead-block">
-        <span class="section-kicker">Scientific idea</span>
-        <p>Sample size grows when the expected method behavior sits close to the acceptance margin. The calculator makes that pressure visible before reducing it to a single n.</p>
-      </div>
-      <div class="mentor-note">
-        <span>Mentor note</span>
-        <p>Minimum n is not just a planning number. It is a statement about confidence, power, expected variability, and how much scientific margin the validation design has left.</p>
-      </div>
-    </section>
-
-    <section class="workspace" aria-label="Validation sample size workspace">
-      <aside class="panel controls-panel">
-        <div class="panel-head">
-          <h2>Interaction</h2>
-          <p>Use the controls to test whether the design is driven by accuracy pressure, precision pressure, confidence, or power.</p>
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <span class="eyebrow">Calculator</span>
+          <h1 id="page-title">Validation Sample Size Calculator</h1>
+          <p class="subtitle">
+            This page helps you understand why validation sample size depends on the distance
+            between expected variability and the acceptance criterion.
+          </p>
         </div>
-
-        <div class="study-switch" role="group" aria-label="Study workflow">
-          <button id="studyDesign" class="study-switch-button is-active" type="button" data-study-mode="design">Design study</button>
-          <button id="studyEvaluate" class="study-switch-button" type="button" data-study-mode="evaluate">Evaluate existing study</button>
+        <div class="hero-note">
+          <span class="note-label">Scientific question</span>
+          <p>
+            How many independent measurements are needed before a validation study has enough chance
+            to demonstrate the planned accuracy or precision criterion?
+          </p>
         </div>
+      </section>
 
-        <div class="control-block">
-          <label for="mode">Mode</label>
-          <select id="mode">
-            <option value="chp9401" selected>ChP 9401 mode</option>
-            <option value="uspAccuracy">USP &lt;1033&gt; accuracy mode</option>
-            <option value="uspPrecision">USP &lt;1033&gt; precision mode</option>
-            <option value="unified">Unified mode</option>
-          </select>
+      <section class="reasoning-lead" aria-label="Scientific idea">
+        <div class="lead-block">
+          <span class="section-kicker">Scientific idea</span>
+          <p>
+            Sample size grows when the expected method behavior sits close to the acceptance margin.
+            The calculator makes that pressure visible before reducing it to a single n.
+          </p>
         </div>
+        <div class="mentor-note">
+          <span>Mentor note</span>
+          <p>
+            Minimum n is not just a planning number. It is a statement about confidence, power,
+            expected variability, and how much scientific margin the validation design has left.
+          </p>
+        </div>
+      </section>
 
-        <div id="evaluateControls" class="mode-fields" data-study="evaluate" hidden>
-          <div class="control-block">
-            <div class="control-label-row">
-              <label for="completedN">Completed n</label>
-              <span id="completedNValue" class="numeric">16</span>
-            </div>
-            <div class="slider-input-row">
-              <input id="completedN" type="range" min="3" max="100" step="1" value="16">
-              <input id="completedNInput" class="numeric" type="number" min="3" max="100" step="1" value="16" inputmode="numeric" aria-label="Completed independent measurements">
-            </div>
+      <section class="workspace" aria-label="Validation sample size workspace">
+        <aside class="panel controls-panel">
+          <div class="panel-head">
+            <h2>Interaction</h2>
+            <p>
+              Use the controls to test whether the design is driven by accuracy pressure, precision
+              pressure, confidence, or power.
+            </p>
+          </div>
+
+          <div class="study-switch" role="group" aria-label="Study workflow">
+            <button
+              id="studyDesign"
+              class="study-switch-button is-active"
+              type="button"
+              data-study-mode="design"
+            >
+              Design study
+            </button>
+            <button
+              id="studyEvaluate"
+              class="study-switch-button"
+              type="button"
+              data-study-mode="evaluate"
+            >
+              Evaluate existing study
+            </button>
           </div>
 
           <div class="control-block">
-            <label for="fixedAssumption">Evaluate question</label>
-            <select id="fixedAssumption">
-              <option value="fixPrecision" selected>Fix precision, solve supported accuracy AC</option>
-              <option value="fixAccuracy">Fix accuracy, solve supported precision AC</option>
-              <option value="boundary">Explore boundary</option>
+            <label for="mode">Mode</label>
+            <select id="mode">
+              <option value="chp9401" selected>ChP 9401 mode</option>
+              <option value="uspAccuracy">USP &lt;1033&gt; accuracy mode</option>
+              <option value="uspPrecision">USP &lt;1033&gt; precision mode</option>
+              <option value="unified">Unified mode</option>
             </select>
           </div>
 
-          <div class="control-block" data-evaluate-field="fixed-precision">
-            <div class="control-label-row">
-              <label for="fixedPrecision">Fixed GCV / ACOV</label>
-              <span id="fixedPrecisionValue" class="numeric">12.0%</span>
+          <div id="evaluateControls" class="mode-fields" data-study="evaluate" hidden>
+            <div class="control-block">
+              <div class="control-label-row">
+                <label for="completedN">Completed n</label>
+                <span id="completedNValue" class="numeric">16</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="completedN" type="range" min="3" max="100" step="1" value="16" />
+                <input
+                  id="completedNInput"
+                  class="numeric"
+                  type="number"
+                  min="3"
+                  max="100"
+                  step="1"
+                  value="16"
+                  inputmode="numeric"
+                  aria-label="Completed independent measurements"
+                />
+              </div>
             </div>
-            <div class="slider-input-row">
-              <input id="fixedPrecision" type="range" min="1" max="50" step="0.1" value="12">
-              <input id="fixedPrecisionInput" class="numeric" type="number" min="1" max="50" step="0.1" value="12" inputmode="decimal" aria-label="Fixed precision percent">
+
+            <div class="control-block">
+              <label for="fixedAssumption">Evaluate question</label>
+              <select id="fixedAssumption">
+                <option value="fixPrecision" selected>
+                  Fix precision, solve supported accuracy AC
+                </option>
+                <option value="fixAccuracy">Fix accuracy, solve supported precision AC</option>
+                <option value="boundary">Explore boundary</option>
+              </select>
+            </div>
+
+            <div class="control-block" data-evaluate-field="fixed-precision">
+              <div class="control-label-row">
+                <label for="fixedPrecision">Fixed GCV / ACOV</label>
+                <span id="fixedPrecisionValue" class="numeric">12.0%</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="fixedPrecision" type="range" min="1" max="50" step="0.1" value="12" />
+                <input
+                  id="fixedPrecisionInput"
+                  class="numeric"
+                  type="number"
+                  min="1"
+                  max="50"
+                  step="0.1"
+                  value="12"
+                  inputmode="decimal"
+                  aria-label="Fixed precision percent"
+                />
+              </div>
+            </div>
+
+            <div class="control-block" data-evaluate-field="fixed-accuracy">
+              <div class="control-label-row">
+                <label for="fixedAccuracy">Fixed ACRB / RB criterion</label>
+                <span id="fixedAccuracyValue" class="numeric">12.0%</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="fixedAccuracy" type="range" min="1" max="50" step="0.1" value="12" />
+                <input
+                  id="fixedAccuracyInput"
+                  class="numeric"
+                  type="number"
+                  min="1"
+                  max="50"
+                  step="0.1"
+                  value="12"
+                  inputmode="decimal"
+                  aria-label="Fixed accuracy criterion percent"
+                />
+              </div>
             </div>
           </div>
 
-          <div class="control-block" data-evaluate-field="fixed-accuracy">
-            <div class="control-label-row">
-              <label for="fixedAccuracy">Fixed ACRB / RB criterion</label>
-              <span id="fixedAccuracyValue" class="numeric">12.0%</span>
+          <div class="mode-fields" data-fields="accuracy">
+            <div class="control-block" data-field="acrb">
+              <div class="control-label-row">
+                <label for="acrb">ACRB / RB acceptance criterion</label>
+                <span id="acrbValue" class="numeric">12.0%</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="acrb" type="range" min="4" max="25" step="0.1" value="12" />
+                <input
+                  id="acrbInput"
+                  class="numeric"
+                  type="number"
+                  min="4"
+                  max="25"
+                  step="0.1"
+                  value="12"
+                  inputmode="decimal"
+                  aria-label="ACRB percent"
+                />
+              </div>
             </div>
-            <div class="slider-input-row">
-              <input id="fixedAccuracy" type="range" min="1" max="50" step="0.1" value="12">
-              <input id="fixedAccuracyInput" class="numeric" type="number" min="1" max="50" step="0.1" value="12" inputmode="decimal" aria-label="Fixed accuracy criterion percent">
+
+            <div class="control-block" data-field="acov">
+              <div class="control-label-row">
+                <label for="acov">ACOV / assumed GCV</label>
+                <span id="acovValue" class="numeric">12.0%</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="acov" type="range" min="2" max="25" step="0.1" value="12" />
+                <input
+                  id="acovInput"
+                  class="numeric"
+                  type="number"
+                  min="2"
+                  max="25"
+                  step="0.1"
+                  value="12"
+                  inputmode="decimal"
+                  aria-label="ACOV percent"
+                />
+              </div>
+            </div>
+
+            <div class="control-block" data-field="true-rb">
+              <div class="control-label-row">
+                <label for="trueRb">Assumed true RB*</label>
+                <span id="trueRbValue" class="numeric">1.0%</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="trueRb" type="range" min="0" max="10" step="0.1" value="1" />
+                <input
+                  id="trueRbInput"
+                  class="numeric"
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value="1"
+                  inputmode="decimal"
+                  aria-label="Assumed true RB percent"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="mode-fields" data-fields="accuracy">
-          <div class="control-block" data-field="acrb">
-            <div class="control-label-row">
-              <label for="acrb">ACRB / RB acceptance criterion</label>
-              <span id="acrbValue" class="numeric">12.0%</span>
+          <div class="mode-fields" data-fields="precision">
+            <div class="control-block">
+              <div class="control-label-row">
+                <label for="levels">Number of levels L</label>
+                <span id="levelsValue" class="numeric">5</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="levels" type="range" min="1" max="12" step="1" value="5" />
+                <input
+                  id="levelsInput"
+                  class="numeric"
+                  type="number"
+                  min="1"
+                  max="12"
+                  step="1"
+                  value="5"
+                  inputmode="numeric"
+                  aria-label="Number of levels"
+                />
+              </div>
             </div>
-            <div class="slider-input-row">
-              <input id="acrb" type="range" min="4" max="25" step="0.1" value="12">
-              <input id="acrbInput" class="numeric" type="number" min="4" max="25" step="0.1" value="12" inputmode="decimal" aria-label="ACRB percent">
+
+            <div class="control-block">
+              <div class="control-label-row">
+                <label for="gcvAcceptance">GCV acceptance criterion</label>
+                <span id="gcvAcceptanceValue" class="numeric">11.0%</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="gcvAcceptance" type="range" min="4" max="25" step="0.1" value="11" />
+                <input
+                  id="gcvAcceptanceInput"
+                  class="numeric"
+                  type="number"
+                  min="4"
+                  max="25"
+                  step="0.1"
+                  value="11"
+                  inputmode="decimal"
+                  aria-label="GCV acceptance criterion percent"
+                />
+              </div>
+            </div>
+
+            <div class="control-block">
+              <div class="control-label-row">
+                <label for="trueGcvPrecision">Assumed true GCV</label>
+                <span id="trueGcvPrecisionValue" class="numeric">7.0%</span>
+              </div>
+              <div class="slider-input-row">
+                <input id="trueGcvPrecision" type="range" min="2" max="20" step="0.1" value="7" />
+                <input
+                  id="trueGcvPrecisionInput"
+                  class="numeric"
+                  type="number"
+                  min="2"
+                  max="20"
+                  step="0.1"
+                  value="7"
+                  inputmode="decimal"
+                  aria-label="Assumed true GCV percent"
+                />
+              </div>
             </div>
           </div>
 
-          <div class="control-block" data-field="acov">
-            <div class="control-label-row">
-              <label for="acov">ACOV / assumed GCV</label>
-              <span id="acovValue" class="numeric">12.0%</span>
-            </div>
-            <div class="slider-input-row">
-              <input id="acov" type="range" min="2" max="25" step="0.1" value="12">
-              <input id="acovInput" class="numeric" type="number" min="2" max="25" step="0.1" value="12" inputmode="decimal" aria-label="ACOV percent">
-            </div>
-          </div>
-
-          <div class="control-block" data-field="true-rb">
-            <div class="control-label-row">
-              <label for="trueRb">Assumed true RB*</label>
-              <span id="trueRbValue" class="numeric">1.0%</span>
-            </div>
-            <div class="slider-input-row">
-              <input id="trueRb" type="range" min="0" max="10" step="0.1" value="1">
-              <input id="trueRbInput" class="numeric" type="number" min="0" max="10" step="0.1" value="1" inputmode="decimal" aria-label="Assumed true RB percent">
-            </div>
-          </div>
-        </div>
-
-        <div class="mode-fields" data-fields="precision">
           <div class="control-block">
             <div class="control-label-row">
-              <label for="levels">Number of levels L</label>
-              <span id="levelsValue" class="numeric">5</span>
+              <label for="confidence">Confidence level</label>
+              <span id="confidenceValue" class="numeric">95%</span>
             </div>
             <div class="slider-input-row">
-              <input id="levels" type="range" min="1" max="12" step="1" value="5">
-              <input id="levelsInput" class="numeric" type="number" min="1" max="12" step="1" value="5" inputmode="numeric" aria-label="Number of levels">
+              <input id="confidence" type="range" min="80" max="99" step="1" value="95" />
+              <input
+                id="confidenceInput"
+                class="numeric"
+                type="number"
+                min="80"
+                max="99"
+                step="1"
+                value="95"
+                inputmode="numeric"
+                aria-label="Confidence level percent"
+              />
             </div>
           </div>
 
           <div class="control-block">
             <div class="control-label-row">
-              <label for="gcvAcceptance">GCV acceptance criterion</label>
-              <span id="gcvAcceptanceValue" class="numeric">11.0%</span>
+              <label for="power">Power</label>
+              <span id="powerValue" class="numeric">95%</span>
             </div>
             <div class="slider-input-row">
-              <input id="gcvAcceptance" type="range" min="4" max="25" step="0.1" value="11">
-              <input id="gcvAcceptanceInput" class="numeric" type="number" min="4" max="25" step="0.1" value="11" inputmode="decimal" aria-label="GCV acceptance criterion percent">
+              <input id="power" type="range" min="70" max="99" step="1" value="95" />
+              <input
+                id="powerInput"
+                class="numeric"
+                type="number"
+                min="70"
+                max="99"
+                step="1"
+                value="95"
+                inputmode="numeric"
+                aria-label="Power percent"
+              />
             </div>
           </div>
+        </aside>
 
-          <div class="control-block">
-            <div class="control-label-row">
-              <label for="trueGcvPrecision">Assumed true GCV</label>
-              <span id="trueGcvPrecisionValue" class="numeric">7.0%</span>
-            </div>
-            <div class="slider-input-row">
-              <input id="trueGcvPrecision" type="range" min="2" max="20" step="0.1" value="7">
-              <input id="trueGcvPrecisionInput" class="numeric" type="number" min="2" max="20" step="0.1" value="7" inputmode="decimal" aria-label="Assumed true GCV percent">
-            </div>
+        <section class="main-stack">
+          <div class="result-grid">
+            <article class="metric-card primary">
+              <small id="primaryMetricLabel">Scientific result</small>
+              <strong id="requiredN" class="numeric">16</strong>
+              <em id="primaryMetricNote">Independent measurements per potency level</em>
+            </article>
+            <article class="metric-card">
+              <small id="secondaryMetricLabel">Formula family</small>
+              <strong id="formulaFamily">ChP 9401</strong>
+              <em id="formulaNote">Accuracy-driven simplified expression</em>
+            </article>
+            <article class="metric-card">
+              <small>Overall pass probability</small>
+              <strong id="overallPower" class="numeric">77.4%</strong>
+              <em id="overallPowerNote">5 levels at 95% per level</em>
+            </article>
           </div>
-        </div>
 
-        <div class="control-block">
-          <div class="control-label-row">
-            <label for="confidence">Confidence level</label>
-            <span id="confidenceValue" class="numeric">95%</span>
-          </div>
-          <div class="slider-input-row">
-            <input id="confidence" type="range" min="80" max="99" step="1" value="95">
-            <input id="confidenceInput" class="numeric" type="number" min="80" max="99" step="1" value="95" inputmode="numeric" aria-label="Confidence level percent">
-          </div>
-        </div>
-
-        <div class="control-block">
-          <div class="control-label-row">
-            <label for="power">Power</label>
-            <span id="powerValue" class="numeric">95%</span>
-          </div>
-          <div class="slider-input-row">
-            <input id="power" type="range" min="70" max="99" step="1" value="95">
-            <input id="powerInput" class="numeric" type="number" min="70" max="99" step="1" value="95" inputmode="numeric" aria-label="Power percent">
-          </div>
-        </div>
-      </aside>
-
-      <section class="main-stack">
-        <div class="result-grid">
-          <article class="metric-card primary">
-            <small id="primaryMetricLabel">Scientific result</small>
-            <strong id="requiredN" class="numeric">16</strong>
-            <em id="primaryMetricNote">Independent measurements per potency level</em>
-          </article>
-          <article class="metric-card">
-            <small id="secondaryMetricLabel">Formula family</small>
-            <strong id="formulaFamily">ChP 9401</strong>
-            <em id="formulaNote">Accuracy-driven simplified expression</em>
-          </article>
-          <article class="metric-card">
-            <small>Overall pass probability</small>
-            <strong id="overallPower" class="numeric">77.4%</strong>
-            <em id="overallPowerNote">5 levels at 95% per level</em>
-          </article>
-        </div>
-
-        <section id="firstPassPanel" class="panel ladder-panel" data-study="design">
-          <div class="panel-head compact">
-            <span class="section-kicker">Reasoning step</span>
-            <h2>First acceptable n</h2>
-            <p id="firstPassNote">Required n is the first point where the design has enough statistical margin.</p>
-          </div>
-          <div id="firstPassLadder" class="ladder"></div>
-        </section>
-
-        <section id="capabilityPanel" class="panel chart-panel" data-study="evaluate" hidden>
-          <div class="panel-head compact">
-            <span class="section-kicker">Exploration space</span>
-            <h2>Capability envelope</h2>
-            <p>Shows which accuracy-precision combinations the completed study can still support.</p>
-          </div>
-          <svg id="capabilitySvg" class="chart heatmap" viewBox="0 0 640 360" role="img" aria-label="Capability envelope"></svg>
-          <p id="capabilityTooltip" class="chart-tooltip">Hover or tap the map to inspect supported combinations.</p>
-        </section>
-
-        <section class="panel explanation-panel">
-          <div class="panel-head compact">
-            <span class="section-kicker">Reflection</span>
-            <h2>Interpretation</h2>
-          </div>
-          <p id="interpretationText"></p>
-        </section>
-
-        <div class="chart-grid">
-          <section class="panel chart-panel">
+          <section id="firstPassPanel" class="panel ladder-panel" data-study="design">
             <div class="panel-head compact">
-              <h2>Sensitivity curve</h2>
-              <p>Shows how expected variability changes the required number of independent measurements.</p>
+              <span class="section-kicker">Reasoning step</span>
+              <h2>First acceptable n</h2>
+              <p id="firstPassNote">
+                Required n is the first point where the design has enough statistical margin.
+              </p>
             </div>
-            <svg id="precisionCurve" class="chart" viewBox="0 0 640 320" role="img" aria-label="Precision sensitivity curve"></svg>
+            <div id="firstPassLadder" class="ladder"></div>
           </section>
 
-          <section class="panel chart-panel">
+          <section id="capabilityPanel" class="panel chart-panel" data-study="evaluate" hidden>
             <div class="panel-head compact">
-              <h2>Accuracy AC sensitivity</h2>
-              <p>Shows how a tighter accuracy criterion increases sample size pressure.</p>
+              <span class="section-kicker">Exploration space</span>
+              <h2>Capability envelope</h2>
+              <p>
+                Shows which accuracy-precision combinations the completed study can still support.
+              </p>
             </div>
-            <svg id="accuracyCurve" class="chart" viewBox="0 0 640 320" role="img" aria-label="Accuracy acceptance criterion sensitivity curve"></svg>
+            <svg
+              id="capabilitySvg"
+              class="chart heatmap"
+              viewBox="0 0 640 360"
+              role="img"
+              aria-label="Capability envelope"
+            ></svg>
+            <p id="capabilityTooltip" class="chart-tooltip">
+              Hover or tap the map to inspect supported combinations.
+            </p>
           </section>
-        </div>
 
-        <div id="diagnosticGrid" class="diagnostic-grid" data-study="design">
-          <section class="panel diagnosis-panel">
+          <section class="panel explanation-panel">
             <div class="panel-head compact">
-              <h2>Driver diagnosis</h2>
-              <p>Identifies which assumption is currently putting the most pressure on n.</p>
+              <span class="section-kicker">Reflection</span>
+              <h2>Interpretation</h2>
             </div>
-            <div id="driverDiagnosis" class="diagnosis-card"></div>
+            <p id="interpretationText"></p>
           </section>
 
-          <section class="panel comparison-panel">
+          <div class="chart-grid">
+            <section class="panel chart-panel">
+              <div class="panel-head compact">
+                <h2>Sensitivity curve</h2>
+                <p>
+                  Shows how expected variability changes the required number of independent
+                  measurements.
+                </p>
+              </div>
+              <svg
+                id="precisionCurve"
+                class="chart"
+                viewBox="0 0 640 320"
+                role="img"
+                aria-label="Precision sensitivity curve"
+              ></svg>
+            </section>
+
+            <section class="panel chart-panel">
+              <div class="panel-head compact">
+                <h2>Accuracy AC sensitivity</h2>
+                <p>Shows how a tighter accuracy criterion increases sample size pressure.</p>
+              </div>
+              <svg
+                id="accuracyCurve"
+                class="chart"
+                viewBox="0 0 640 320"
+                role="img"
+                aria-label="Accuracy acceptance criterion sensitivity curve"
+              ></svg>
+            </section>
+          </div>
+
+          <div id="diagnosticGrid" class="diagnostic-grid" data-study="design">
+            <section class="panel diagnosis-panel">
+              <div class="panel-head compact">
+                <h2>Driver diagnosis</h2>
+                <p>Identifies which assumption is currently putting the most pressure on n.</p>
+              </div>
+              <div id="driverDiagnosis" class="diagnosis-card"></div>
+            </section>
+
+            <section class="panel comparison-panel">
+              <div class="panel-head compact">
+                <h2>Mode comparison</h2>
+                <p>
+                  Compares familiar defaults so the formulas can be read as assumptions, not black
+                  boxes.
+                </p>
+              </div>
+              <div id="modeComparison" class="comparison-list"></div>
+            </section>
+          </div>
+
+          <section class="panel power-panel">
             <div class="panel-head compact">
-              <h2>Mode comparison</h2>
-              <p>Compares familiar defaults so the formulas can be read as assumptions, not black boxes.</p>
+              <h2>One level vs whole study</h2>
+              <p>
+                Even strong per-level power can become a weaker whole-study probability when several
+                levels must all pass.
+              </p>
             </div>
-            <div id="modeComparison" class="comparison-list"></div>
+            <div id="levelPowerBars" class="level-bars"></div>
           </section>
-        </div>
 
-        <section class="panel power-panel">
-          <div class="panel-head compact">
-            <h2>One level vs whole study</h2>
-            <p>Even strong per-level power can become a weaker whole-study probability when several levels must all pass.</p>
-          </div>
-          <div id="levelPowerBars" class="level-bars"></div>
-        </section>
+          <section id="iterationPanel" class="panel table-panel" data-study="design">
+            <div class="panel-head compact">
+              <h2>Iteration table</h2>
+              <p>
+                Rows near the crossing point show where the inequality first becomes supportable.
+              </p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>n</th>
+                    <th>Left</th>
+                    <th>Right</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="iterationBody"></tbody>
+              </table>
+            </div>
+          </section>
 
-        <section id="iterationPanel" class="panel table-panel" data-study="design">
-          <div class="panel-head compact">
-            <h2>Iteration table</h2>
-            <p>Rows near the crossing point show where the inequality first becomes supportable.</p>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>n</th>
-                  <th>Left</th>
-                  <th>Right</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="iterationBody"></tbody>
-            </table>
-          </div>
-        </section>
+          <details class="panel formula-panel">
+            <summary>Formula audit</summary>
+            <div id="formulaText" class="formula-text"></div>
+          </details>
 
-        <details class="panel formula-panel">
-          <summary>Formula audit</summary>
-          <div id="formulaText" class="formula-text"></div>
-        </details>
-
-        <section class="panel reference-panel">
-          <div class="panel-head compact">
-            <span class="section-kicker">Scientific reference</span>
-            <h2>Scope of use</h2>
-          </div>
-          <p>This calculator is organized around USP &lt;1033&gt; and ChP 9401 terminology for learning and validation design support. It keeps accuracy-driven and precision-driven reasoning visible, but it does not replace formal statistical review.</p>
+          <section class="panel reference-panel">
+            <div class="panel-head compact">
+              <span class="section-kicker">Scientific reference</span>
+              <h2>Scope of use</h2>
+            </div>
+            <p>
+              This calculator is organized around USP &lt;1033&gt; and ChP 9401 terminology for
+              learning and validation design support. It keeps accuracy-driven and precision-driven
+              reasoning visible, but it does not replace formal statistical review.
+            </p>
+          </section>
         </section>
       </section>
-    </section>
 
-    <footer class="site-footer">
-      <span class="footer-belief">BioassayCraft is the craft of understanding.</span>
-      <span class="footer-domain">bioassaycraft.com</span>
-    </footer>
-  </main>
+      <footer class="site-footer">
+        <span class="footer-belief">BioassayCraft is the craft of understanding.</span>
+        <span class="footer-domain">bioassaycraft.com</span>
+      </footer>
+    </main>
 
-  <script type="module" src="../../assets/js/tools/validation-sample-size-calculator.js"></script>
-</body>
+    <script type="module" src="../../assets/js/tools/validation-sample-size-calculator.js"></script>
+  </body>
 </html>
