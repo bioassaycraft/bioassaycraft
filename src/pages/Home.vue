@@ -8,6 +8,7 @@ const emit = defineEmits(["activate-group", "clear-group"]);
 
 const heroProgress = ref(0);
 const hasScrolled = ref(false);
+const isLuckyButtonCompact = ref(false);
 const viewport = ref({ width: 1440, height: 900 });
 const { locale: language, setLocale } = useLocale();
 const luckyStorageKey = "bioassaycraft:mobile-home:lucky-history";
@@ -154,6 +155,7 @@ const updateScrollState = () => {
   const transitionDistance = Math.max(280, window.innerHeight * 0.44);
   heroProgress.value = clamp(scrollY / transitionDistance, 0, 1);
   hasScrolled.value = scrollY > 12;
+  isLuckyButtonCompact.value = scrollY > 72;
   document.documentElement.style.setProperty("--hero-progress", heroProgress.value.toFixed(3));
 
   const sections = [
@@ -429,10 +431,10 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <span class="mobile-lucky-button-halo" aria-hidden="true"></span>
       <button
         type="button"
         class="mobile-lucky-button"
+        :class="{ 'is-compact': isLuckyButtonCompact }"
         :aria-label="copy.luckyLabel"
         :title="copy.luckyLabel"
         @click="openLuckyModule"
@@ -446,7 +448,7 @@ onBeforeUnmount(() => {
           <path d="m11.8 2.6 1.7 5.5 5.5 1.7-5.5 1.7-1.7 5.5-1.7-5.5-5.5-1.7L10.1 8z" />
           <path d="m18.2 14.3.8 2.7 2.7.8-2.7.8-.8 2.7-.8-2.7-2.7-.8 2.7-.8z" />
         </svg>
-        {{ copy.lucky }}
+        <span class="mobile-lucky-button-label">{{ copy.lucky }}</span>
       </button>
     </section>
   </section>
