@@ -300,12 +300,8 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
             </p>
             <div class="fields two-up">
               <label>
-                <span class="field-label"
-                  >{{ copy.within }}
-                  <BcTooltip text="Variance from within-run variation on the natural-log scale."
-                    ><span class="help">?</span></BcTooltip
-                  ></span
-                >
+                <span class="field-label">{{ copy.within }}
+                  <BcTooltip text="Variance from within-run variation on the natural-log scale."><span class="help">?</span></BcTooltip></span>
                 <input
                   v-model="withinVariance"
                   type="number"
@@ -319,12 +315,8 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
                 }}</small>
               </label>
               <label>
-                <span class="field-label"
-                  >{{ copy.between }}
-                  <BcTooltip text="Variance from between-run variation on the natural-log scale."
-                    ><span class="help">?</span></BcTooltip
-                  ></span
-                >
+                <span class="field-label">{{ copy.between }}
+                  <BcTooltip text="Variance from between-run variation on the natural-log scale."><span class="help">?</span></BcTooltip></span>
                 <input
                   v-model="betweenVariance"
                   type="number"
@@ -343,73 +335,62 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
               <h2>{{ copy.design }}</h2>
             </div>
             <div class="fields two-up">
-              <label
-                >{{ copy.independent
-                }}<input
-                  v-model="independentMeasurements"
-                  type="number"
-                  min="1"
-                  step="1"
-                  inputmode="numeric"
-                /><small v-if="inputErrors.c" class="error">{{
-                  copy.positiveInteger
-                }}</small></label
-              >
-              <label
-                >{{ copy.replicates
-                }}<input
-                  v-model="replicatesPerMeasurement"
-                  type="number"
-                  min="1"
-                  step="1"
-                  inputmode="numeric"
-                /><small v-if="inputErrors.k" class="error">{{
-                  copy.positiveInteger
-                }}</small></label
-              >
+              <label>{{ copy.independent
+              }}<input
+                v-model="independentMeasurements"
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+              /><small v-if="inputErrors.c" class="error">{{
+                copy.positiveInteger
+              }}</small></label>
+              <label>{{ copy.replicates
+              }}<input
+                v-model="replicatesPerMeasurement"
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+              /><small v-if="inputErrors.k" class="error">{{
+                copy.positiveInteger
+              }}</small></label>
             </div>
             <details ref="advancedDetails">
               <summary>
                 {{ copy.advanced }} <span>{{ copy.advancedNote }}</span>
               </summary>
               <div class="details-content fields two-up">
-                <label
-                  >{{ copy.coefficient
-                  }}<input
-                    v-model="criticalCoefficient"
-                    :disabled="useExactT"
-                    type="number"
-                    min="0"
-                    step="any"
-                  /><small v-if="inputErrors.coefficient && !useExactT" class="error">{{
-                    copy.positiveCoefficient
-                  }}</small></label
-                >
-                <label
-                  >{{ copy.decimals
-                  }}<input
-                    v-model="precision"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="1"
-                    inputmode="numeric"
+                <label>{{ copy.coefficient
+                }}<input
+                  v-model="criticalCoefficient"
+                  :disabled="useExactT"
+                  type="number"
+                  min="0"
+                  step="any"
+                /><small v-if="inputErrors.coefficient && !useExactT" class="error">{{
+                  copy.positiveCoefficient
+                }}</small></label>
+                <label>{{ copy.decimals
+                }}<input
+                  v-model="precision"
+                  type="number"
+                  min="0"
+                  max="8"
+                  step="1"
+                  inputmode="numeric"
                 /></label>
-                <label class="toggle"
-                  ><input v-model="useExactT" type="checkbox" />{{ copy.exactT }}</label
-                >
-                <label v-if="useExactT"
-                  >{{ copy.tCritical
-                  }}<input
-                    v-model="exactTCritical"
-                    type="number"
-                    min="0"
-                    step="any"
-                    :placeholder="copy.tPlaceholder"
-                  /><small v-if="inputErrors.coefficient" class="error">{{
-                    copy.positiveT
-                  }}</small></label
-                >
+                <label class="toggle"><input v-model="useExactT" type="checkbox" />{{ copy.exactT }}</label>
+                <label v-if="useExactT">{{ copy.tCritical
+                }}<input
+                  v-model="exactTCritical"
+                  type="number"
+                  min="0"
+                  step="any"
+                  :placeholder="copy.tPlaceholder"
+                /><small v-if="inputErrors.coefficient" class="error">{{
+                  copy.positiveT
+                }}</small></label>
               </div>
             </details>
           </section>
@@ -461,36 +442,29 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
             :aria-expanded="comparisonOpen"
             @click="comparisonOpen = !comparisonOpen"
           >
-            <span>{{ copy.compare }}</span
-            ><span>{{ comparisonOpen ? copy.collapse : copy.optional }}</span>
+            <span>{{ copy.compare }}</span><span>{{ comparisonOpen ? copy.collapse : copy.optional }}</span>
           </button>
           <div v-if="comparisonOpen" class="comparison-content">
             <div class="fields comparison-fields">
-              <label
-                >{{ copy.valueA
-                }}<input
-                  v-model="valueA"
-                  type="number"
-                  min="0"
-                  step="any"
-                  inputmode="decimal"
-                /><small v-if="inputErrors.valueA" class="error">{{
-                  copy.positiveValue
-                }}</small></label
-              ><label
-                >{{ copy.valueB
-                }}<input
-                  v-model="valueB"
-                  type="number"
-                  min="0"
-                  step="any"
-                  inputmode="decimal"
-                /><small v-if="inputErrors.valueB" class="error">{{
-                  copy.positiveValue
-                }}</small></label
-              ><label
-                >{{ copy.unit }}<input v-model="unit" :placeholder="copy.unitPlaceholder"
-              /></label>
+              <label>{{ copy.valueA
+              }}<input
+                v-model="valueA"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+              /><small v-if="inputErrors.valueA" class="error">{{
+                copy.positiveValue
+              }}</small></label><label>{{ copy.valueB
+              }}<input
+                v-model="valueB"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+              /><small v-if="inputErrors.valueB" class="error">{{
+                copy.positiveValue
+              }}</small></label><label>{{ copy.unit }}<input v-model="unit" :placeholder="copy.unitPlaceholder" /></label>
             </div>
             <div
               v-if="comparison.ok"

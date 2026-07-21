@@ -482,9 +482,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <div class="chart-legend">
-            <span><i class="legend-dot observed"></i>{{ copy.observed }}</span
-            ><span><i class="legend-line model"></i>{{ copy.fit }}</span
-            ><span><i class="legend-line residual"></i>{{ copy.residual }}</span>
+            <span><i class="legend-dot observed"></i>{{ copy.observed }}</span><span><i class="legend-line model"></i>{{ copy.fit }}</span><span><i class="legend-line residual"></i>{{ copy.residual }}</span>
           </div>
         </div>
         <div ref="fitWrap" class="chart-wrap">
@@ -499,91 +497,66 @@ onBeforeUnmount(() => {
       <aside class="fit-sidebar">
         <div class="setup-card" :aria-label="copy.controls">
           <div class="controls-head">
-            <span>{{ copy.controls }}</span
-            ><button class="quiet-button" @click="resample">{{ copy.regenerate }}</button>
+            <span>{{ copy.controls }}</span><button class="quiet-button" @click="resample">{{ copy.regenerate }}</button>
           </div>
           <div class="setup-fields">
-            <label class="select-label"
-              ><span>{{ copy.errorStructure }}</span
-              ><select v-model="structure">
-                <option v-for="(_, key) in copy.structures" :key="key" :value="key">
-                  {{ copy.structures[key] }}
-                </option>
-              </select></label
-            >
-            <label
-              ><span
-                >{{ errorControl.label }}
-                <output>{{ n(parameters[errorControl.key]) }}</output></span
-              ><input
-                type="range"
-                :value="parameters[errorControl.key]"
-                :min="errorControl.min"
-                :max="errorControl.max"
-                :step="errorControl.step"
-                @input="update(errorControl.key, $event.target.value)"
+            <label class="select-label"><span>{{ copy.errorStructure }}</span><select v-model="structure">
+              <option v-for="(_, key) in copy.structures" :key="key" :value="key">
+                {{ copy.structures[key] }}
+              </option>
+            </select></label>
+            <label><span>{{ errorControl.label }}
+              <output>{{ n(parameters[errorControl.key]) }}</output></span><input
+              type="range"
+              :value="parameters[errorControl.key]"
+              :min="errorControl.min"
+              :max="errorControl.max"
+              :step="errorControl.step"
+              @input="update(errorControl.key, $event.target.value)"
             /></label>
-            <label
-              ><span
-                >{{ copy.concentrationPoints }} <output>{{ concentrationPoints }}</output></span
-              ><input
-                type="range"
-                :value="concentrationPoints"
-                :min="concentrationPointRange.min"
-                :max="concentrationPointRange.max"
-                step="1"
-                @input="update('concentrationPoints', $event.target.value)"
+            <label><span>{{ copy.concentrationPoints }} <output>{{ concentrationPoints }}</output></span><input
+              type="range"
+              :value="concentrationPoints"
+              :min="concentrationPointRange.min"
+              :max="concentrationPointRange.max"
+              step="1"
+              @input="update('concentrationPoints', $event.target.value)"
             /></label>
-            <label
-              ><span
-                >{{ copy.replicateCount }} <output>{{ replicates }}</output></span
-              ><input
-                type="range"
-                :value="replicates"
-                min="2"
-                max="6"
-                step="1"
-                @input="update('replicates', $event.target.value)"
+            <label><span>{{ copy.replicateCount }} <output>{{ replicates }}</output></span><input
+              type="range"
+              :value="replicates"
+              min="2"
+              max="6"
+              step="1"
+              @input="update('replicates', $event.target.value)"
             /></label>
-            <label class="select-label"
-              ><span>{{ copy.transform }}</span
-              ><select v-model="transform">
-                <option value="raw">{{ copy.raw }}</option>
-                <option value="sqrt">{{ copy.sqrt }}</option>
-                <option value="log">{{ copy.log }}</option>
-                <option value="boxcox">{{ copy.boxcox }}</option>
-              </select></label
-            >
-            <label class="select-label"
-              ><span>{{ copy.weights }}</span
-              ><select v-model="weightMode">
-                <option value="unweighted">{{ copy.unweighted }}</option>
-                <option value="inverse">{{ copy.inverse }}</option>
-                <option value="inverse2">{{ copy.inverse2 }}</option>
-                <option value="power">{{ copy.powerWeight }}</option>
-              </select></label
-            >
+            <label class="select-label"><span>{{ copy.transform }}</span><select v-model="transform">
+              <option value="raw">{{ copy.raw }}</option>
+              <option value="sqrt">{{ copy.sqrt }}</option>
+              <option value="log">{{ copy.log }}</option>
+              <option value="boxcox">{{ copy.boxcox }}</option>
+            </select></label>
+            <label class="select-label"><span>{{ copy.weights }}</span><select v-model="weightMode">
+              <option value="unweighted">{{ copy.unweighted }}</option>
+              <option value="inverse">{{ copy.inverse }}</option>
+              <option value="inverse2">{{ copy.inverse2 }}</option>
+              <option value="power">{{ copy.powerWeight }}</option>
+            </select></label>
             <div class="setup-dynamic-slot">
-              <label v-if="transform === 'boxcox'"
-                ><span
-                  >{{ copy.boxCoxLambda }} <output>{{ n(parameters.boxCoxLambda) }}</output></span
-                ><input
-                  type="range"
-                  :value="parameters.boxCoxLambda"
-                  min="-2"
-                  max="2"
-                  step=".1"
-                  @input="update('boxCoxLambda', $event.target.value)" /></label
-              ><label v-else-if="weightMode === 'power'"
-                ><span
-                  >{{ copy.power }} <output>{{ n(parameters.power) }}</output></span
-                ><input
-                  type="range"
-                  :value="parameters.power"
-                  min="0"
-                  max="3"
-                  step=".1"
-                  @input="update('power', $event.target.value)"
+              <label v-if="transform === 'boxcox'"><span>{{ copy.boxCoxLambda }} <output>{{ n(parameters.boxCoxLambda) }}</output></span><input
+                type="range"
+                :value="parameters.boxCoxLambda"
+                min="-2"
+                max="2"
+                step=".1"
+                @input="update('boxCoxLambda', $event.target.value)"
+              /></label><label v-else-if="weightMode === 'power'"><span>{{ copy.power }} <output>{{ n(parameters.power) }}</output></span><input
+                type="range"
+                :value="parameters.power"
+                min="0"
+                max="3"
+                step=".1"
+                @input="update('power', $event.target.value)"
               /></label>
             </div>
           </div>
@@ -594,10 +567,7 @@ onBeforeUnmount(() => {
             <span>{{ copy.fitInformation }}</span>
           </div>
           <div class="fit-formula-summary">
-            <span>{{ copy.fittedModel }}</span
-            ><MathFormula :formula="modelFormula" /><i aria-hidden="true"></i
-            ><span>{{ copy.residualCalculation }}</span
-            ><MathFormula formula="e_i=y_i-\widehat{y}_i" />
+            <span>{{ copy.fittedModel }}</span><MathFormula :formula="modelFormula" /><i aria-hidden="true"></i><span>{{ copy.residualCalculation }}</span><MathFormula formula="e_i=y_i-\widehat{y}_i" />
           </div>
           <div class="parameter-list">
             <span>{{ copy.parameterValues }}</span>
@@ -665,8 +635,7 @@ onBeforeUnmount(() => {
         :key="kind"
         class="panel diagnosis"
       >
-        <span>{{ copy.cards[kind] }}</span
-        ><strong>{{ statusText(kind, diagnosisResult[kind]) }}</strong>
+        <span>{{ copy.cards[kind] }}</span><strong>{{ statusText(kind, diagnosisResult[kind]) }}</strong>
       </article>
     </aside>
   </main>
