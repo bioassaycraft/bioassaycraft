@@ -47,6 +47,7 @@ const emit = defineEmits(["previous", "next", "set-step"]);
           'is-active': activeStep === step,
           'is-past': index < activeStepIndex,
         }"
+        :aria-pressed="activeStep === step"
         @click="emit('set-step', step)"
       >
         <span>{{ index + 1 }}</span>

@@ -46,6 +46,7 @@ const emit = defineEmits(["select-row", "toggle-full"]);
         :key="`summary-${row.key}`"
         type="button"
         :class="{ 'is-selected': row.isSelected }"
+        :aria-pressed="row.isSelected"
         @click="emit('select-row', row.raw)"
       >
         <span class="mobile-summary-label">{{ row.label }}</span>
@@ -68,6 +69,7 @@ const emit = defineEmits(["select-row", "toggle-full"]);
         type="button"
         class="mobile-anova-card"
         :class="{ 'is-selected': row.isSelected }"
+        :aria-pressed="row.isSelected"
         @click="emit('select-row', row.raw)"
       >
         <span class="mobile-anova-source">

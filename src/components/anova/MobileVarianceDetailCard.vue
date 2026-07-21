@@ -41,6 +41,7 @@ const emit = defineEmits(["toggle-info"]);
         type="button"
         class="mobile-info-button"
         :class="{ 'is-active': infoOpen }"
+        :aria-expanded="infoOpen"
         @click="emit('toggle-info')"
       >
         {{ copy.mobile.information }}

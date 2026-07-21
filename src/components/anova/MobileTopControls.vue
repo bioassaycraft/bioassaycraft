@@ -25,6 +25,7 @@ const emit = defineEmits(["set-module"]);
         :key="module"
         type="button"
         :class="{ 'is-active': activeModule === module }"
+        :aria-pressed="activeModule === module"
         @click="emit('set-module', module)"
       >
         {{ copy.mobile.modulesShort[module] }}

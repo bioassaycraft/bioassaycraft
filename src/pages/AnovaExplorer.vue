@@ -1429,6 +1429,7 @@ onBeforeUnmount(() => {
             :key="module"
             type="button"
             :class="{ 'is-active': activeModule === module }"
+            :aria-pressed="activeModule === module"
             @click="setModule(module)"
           >
             {{ copy.modules[module] }}
@@ -1443,6 +1444,7 @@ onBeforeUnmount(() => {
             :key="step"
             type="button"
             :class="{ 'is-active': activeStep === step }"
+            :aria-pressed="activeStep === step"
             @click="activeStep = step"
           >
             <span class="step-index">{{ index + 1 }}</span>
@@ -1627,6 +1629,7 @@ onBeforeUnmount(() => {
             <button
               type="button"
               :class="{ 'is-active': ssScaleMode === 'teaching' }"
+              :aria-pressed="ssScaleMode === 'teaching'"
               @click="ssScaleMode = 'teaching'"
             >
               {{ copy.ssTeaching }}
@@ -1634,6 +1637,7 @@ onBeforeUnmount(() => {
             <button
               type="button"
               :class="{ 'is-active': ssScaleMode === 'true' }"
+              :aria-pressed="ssScaleMode === 'true'"
               @click="ssScaleMode = 'true'"
             >
               {{ copy.ssTrue }}

@@ -42,6 +42,7 @@ const segmentIsActive = (segment, activeIds) => activeIds.includes(segment.id);
               'is-active': segmentIsActive(segment, activeIds),
               'is-selected': selectedNodeId === segment.id,
             }"
+            :aria-pressed="selectedNodeId === segment.id"
             :style="{
               '--segment-color': segment.color,
               '--segment-width': `${segment.visualFlex * 100}%`,

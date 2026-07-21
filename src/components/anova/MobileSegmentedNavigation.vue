@@ -18,6 +18,7 @@ const emit = defineEmits(["set-view"]);
     <button
       type="button"
       :class="{ 'is-active': activeView === 'fit' }"
+      :aria-pressed="activeView === 'fit'"
       @click="emit('set-view', 'fit')"
     >
       {{ copy.mobile.fitView }}
@@ -25,6 +26,7 @@ const emit = defineEmits(["set-view"]);
     <button
       type="button"
       :class="{ 'is-active': activeView === 'decomposition' }"
+      :aria-pressed="activeView === 'decomposition'"
       @click="emit('set-view', 'decomposition')"
     >
       {{ copy.mobile.decompositionView }}
