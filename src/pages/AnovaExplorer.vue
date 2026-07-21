@@ -171,6 +171,15 @@ const setModule = (module) => {
   if (model === "linear") delete query.model;
   else query.model = model;
   router.push({ query });
+
+  if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+    nextTick(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      // This is a programmatic return to the module start, not an upward user scroll.
+      // Reassert the compact header after the scroll reset so the title remains by the logo.
+      window.dispatchEvent(new Event("mobile-header:condense"));
+    });
+  }
 };
 
 const syncModuleFromRoute = (model) => {

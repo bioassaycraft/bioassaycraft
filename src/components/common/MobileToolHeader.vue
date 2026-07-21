@@ -42,21 +42,42 @@ defineProps({
 
 const emit = defineEmits(["select", "set-language"]);
 const isCondensed = ref(false);
+const isPageControlCondensed = ref(false);
 const compactEnterOffset = 48;
 const compactExitOffset = 20;
 let scrollFrame = null;
+let previousScrollOffset = 0;
+let pageControlHasLeftTop = false;
+
+const applyCondensedState = (nextState) => {
+  if (nextState === isCondensed.value) return;
+  isCondensed.value = nextState;
+  document.documentElement.classList.toggle("mobile-header-condensed", nextState);
+};
 
 const updateScrollState = () => {
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   const scrollOffset = window.scrollY;
+
+  if (!isMobile) {
+    isPageControlCondensed.value = false;
+    pageControlHasLeftTop = false;
+  }
+
+  if (isPageControlCondensed.value) {
+    if (scrollOffset > 1) pageControlHasLeftTop = true;
+    if (pageControlHasLeftTop && scrollOffset <= 1 && scrollOffset < previousScrollOffset) {
+      isPageControlCondensed.value = false;
+      pageControlHasLeftTop = false;
+    }
+  }
+
   const shouldCondense = isCondensed.value
-    ? isMobile && scrollOffset > compactExitOffset
-    : isMobile && scrollOffset >= compactEnterOffset;
+    ? isMobile && (isPageControlCondensed.value || scrollOffset > compactExitOffset)
+    : isMobile && (isPageControlCondensed.value || scrollOffset >= compactEnterOffset);
 
-  if (shouldCondense === isCondensed.value) return;
-
-  isCondensed.value = shouldCondense;
-  document.documentElement.classList.toggle("mobile-header-condensed", isCondensed.value);
+  applyCondensedState(shouldCondense);
+  previousScrollOffset = scrollOffset;
 };
 
 const requestScrollStateUpdate = () => {
@@ -69,12 +90,14 @@ const requestScrollStateUpdate = () => {
 
 const condenseForPageControl = () => {
   if (!window.matchMedia("(max-width: 767px)").matches) return;
-  if (isCondensed.value) return;
-  isCondensed.value = true;
-  document.documentElement.classList.add("mobile-header-condensed");
+  isPageControlCondensed.value = true;
+  pageControlHasLeftTop = window.scrollY > 1;
+  previousScrollOffset = window.scrollY;
+  applyCondensedState(true);
 };
 
 onMounted(() => {
+  previousScrollOffset = window.scrollY;
   updateScrollState();
   window.addEventListener("scroll", requestScrollStateUpdate, { passive: true });
   window.addEventListener("resize", updateScrollState, { passive: true });
@@ -163,11 +186,6 @@ onBeforeUnmount(() => {
     width: 100%;
     margin-bottom: var(--mobile-page-title-gap, 8px);
     padding: 0;
-    background: transparent;
-    backdrop-filter: none;
-  }
-
-  .mobile-tool-header.is-condensed {
     background: var(--bc-bg-glass, rgba(255, 255, 255, 0.82));
     backdrop-filter: blur(var(--mobile-glass-blur, 16px));
     -webkit-backdrop-filter: blur(var(--mobile-glass-blur, 16px));
@@ -376,7 +394,7 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .mobile-tool-header.is-condensed {
+  .mobile-tool-header {
     background: var(--bc-bg-surface-solid, #fff);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
