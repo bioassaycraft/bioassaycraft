@@ -23,3 +23,28 @@ BioassayCraft uses a single-context domain documentation layout. See `docs/agent
 - Tooltip and annotation content should be short, keyboard accessible, and useful on hover, focus, and mobile tap.
 - After changing core calculations, run Vitest with `npm run test`. Add or update focused tests when calculation behavior changes.
 - Do not change the site's visual temperament simply because motion or tooltip infrastructure exists. BioassayCraft should remain calm, scientific, minimal, and low noise.
+
+## Git Commit Convention
+
+When creating commits, automatically generate a commit message that follows these rules:
+
+- Use the Conventional Commits specification.
+- Keep the summary concise and imperative.
+- Use one of these types: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `perf`, `build`, or `ci`.
+- Format the summary as `type(scope): concise summary` or `type: concise summary`.
+- Prefer one logical change per commit; separate unrelated modifications whenever practical.
+
+Use a commit body when it adds useful context:
+
+- Explain what changed and why.
+- Mention important implementation details when useful.
+- Group multiple related changes into bullets.
+- Do not simply repeat the summary.
+
+Never use vague summaries such as `update`, `changes`, `misc`, `temp`, `WIP`, `fix bug`, or `commit`.
+
+Examples:
+
+- `feat: add Residual Explorer`
+- `fix: resolve mobile navigation overflow`
+- `refactor: simplify ANOVA model switching`
