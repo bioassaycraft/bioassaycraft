@@ -45,6 +45,7 @@ const isCondensed = ref(false);
 const isPageControlCondensed = ref(false);
 const compactEnterOffset = 48;
 const compactExitOffset = 20;
+const titleFadeDistance = 36;
 let scrollFrame = null;
 let previousScrollOffset = 0;
 let pageControlHasLeftTop = false;
@@ -58,6 +59,10 @@ const applyCondensedState = (nextState) => {
 const updateScrollState = () => {
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   const scrollOffset = window.scrollY;
+  const titleFadeProgress = isMobile ? Math.min(Math.max(scrollOffset / titleFadeDistance, 0), 1) : 0;
+
+  document.documentElement.style.setProperty("--mobile-page-title-opacity", String(1 - titleFadeProgress));
+  document.documentElement.style.setProperty("--mobile-page-title-translate", `${titleFadeProgress * -6}px`);
 
   if (!isMobile) {
     isPageControlCondensed.value = false;
@@ -110,6 +115,8 @@ onBeforeUnmount(() => {
   window.removeEventListener("mobile-header:condense", condenseForPageControl);
   if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
   document.documentElement.classList.remove("mobile-header-condensed");
+  document.documentElement.style.removeProperty("--mobile-page-title-opacity");
+  document.documentElement.style.removeProperty("--mobile-page-title-translate");
 });
 </script>
 
@@ -186,9 +193,9 @@ onBeforeUnmount(() => {
     width: 100%;
     margin-bottom: var(--mobile-page-title-gap, 8px);
     padding: 0;
-    background: var(--bc-bg-glass, rgba(255, 255, 255, 0.82));
-    backdrop-filter: blur(var(--mobile-glass-blur, 16px));
-    -webkit-backdrop-filter: blur(var(--mobile-glass-blur, 16px));
+    /* Keep the sticky shell continuous with the page canvas. Its controls
+       retain their own surfaces, so the header never becomes a dark band. */
+    background: transparent;
   }
 
   .mobile-brand-row {
@@ -395,7 +402,7 @@ onBeforeUnmount(() => {
 
 @media (prefers-reduced-transparency: reduce) {
   .mobile-tool-header {
-    background: var(--bc-bg-surface-solid, #fff);
+    background: var(--bc-bg-page, #fff);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }

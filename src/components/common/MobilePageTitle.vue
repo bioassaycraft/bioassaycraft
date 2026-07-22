@@ -25,10 +25,12 @@ defineProps({
     height: 36px;
     min-height: 36px;
     overflow: hidden;
-    background: var(--bc-bg-glass, rgba(255, 255, 255, 0.92));
+    /* Match the canvas behind the title so it remains one continuous surface
+       below the mobile control bar in both colour schemes. */
+    background: transparent;
     color: var(--ink, #171717);
-    backdrop-filter: blur(var(--mobile-glass-blur, 16px));
-    -webkit-backdrop-filter: blur(var(--mobile-glass-blur, 16px));
+    opacity: var(--mobile-page-title-opacity, 1);
+    transform: translateY(var(--mobile-page-title-translate, 0px));
   }
 
   .mobile-page-title > span {
@@ -51,7 +53,7 @@ defineProps({
 
 @media (prefers-reduced-transparency: reduce) {
   .mobile-page-title {
-    background: var(--bc-bg-surface-solid, #fff);
+    background: var(--bc-bg-page, #fff);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
