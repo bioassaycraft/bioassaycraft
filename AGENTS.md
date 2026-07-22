@@ -14,6 +14,17 @@ The repository uses the default five-role engineering skill label vocabulary. Se
 
 BioassayCraft uses a single-context domain documentation layout. See `docs/agents/domain.md`.
 
+## CodeGraph Change Workflow
+
+Before making non-trivial changes:
+
+1. Use CodeGraph to identify the relevant components, symbols, dependencies, call paths, and potential blast radius.
+2. Reuse existing project patterns instead of creating parallel implementations.
+3. Check desktop, mobile, routing, SEO, i18n, and SSG implications where relevant.
+4. Present a concise implementation plan before editing.
+5. After editing, run the relevant tests and production build.
+6. Review the final diff for unrelated changes.
+
 ## Interaction and Motion Rules
 
 - When page elements enter, exit, switch, expand, collapse, update numbers, or change state, prefer the shared motion utilities in `src/utils/motion.js` instead of writing one-off transitions.
