@@ -825,3 +825,29 @@ h2 {
     animation-duration: 1ms !important;
   }
 }
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(root) {
+    animation-duration: 180ms;
+    animation-timing-function: ease-out;
+  }
+
+  ::view-transition-old(root) {
+    animation: bc-page-transition-out 120ms ease-in both;
+  }
+
+  ::view-transition-new(root) {
+    animation: bc-page-transition-in 180ms ease-out both;
+  }
+}
+
+@keyframes bc-page-transition-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes bc-page-transition-in {
+  from {
+    opacity: 0;
+  }
+}

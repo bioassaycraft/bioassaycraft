@@ -20,15 +20,24 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  transitionHome: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(["set-language"]);
+const emit = defineEmits(["set-language", "navigate-home"]);
 </script>
 
 <template>
   <header class="tool-topbar" :class="{ 'is-header-morphed': isMorphed }">
     <div class="header-inner">
-      <a class="brand-link" href="/" aria-label="BioassayCraft home">
+      <a
+        class="brand-link"
+        href="/"
+        aria-label="BioassayCraft home"
+        @click="transitionHome && emit('navigate-home', $event)"
+      >
         <span class="header-brand-group">
           <picture class="brand-logo" aria-hidden="true">
             <source media="(prefers-color-scheme: dark)" srcset="/assets/brand/logo-light.svg" />
@@ -59,7 +68,11 @@ const emit = defineEmits(["set-language"]);
             English
           </button>
         </div>
-        <a class="topbar-home-link" href="/">{{ homeLabel }}</a>
+        <a
+          class="topbar-home-link"
+          href="/"
+          @click="transitionHome && emit('navigate-home', $event)"
+        >{{ homeLabel }}</a>
       </div>
     </div>
   </header>

@@ -1,10 +1,13 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { useLocale } from "../utils/locale";
 import { getFeaturedModules, getLuckyModules, getModules } from "../config/modules";
+import { navigateWithViewTransition } from "../utils/view-transition";
 
 const isLuckyButtonCompact = ref(false);
 const { locale: language, setLocale } = useLocale();
+const router = useRouter();
 const luckyStorageKey = "bioassaycraft:mobile-home:lucky-history";
 
 const toHomeItem = (module) => ({
@@ -180,7 +183,13 @@ const openLuckyModule = () => {
   const destination = chooseWeightedDestination(candidates);
 
   writeLuckyHistory(destination.luckyKey, history);
-  window.location.href = destination.route;
+  navigateWithViewTransition(router, destination.route);
+};
+
+const navigateTo = (to, event) => {
+  if (!to || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey) return;
+  event.preventDefault();
+  navigateWithViewTransition(router, to);
 };
 
 onMounted(() => {
@@ -223,6 +232,7 @@ onBeforeUnmount(() => {
           class="desktop-view-all"
           :href="group.key === 'learn' ? '/learn/' : '/tools/'"
           :aria-label="`${copy.viewAll} ${groupTitle(group)}`"
+          @click="navigateTo(group.key === 'learn' ? '/learn/' : '/tools/', $event)"
         >
           {{ copy.viewAll }} <span aria-hidden="true">→</span>
         </a>
@@ -240,6 +250,7 @@ onBeforeUnmount(() => {
               class="desktop-hub-card"
               :class="{ 'is-linked': item.href }"
               :href="item.href || undefined"
+              @click="navigateTo(item.href, $event)"
             >
               <span class="desktop-card-status" :class="{ 'is-ready': item.ready }">
                 <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}
@@ -298,6 +309,7 @@ onBeforeUnmount(() => {
               class="mobile-view-all"
               :href="group.key === 'learn' ? '/learn/' : '/tools/'"
               :aria-label="`${copy.viewAll} ${groupTitle(group)}`"
+              @click="navigateTo(group.key === 'learn' ? '/learn/' : '/tools/', $event)"
             >
               {{ copy.viewAll }} <span aria-hidden="true">›</span>
             </a>
@@ -318,6 +330,7 @@ onBeforeUnmount(() => {
             :class="{ 'is-ready': item.ready }"
             :href="item.href || undefined"
             :aria-disabled="!item.href ? 'true' : undefined"
+            @click="navigateTo(item.href, $event)"
           >
             <span class="mobile-card-status" :class="{ 'is-ready': item.ready }">
               <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}

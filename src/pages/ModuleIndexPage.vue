@@ -1,12 +1,15 @@
 <script setup>
 import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import { getModules } from "../config/modules";
 import { useLocale } from "../utils/locale";
+import { navigateWithViewTransition } from "../utils/view-transition";
 
 const props = defineProps({ type: { type: String, required: true } });
 const { locale, setLocale } = useLocale();
+const router = useRouter();
 const searchInput = ref("");
 const searchQuery = ref("");
 const isComposing = ref(false);
@@ -120,6 +123,12 @@ const clearSearch = () => {
   searchInput.value = "";
   searchQuery.value = "";
 };
+
+const navigateTo = (to, event) => {
+  if (!to || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey) return;
+  event.preventDefault();
+  navigateWithViewTransition(router, to);
+};
 </script>
 
 <template>
@@ -129,7 +138,9 @@ const clearSearch = () => {
       :language="locale"
       :language-label="pageCopy.language"
       :home-label="pageCopy.home"
+      transition-home
       @set-language="setLocale"
+      @navigate-home="navigateTo('/', $event)"
     />
     <MobileToolHeader
       class="module-index-mobile-header"
@@ -142,7 +153,9 @@ const clearSearch = () => {
       :home-label="pageCopy.home"
       :page-title="title"
       :show-selector="false"
+      transition-home
       @set-language="setLocale"
+      @navigate-home="navigateTo('/', $event)"
     />
     <section class="module-index-content" :aria-labelledby="`${type}-index-title`">
       <div class="module-index-intro">
@@ -184,6 +197,7 @@ const clearSearch = () => {
             :class="{ 'is-planned': module.status !== 'ready' }"
             :href="module.status === 'ready' ? module.route : undefined"
             :aria-disabled="module.status !== 'ready' ? 'true' : undefined"
+            @click="navigateTo(module.status === 'ready' ? module.route : undefined, $event)"
           >
             <span class="module-list-copy">
               <strong>{{ module.title[locale] || module.title.en }}</strong>

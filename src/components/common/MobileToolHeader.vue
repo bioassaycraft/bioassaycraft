@@ -38,9 +38,13 @@ defineProps({
     type: String,
     default: "",
   },
+  transitionHome: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(["select", "set-language"]);
+const emit = defineEmits(["select", "set-language", "navigate-home"]);
 const isCondensed = ref(false);
 const isPageControlCondensed = ref(false);
 const compactEnterOffset = 48;
@@ -123,7 +127,12 @@ onBeforeUnmount(() => {
 <template>
   <section class="mobile-tool-header" :class="{ 'is-condensed': isCondensed }" :aria-label="ariaLabel">
     <div class="mobile-brand-row">
-      <a class="mobile-brand-link" href="/" aria-label="BioassayCraft home">
+      <a
+        class="mobile-brand-link"
+        href="/"
+        aria-label="BioassayCraft home"
+        @click="transitionHome && emit('navigate-home', $event)"
+      >
         <picture class="mobile-brand-logo" aria-hidden="true">
           <source media="(prefers-color-scheme: dark)" srcset="/assets/brand/logo-light.svg" />
           <img class="mobile-brand-mark" src="/assets/brand/logo-dark.svg" alt="" />
@@ -152,7 +161,12 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <a class="mobile-header-home" href="/" :aria-label="homeLabel">
+        <a
+          class="mobile-header-home"
+          href="/"
+          :aria-label="homeLabel"
+          @click="transitionHome && emit('navigate-home', $event)"
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4.75 11.2 12 5l7.25 6.2" />
             <path d="M6.8 10.4v8.1h10.4v-8.1" />
