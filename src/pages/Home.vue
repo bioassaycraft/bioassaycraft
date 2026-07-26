@@ -259,6 +259,54 @@ onBeforeUnmount(() => {
                 <strong>{{ itemTitle(item) }}</strong>
                 <small>{{ itemNote(item) }}</small>
               </span>
+              <span
+                v-if="item.id === 'anova-explorer'"
+                class="desktop-card-preview"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 112 58" focusable="false">
+                  <path class="preview-axis" d="M12 7v42h92" />
+                  <path class="preview-fit preview-fit-standard" d="M17 39 99 10" />
+                  <path class="preview-fit preview-fit-test" d="M17 46 99 25" />
+                  <circle class="preview-standard" cx="27" cy="36" r="2.5" />
+                  <circle class="preview-standard" cx="57" cy="27" r="2.5" />
+                  <circle class="preview-standard" cx="88" cy="14" r="2.5" />
+                  <circle class="preview-test" cx="27" cy="43" r="2.5" />
+                  <circle class="preview-test" cx="57" cy="35" r="2.5" />
+                  <circle class="preview-test" cx="88" cy="27" r="2.5" />
+                </svg>
+              </span>
+              <span
+                v-if="item.id === 'ci-explorer'"
+                class="desktop-card-preview desktop-card-preview-ci"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 112 58" focusable="false">
+                  <path class="preview-axis" d="M10 48h94" />
+                  <path class="preview-ci-band" d="M24 48C30 47 36 41 42 29c5-11 10-18 14-18s9 7 14 18c6 12 12 18 18 19Z" />
+                  <path class="preview-ci-curve" d="M10 48C27 47 34 40 42 29c5-11 10-18 14-18s9 7 14 18c8 11 15 18 32 19" />
+                  <path class="preview-ci-bound" d="M24 48V30" />
+                  <path class="preview-ci-bound" d="M88 48V30" />
+                  <path class="preview-ci-center" d="M56 14v34" />
+                </svg>
+              </span>
+              <span
+                v-if="item.id === 'residual-explorer'"
+                class="desktop-card-preview desktop-card-preview-residual"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 112 58" focusable="false">
+                  <path class="preview-axis" d="M10 8v40h94" />
+                  <path class="preview-residual-zero" d="M10 29h94" />
+                  <circle class="preview-residual-point" cx="20" cy="18" r="2.4" />
+                  <circle class="preview-residual-point" cx="32" cy="40" r="2.4" />
+                  <circle class="preview-residual-point" cx="43" cy="25" r="2.4" />
+                  <circle class="preview-residual-point" cx="55" cy="35" r="2.4" />
+                  <circle class="preview-residual-point" cx="67" cy="16" r="2.4" />
+                  <circle class="preview-residual-point" cx="79" cy="42" r="2.4" />
+                  <circle class="preview-residual-point" cx="92" cy="27" r="2.4" />
+                </svg>
+              </span>
               <span v-if="item.href" class="desktop-card-arrow" aria-hidden="true">→</span>
             </component>
           </li>
@@ -347,6 +395,54 @@ onBeforeUnmount(() => {
               </template>
               <template v-else>{{ itemTitle(item) }}</template>
             </strong>
+            <span
+              v-if="item.id === 'anova-explorer'"
+              class="desktop-card-preview mobile-card-preview"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 112 58" focusable="false">
+                <path class="preview-axis" d="M12 7v42h92" />
+                <path class="preview-fit preview-fit-standard" d="M17 39 99 10" />
+                <path class="preview-fit preview-fit-test" d="M17 46 99 25" />
+                <circle class="preview-standard" cx="27" cy="36" r="2.5" />
+                <circle class="preview-standard" cx="57" cy="27" r="2.5" />
+                <circle class="preview-standard" cx="88" cy="14" r="2.5" />
+                <circle class="preview-test" cx="27" cy="43" r="2.5" />
+                <circle class="preview-test" cx="57" cy="35" r="2.5" />
+                <circle class="preview-test" cx="88" cy="27" r="2.5" />
+              </svg>
+            </span>
+            <span
+              v-if="item.id === 'ci-explorer'"
+              class="desktop-card-preview desktop-card-preview-ci mobile-card-preview"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 112 58" focusable="false">
+                <path class="preview-axis" d="M10 48h94" />
+                <path class="preview-ci-band" d="M24 48C30 47 36 41 42 29c5-11 10-18 14-18s9 7 14 18c6 12 12 18 18 19Z" />
+                <path class="preview-ci-curve" d="M10 48C27 47 34 40 42 29c5-11 10-18 14-18s9 7 14 18c8 11 15 18 32 19" />
+                <path class="preview-ci-bound" d="M24 48V30" />
+                <path class="preview-ci-bound" d="M88 48V30" />
+                <path class="preview-ci-center" d="M56 14v34" />
+              </svg>
+            </span>
+            <span
+              v-if="item.id === 'residual-explorer'"
+              class="desktop-card-preview desktop-card-preview-residual mobile-card-preview"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 112 58" focusable="false">
+                <path class="preview-axis" d="M10 8v40h94" />
+                <path class="preview-residual-zero" d="M10 29h94" />
+                <circle class="preview-residual-point" cx="20" cy="18" r="2.4" />
+                <circle class="preview-residual-point" cx="32" cy="40" r="2.4" />
+                <circle class="preview-residual-point" cx="43" cy="25" r="2.4" />
+                <circle class="preview-residual-point" cx="55" cy="35" r="2.4" />
+                <circle class="preview-residual-point" cx="67" cy="16" r="2.4" />
+                <circle class="preview-residual-point" cx="79" cy="42" r="2.4" />
+                <circle class="preview-residual-point" cx="92" cy="27" r="2.4" />
+              </svg>
+            </span>
             <span v-if="item.href" class="mobile-card-arrow" aria-hidden="true">›</span>
           </component>
         </div>
