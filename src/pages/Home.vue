@@ -1,15 +1,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useLocale } from "../utils/locale";
-import { animateElement, hoverTransition } from "../utils/motion";
 import { getFeaturedModules, getLuckyModules, getModules } from "../config/modules";
 
-const emit = defineEmits(["activate-group", "clear-group"]);
-
-const heroProgress = ref(0);
-const hasScrolled = ref(false);
 const isLuckyButtonCompact = ref(false);
-const viewport = ref({ width: 1440, height: 900 });
 const { locale: language, setLocale } = useLocale();
 const luckyStorageKey = "bioassaycraft:mobile-home:lucky-history";
 
@@ -27,13 +21,7 @@ const homeGroups = [
   { key: "learn", items: getModules("explore").map(toHomeItem) },
   {
     key: "tools",
-    items: getModules("tools")
-      .filter((module) =>
-        ["specification-limit-calculator", "unit-converter", "validation-calculator"].includes(
-          module.id,
-        ),
-      )
-      .map(toHomeItem),
+    items: getModules("tools").map(toHomeItem),
   },
   {
     key: "journey",
@@ -62,6 +50,9 @@ const homeGroups = [
 
 const mobileFeaturedItems = (group) =>
   getFeaturedModules(group.key === "learn" ? "explore" : "tools").map(toHomeItem);
+
+const desktopFeaturedItems = (group) =>
+  group.key === "journey" ? group.items : mobileFeaturedItems(group);
 
 const homeCopy = {
   en: {
@@ -112,15 +103,6 @@ const mobileStatusLabel = (item) => (item.ready ? copy.value.ready : copy.value.
 
 const groupTitle = (group) => copy.value[group.key];
 
-const groupHeading = (group) => copy.value[`${group.key}Heading`];
-
-const desktopGroupHeadingLines = (group) => {
-  if (language.value !== "zh") return [groupHeading(group)];
-  if (group.key === "learn") return ["探索背后的", "推理。"];
-  if (group.key === "journey") return ["沿着推理", "前行。"];
-  return [groupHeading(group)];
-};
-
 const groupNote = (group) => copy.value[`${group.key}Note`];
 
 const localizedValue = (value) => value?.[language.value] || value?.en || "";
@@ -131,78 +113,19 @@ const itemNote = (item) => localizedValue(item.note);
 
 const mobileCardTitleLines = (item) => item.titleLines?.[language.value] || [itemTitle(item)];
 
-const animateCardHover = (event, isEntering) => {
-  animateElement(
-    event.currentTarget,
-    {
-      transform: isEntering
-        ? ["translateY(0px)", "translateY(-2px)"]
-        : ["translateY(-2px)", "translateY(0px)"],
-    },
-    hoverTransition,
-  );
-};
-
 let scrollFrame = null;
-
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const updateScrollState = () => {
   scrollFrame = null;
 
   const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-  viewport.value = { width: window.innerWidth, height: window.innerHeight };
-  const transitionDistance = Math.max(280, window.innerHeight * 0.44);
-  heroProgress.value = clamp(scrollY / transitionDistance, 0, 1);
-  hasScrolled.value = scrollY > 12;
   isLuckyButtonCompact.value = scrollY > 72;
-  document.documentElement.style.setProperty("--hero-progress", heroProgress.value.toFixed(3));
-
-  const sections = [
-    { id: "learn", element: document.getElementById("learn") },
-    { id: "tools", element: document.getElementById("tools") },
-    { id: "journey", element: document.getElementById("journey") },
-  ].filter((section) => section.element);
-
-  const anchor = window.innerHeight * 0.42;
-
-  if (sections[0]?.element.getBoundingClientRect().top > anchor) {
-    emit("clear-group");
-    return;
-  }
-
-  const active =
-    sections
-      .map((section) => ({
-        id: section.id,
-        top: section.element.getBoundingClientRect().top,
-      }))
-      .filter((section) => section.top <= anchor)
-      .sort((a, b) => b.top - a.top)[0] || sections[0];
-
-  if (active?.id) {
-    emit("activate-group", active.id);
-  }
 };
 
 const requestScrollUpdate = () => {
   if (scrollFrame) return;
   scrollFrame = window.requestAnimationFrame(updateScrollState);
 };
-
-const heroTitleStyle = computed(() => {
-  const progress = heroProgress.value;
-  const isMobile = viewport.value.width < 768;
-  const x =
-    -progress * Math.min(viewport.value.width * (isMobile ? 0.14 : 0.34), isMobile ? 80 : 430);
-  const y =
-    -progress * Math.min(viewport.value.height * (isMobile ? 0.18 : 0.3), isMobile ? 96 : 260);
-  const scale = 1 - progress * (isMobile ? 0.34 : 0.72);
-
-  return {
-    transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
-  };
-});
 
 const readyMobileDestinations = computed(() =>
   getLuckyModules().map((module) => ({
@@ -272,26 +195,15 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener("scroll", requestScrollUpdate);
   window.removeEventListener("resize", requestScrollUpdate);
-  document.documentElement.style.removeProperty("--hero-progress");
 });
 </script>
 
 <template>
   <section
     class="notebook-home"
-    :class="{ 'has-scrolled': hasScrolled }"
     aria-labelledby="home-title"
   >
-    <section class="home-scene hero-scene" aria-label="BioassayCraft identity">
-      <div class="hero-field" aria-hidden="true"></div>
-      <div class="hero-copy">
-        <h1 id="home-title" :style="heroTitleStyle">BioassayCraft</h1>
-        <p>{{ copy.heroTagline }}</p>
-      </div>
-      <a class="scroll-cue" href="#learn" :aria-label="copy.explore">
-        <span aria-hidden="true">↓</span>
-      </a>
-    </section>
+    <h1 id="home-title" class="home-page-title">BioassayCraft</h1>
 
     <section
       v-for="group in homeGroups"
@@ -302,42 +214,45 @@ onBeforeUnmount(() => {
       :aria-labelledby="`${group.key}-title`"
     >
       <div class="scene-heading">
-        <p class="eyebrow">{{ groupTitle(group) }}</p>
-        <h2 :id="`${group.key}-title`">
-          <span v-for="line in desktopGroupHeadingLines(group)" :key="line" class="heading-line">
-            {{ line }}
-          </span>
-        </h2>
-        <p class="scene-note">{{ groupNote(group) }}</p>
+        <div class="scene-heading-copy">
+          <h2 :id="`${group.key}-title`">{{ groupTitle(group) }}</h2>
+          <p>{{ groupNote(group) }}</p>
+        </div>
+        <a
+          v-if="group.key !== 'journey'"
+          class="desktop-view-all"
+          :href="group.key === 'learn' ? '/learn/' : '/tools/'"
+          :aria-label="`${copy.viewAll} ${groupTitle(group)}`"
+        >
+          {{ copy.viewAll }} <span aria-hidden="true">→</span>
+        </a>
       </div>
 
-      <ul
-        class="desktop-card-grid"
-        :class="`desktop-${group.key}-grid`"
-        :aria-label="`${groupTitle(group)} modules`"
-      >
-        <li v-for="item in group.items" :key="item.key">
-          <component
-            :is="item.href ? 'a' : 'article'"
-            class="desktop-hub-card"
-            :class="{ 'is-linked': item.href }"
-            :href="item.href || undefined"
-            @mouseenter="animateCardHover($event, true)"
-            @mouseleave="animateCardHover($event, false)"
-            @focus="animateCardHover($event, true)"
-            @blur="animateCardHover($event, false)"
-          >
-            <span class="desktop-card-status" :class="{ 'is-ready': item.ready }">
-              <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}
-            </span>
-            <span class="desktop-card-copy">
-              <strong>{{ itemTitle(item) }}</strong>
-              <small>{{ itemNote(item) }}</small>
-            </span>
-            <span v-if="item.href" class="desktop-card-arrow" aria-hidden="true">→</span>
-          </component>
-        </li>
-      </ul>
+      <div class="desktop-scene-content">
+        <ul
+          class="desktop-card-grid"
+          :class="`desktop-${group.key}-grid`"
+          :aria-label="`${groupTitle(group)} modules`"
+        >
+          <li v-for="item in desktopFeaturedItems(group)" :key="item.key">
+            <component
+              :is="item.href ? 'a' : 'article'"
+              class="desktop-hub-card"
+              :class="{ 'is-linked': item.href }"
+              :href="item.href || undefined"
+            >
+              <span class="desktop-card-status" :class="{ 'is-ready': item.ready }">
+                <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}
+              </span>
+              <span class="desktop-card-copy">
+                <strong>{{ itemTitle(item) }}</strong>
+                <small>{{ itemNote(item) }}</small>
+              </span>
+              <span v-if="item.href" class="desktop-card-arrow" aria-hidden="true">→</span>
+            </component>
+          </li>
+        </ul>
+      </div>
     </section>
 
     <section class="mobile-home-hub" :aria-label="copy.homeLabel">

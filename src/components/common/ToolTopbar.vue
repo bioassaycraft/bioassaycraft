@@ -37,7 +37,7 @@ const emit = defineEmits(["set-language"]);
             alt=""
             aria-hidden="true"
           />
-          <span class="brand-name">bioassaycraft</span>
+          <span class="brand-name">BioassayCraft</span>
           <span class="morph-compact-group">
             <span class="morph-divider" aria-hidden="true"></span>
             <span class="morph-title">{{ title }}</span>
@@ -62,7 +62,7 @@ const emit = defineEmits(["set-language"]);
             English
           </button>
         </div>
-        <a class="back-link" href="/">{{ homeLabel }}</a>
+        <a class="topbar-home-link" href="/">{{ homeLabel }}</a>
       </div>
     </div>
   </header>
@@ -91,7 +91,7 @@ const emit = defineEmits(["set-language"]);
 }
 
 .brand-link,
-.back-link {
+.topbar-home-link {
   display: inline-flex;
   align-items: center;
   color: var(--ink);
@@ -208,7 +208,7 @@ const emit = defineEmits(["set-language"]);
   min-width: max-content;
 }
 
-.back-link,
+.topbar-home-link,
 .language-switch button {
   min-height: 28px;
   border: 1px solid var(--accent-border);
@@ -219,11 +219,12 @@ const emit = defineEmits(["set-language"]);
   font-weight: 600;
 }
 
-.back-link {
+.topbar-home-link {
+  min-width: 0;
   height: 32px;
   box-sizing: border-box;
   padding: 0 10px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .language-switch {
@@ -251,7 +252,7 @@ const emit = defineEmits(["set-language"]);
 }
 
 .language-switch button:focus-visible,
-.back-link:focus-visible {
+.topbar-home-link:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px var(--focus-ring);
 }

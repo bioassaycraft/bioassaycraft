@@ -51,12 +51,6 @@ a,
   touch-action: manipulation;
 }
 
-.back-link {
-  justify-content: center;
-  min-width: 108px;
-  white-space: nowrap;
-}
-
 .page-shell {
   display: grid;
   min-height: 100svh;
@@ -89,9 +83,7 @@ a,
   align-items: center;
   color: var(--app-text);
   font-weight: 600;
-  opacity: calc(0.22 + (var(--hero-progress, 0) * 0.78));
   text-decoration: none;
-  transition: opacity 260ms ease;
 }
 
 .brand-mark {
@@ -139,57 +131,6 @@ a,
 .site-header-language button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 4px var(--app-focus);
-}
-
-.site-nav {
-  display: inline-flex;
-  grid-column: 1 / -1;
-  grid-row: 2;
-  gap: clamp(22px, 2.85vw, 34px);
-  align-items: center;
-  padding-left: 50px;
-}
-
-.site-nav a {
-  position: relative;
-  color: var(--app-muted);
-  min-height: 44px;
-  font-size: clamp(0.9rem, 0.45vw + 0.78rem, 1rem);
-  font-weight: 500;
-  text-decoration: none;
-  transition:
-    color 240ms ease,
-    font-weight 240ms ease;
-}
-
-.site-nav a::after {
-  position: absolute;
-  right: 0;
-  bottom: 12px;
-  left: 0;
-  height: 1px;
-  background: var(--app-accent);
-  opacity: 0;
-  transform: scaleX(0.42);
-  transform-origin: center;
-  transition:
-    opacity 240ms ease,
-    transform 240ms ease;
-  content: "";
-}
-
-.site-nav a:hover {
-  color: var(--app-accent);
-}
-
-.site-nav a.is-active {
-  color: var(--app-accent);
-  font-weight: 600;
-}
-
-.site-nav a.is-active::after {
-  opacity: 1;
-  transform: scaleX(1);
 }
 
 .page-main {
@@ -251,20 +192,6 @@ a,
 
   .brand-name {
     font-size: 0.86rem;
-  }
-
-  .site-nav {
-    gap: clamp(16px, 6vw, 24px);
-    padding-left: 0;
-  }
-
-  .site-nav a {
-    min-height: 38px;
-    font-size: 0.86rem;
-  }
-
-  .site-nav a::after {
-    bottom: 9px;
   }
 
   .page-main {

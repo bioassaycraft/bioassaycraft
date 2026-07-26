@@ -23,13 +23,13 @@ const copy = {
     searchToolsLabel: "搜索工具",
     clear: "清除搜索",
     back: "返回",
-    home: "首页",
+    home: "返回首页",
     ready: "已就绪",
     planned: "即将推出",
     noExplore: "未找到匹配的探索模块",
     noTools: "未找到匹配的工具",
     tryAnother: "请尝试其他关键词。",
-    language: "语言",
+    language: "语言切换",
   },
   en: {
     explore: "All Explore",
@@ -43,7 +43,7 @@ const copy = {
     searchToolsLabel: "Search tools",
     clear: "Clear search",
     back: "Back",
-    home: "Home",
+    home: "Back to home",
     ready: "Ready",
     planned: "Coming soon",
     noExplore: "No matching explore modules",
@@ -65,6 +65,10 @@ const placeholder = computed(() =>
 const searchLabel = computed(() =>
   isExplore.value ? pageCopy.value.searchExploreLabel : pageCopy.value.searchToolsLabel,
 );
+const moduleNote = (module) => {
+  const note = module.homeNote || module.description;
+  return note[locale.value] || note.en;
+};
 const allModules = computed(() =>
   getModules(props.type)
     .slice()
@@ -143,7 +147,7 @@ const clearSearch = () => {
     <section class="module-index-content" :aria-labelledby="`${type}-index-title`">
       <div class="module-index-intro">
         <h1 :id="`${type}-index-title`">{{ title }}</h1>
-        <p>{{ description }}</p>
+        <p class="module-index-mobile-description">{{ description }}</p>
       </div>
 
       <div class="module-search-sticky">
@@ -183,7 +187,7 @@ const clearSearch = () => {
           >
             <span class="module-list-copy">
               <strong>{{ module.title[locale] || module.title.en }}</strong>
-              <small>{{ module.description[locale] || module.description.en }}</small>
+              <small>{{ moduleNote(module) }}</small>
             </span>
             <span class="module-list-meta">
               <span class="module-list-status" :class="{ 'is-ready': module.status === 'ready' }">
@@ -221,6 +225,7 @@ const clearSearch = () => {
   --panel-soft: var(--bc-bg-surface-elevated);
   --selected-bg: var(--bc-bg-selected);
   --accent: var(--bc-accent);
+  --accent-border: var(--bc-accent-border);
   --focus-ring: var(--bc-focus-ring);
   min-height: 100svh;
   color: var(--app-text);
@@ -421,12 +426,104 @@ const clearSearch = () => {
   }
 }
 @media (min-width: 768px) {
-  .module-index-header {
-    padding-right: max(32px, calc((100% - 760px) / 2));
-    padding-left: max(32px, calc((100% - 760px) / 2));
-  }
   .module-index-content {
-    padding-top: 52px;
+    display: grid;
+    grid-template-rows: 106px 84px auto;
+    width: min(var(--bc-container-max), calc(100% - var(--bc-container-inline)));
+    padding-top: 72px;
+  }
+  .module-index-intro {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 0;
+    margin-bottom: 0;
+  }
+  .module-index-intro h1 {
+    font-size: clamp(2rem, 3vw, 2.8rem);
+    font-weight: 630;
+    letter-spacing: -0.035em;
+    line-height: 1.06;
+  }
+  .module-index-mobile-description {
+    display: none !important;
+  }
+  .module-search-sticky {
+    align-self: stretch;
+    box-sizing: border-box;
+    top: 60px;
+    margin: 0 -16px;
+    padding: 16px;
+  }
+  .module-search {
+    min-height: 52px;
+    border-radius: 17px;
+  }
+  .module-search input {
+    height: 50px;
+    padding-left: 18px;
+    font-size: 0.94rem;
+  }
+  .module-index-results {
+    margin-top: 20px;
+  }
+  .module-result-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .module-list-item {
+    min-height: 144px;
+    padding: 16px 18px 17px;
+    border-radius: 18px;
+    align-content: space-between;
+  }
+  .module-list-copy {
+    align-self: end;
+    gap: 7px;
+  }
+  .module-list-copy strong {
+    font-size: 1rem;
+  }
+  .module-list-copy small {
+    display: -webkit-box;
+    max-width: 30ch;
+    overflow: hidden;
+    color: var(--app-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  .module-list-meta {
+    align-self: start;
+  }
+  .module-list-item:not(.is-planned) {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+  .module-list-item:not(.is-planned):hover {
+    border-color: var(--bc-accent-border);
+    background: var(--app-surface-elevated);
+    box-shadow: var(--bc-shadow-card-strong);
+    transform: translateY(-2px);
+  }
+  .module-list-item:not(.is-planned):hover .module-list-meta b {
+    color: var(--app-accent);
+    transform: translateX(2px);
+  }
+  .module-list-meta b {
+    transition:
+      color 160ms ease,
+      transform 160ms ease;
+  }
+}
+@media (min-width: 1200px) {
+  .module-result-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 @media (max-width: 767px) {
@@ -446,6 +543,21 @@ const clearSearch = () => {
   }
   .module-index-content {
     padding-top: 16px;
+  }
+  .module-index-intro {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    min-height: 0;
+    margin-bottom: 18px;
+  }
+  .module-index-intro h1,
+  .module-index-mobile-description {
+    margin: 0;
+  }
+  .module-index-mobile-description {
+    display: block !important;
   }
   .module-search-sticky {
     top: 36px;
