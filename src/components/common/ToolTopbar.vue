@@ -30,13 +30,10 @@ const emit = defineEmits(["set-language"]);
     <div class="header-inner">
       <a class="brand-link" href="/" aria-label="BioassayCraft home">
         <span class="header-brand-group">
-          <img
-            class="brand-mark"
-            src="/assets/brand/logo-dark.svg"
-            data-theme-logo
-            alt=""
-            aria-hidden="true"
-          />
+          <picture class="brand-logo" aria-hidden="true">
+            <source media="(prefers-color-scheme: dark)" srcset="/assets/brand/logo-light.svg" />
+            <img class="brand-mark" src="/assets/brand/logo-dark.svg" alt="" />
+          </picture>
           <span class="brand-name">BioassayCraft</span>
           <span class="morph-compact-group">
             <span class="morph-divider" aria-hidden="true"></span>
@@ -106,6 +103,11 @@ const emit = defineEmits(["set-language"]);
   display: flex;
   align-items: center;
   min-width: 0;
+}
+
+.brand-logo {
+  display: flex;
+  flex: 0 0 auto;
 }
 
 .brand-mark {

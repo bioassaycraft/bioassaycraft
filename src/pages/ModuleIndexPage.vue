@@ -565,6 +565,13 @@ const clearSearch = () => {
     padding: 10px 8px;
   }
 }
+@media (max-width: 767px) and (prefers-color-scheme: dark) {
+  .module-index-mobile-header {
+    --mobile-header-control-border: var(--bc-border-subtle);
+    --mobile-header-control-bg: var(--bc-bg-glass);
+    --mobile-header-control-shadow: var(--bc-shadow-card);
+  }
+}
 @media (prefers-reduced-transparency: reduce) {
   .module-search-sticky,
   .module-search {

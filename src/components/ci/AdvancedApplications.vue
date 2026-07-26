@@ -1081,6 +1081,12 @@ onBeforeUnmount(() => {
   background: var(--panel);
   box-shadow: var(--app-card-shadow);
 }
+.sample-card:has(.sample-fields input[aria-invalid="true"]) {
+  border-color: color-mix(in srgb, var(--bc-danger, #b24b4b) 46%, var(--soft-line));
+  box-shadow:
+    var(--app-card-shadow),
+    inset 3px 0 0 var(--bc-danger, #b24b4b);
+}
 .soon-card {
   display: grid;
   gap: 9px;

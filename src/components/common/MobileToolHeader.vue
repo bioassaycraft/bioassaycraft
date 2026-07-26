@@ -124,13 +124,10 @@ onBeforeUnmount(() => {
   <section class="mobile-tool-header" :class="{ 'is-condensed': isCondensed }" :aria-label="ariaLabel">
     <div class="mobile-brand-row">
       <a class="mobile-brand-link" href="/" aria-label="BioassayCraft home">
-        <img
-          class="mobile-brand-mark"
-          src="/assets/brand/logo-dark.svg"
-          data-theme-logo
-          alt=""
-          aria-hidden="true"
-        />
+        <picture class="mobile-brand-logo" aria-hidden="true">
+          <source media="(prefers-color-scheme: dark)" srcset="/assets/brand/logo-light.svg" />
+          <img class="mobile-brand-mark" src="/assets/brand/logo-dark.svg" alt="" />
+        </picture>
         <span class="mobile-brand-name">BioassayCraft</span>
         <span v-if="pageTitle" class="mobile-current-title">{{ pageTitle }}</span>
       </a>
@@ -221,6 +218,11 @@ onBeforeUnmount(() => {
     height: 22px;
     opacity: 0.86;
     object-fit: contain;
+  }
+
+  .mobile-brand-logo {
+    display: flex;
+    flex: 0 0 auto;
   }
 
   .mobile-brand-name {
