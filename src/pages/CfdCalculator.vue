@@ -572,9 +572,8 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   top: var(--topbar-sticky-height);
   z-index: 30;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.65fr);
-  gap: 24px;
-  align-items: end;
+  gap: 6px;
+  align-items: start;
   margin: 0 calc(var(--bc-container-inline, 48px) / -2);
   padding: 10px calc(var(--bc-container-inline, 48px) / 2) 13px;
   background: color-mix(in srgb, var(--paper) 92%, transparent);
@@ -619,12 +618,12 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
 }
 .mode-switch button {
   display: flex;
-  min-height: 46px;
+  min-height: 32px;
   min-width: 0;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 6px 14px;
+  gap: 6px;
+  padding: 0 12px;
   border: 0;
   border-radius: 6px;
   color: var(--muted);

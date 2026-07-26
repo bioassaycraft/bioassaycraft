@@ -1995,6 +1995,16 @@ select {
     backdrop-filter: blur(14px);
   }
 
+  .model-switch.segmented-control {
+    padding: 4px;
+    border-radius: var(--mobile-glass-radius, 14px);
+  }
+
+  .model-switch.segmented-control button {
+    min-height: calc(var(--mobile-control-height, 36px) - 8px);
+    border-radius: 10px;
+  }
+
   .module-sticky {
     top: var(--residual-mobile-header-height);
     padding: 0 0 8px;

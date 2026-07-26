@@ -46,7 +46,7 @@ const emit = defineEmits(["set-view"]);
     gap: 4px;
     width: 100%;
     min-height: var(--mobile-switch-height, 36px);
-    padding: 0;
+    padding: 4px;
     border: 1px solid var(--mobile-glass-border, rgba(214, 217, 222, 0.54));
     border-radius: var(--mobile-glass-radius, 14px);
     background: var(--mobile-glass-bg, rgba(255, 255, 255, 0.48));
@@ -55,7 +55,7 @@ const emit = defineEmits(["set-view"]);
   }
 
   .mobile-view-switch button {
-    min-height: var(--mobile-switch-height, 36px);
+    min-height: calc(var(--mobile-switch-height, 36px) - 8px);
     border: 0;
     border-radius: 10px;
     background: transparent;
