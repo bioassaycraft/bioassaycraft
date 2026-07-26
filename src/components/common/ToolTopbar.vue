@@ -136,7 +136,7 @@ const emit = defineEmits(["set-language", "navigate-home"]);
   max-width: 120px;
   margin-left: 9px;
   overflow: hidden;
-  font-size: 0.76rem;
+  font-size: 0.875rem;
   line-height: 1;
   white-space: nowrap;
   opacity: 0.82;

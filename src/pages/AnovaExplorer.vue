@@ -8,7 +8,6 @@ import MobileStepController from "../components/anova/MobileStepController.vue";
 import MobileTopControls from "../components/anova/MobileTopControls.vue";
 import MobileVarianceDetailCard from "../components/anova/MobileVarianceDetailCard.vue";
 import MobileVarianceTree from "../components/anova/MobileVarianceTree.vue";
-import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import { anovaCopy } from "../i18n/anova-explorer";
@@ -163,7 +162,6 @@ const updateMobileContentTop = () => {
 
 const setModule = (module) => {
   if (module === activeModule.value) return;
-  window.dispatchEvent(new Event("mobile-header:condense"));
   activeModule.value = module;
   activeStep.value = stepOrder[module][0];
   const query = { ...route.query };
@@ -175,9 +173,7 @@ const setModule = (module) => {
   if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
     nextTick(() => {
       window.scrollTo({ top: 0, behavior: "auto" });
-      // This is a programmatic return to the module start, not an upward user scroll.
-      // Reassert the compact header after the scroll reset so the title remains by the logo.
-      window.dispatchEvent(new Event("mobile-header:condense"));
+      // Return to the module start after changing models.
     });
   }
 };
@@ -200,17 +196,14 @@ const syncModuleFromRoute = (model) => {
 const goToAdjacentStep = (direction) => {
   const nextIndex = activeStepIndex.value + direction;
   if (nextIndex < 0 || nextIndex >= moduleSteps.value.length) return;
-  window.dispatchEvent(new Event("mobile-header:condense"));
   activeStep.value = moduleSteps.value[nextIndex];
 };
 
 const setMobileView = (view) => {
-  window.dispatchEvent(new Event("mobile-header:condense"));
   mobileView.value = view;
 };
 
 const setMobileStep = (step) => {
-  window.dispatchEvent(new Event("mobile-header:condense"));
   activeStep.value = step;
 };
 
@@ -1386,7 +1379,6 @@ onBeforeUnmount(() => {
       :show-selector="false"
       @set-language="setLanguage"
     />
-    <MobilePageTitle :title="copy.title" />
 
     <section class="explorer-header" aria-labelledby="anova-explorer-title">
       <div>
@@ -2629,8 +2621,8 @@ button {
 
   .mobile-sticky-header {
     position: sticky;
-    /* Match the in-flow header: safe-area padding + 32px brand row + 8px gap. */
-    top: calc(var(--mobile-safe-top) + 40px);
+    /* Keep the fixed controls one standard card gap below the masked brand row. */
+    top: calc(max(env(safe-area-inset-top), 18px) + 52px);
     z-index: 70;
     display: grid;
     gap: var(--mobile-sticky-gap, 8px);
@@ -2641,10 +2633,6 @@ button {
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
-  }
-
-  .anova-mobile-top-header {
-    padding-top: var(--mobile-safe-top);
   }
 
   .teaching-grid {

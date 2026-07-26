@@ -36,7 +36,6 @@ const localScenario = ref(initialScenario());
 const scenario = computed({
   get: () => props.scenario ?? localScenario.value,
   set: (value) => {
-    window.dispatchEvent(new Event("mobile-header:condense"));
     localScenario.value = value;
     emit("update:scenario", value);
   },
@@ -1848,9 +1847,8 @@ onBeforeUnmount(() => {
   }
   .scenario-field {
     position: sticky;
-    /* Sit directly below the fixed CI section controls using their measured
-       height plus the shared card gap. */
-    top: calc(var(--mobile-safe-top) + 40px + var(--application-sticky-top, 44px));
+    /* Use the shared header baseline, then the measured CI controls and one card gap. */
+    top: calc(max(env(safe-area-inset-top), 18px) + 52px + var(--application-sticky-top, 44px));
     z-index: 60;
     align-self: start;
     max-width: none;

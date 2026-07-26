@@ -1,6 +1,4 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
-
 defineProps({
   ariaLabel: {
     type: String,
@@ -45,87 +43,10 @@ defineProps({
 });
 
 const emit = defineEmits(["select", "set-language", "navigate-home"]);
-const isCondensed = ref(false);
-const isPageControlCondensed = ref(false);
-const compactEnterOffset = 48;
-const compactExitOffset = 20;
-const titleFadeDistance = 36;
-let scrollFrame = null;
-let previousScrollOffset = 0;
-let pageControlHasLeftTop = false;
-
-const applyCondensedState = (nextState) => {
-  if (nextState === isCondensed.value) return;
-  isCondensed.value = nextState;
-  document.documentElement.classList.toggle("mobile-header-condensed", nextState);
-};
-
-const updateScrollState = () => {
-  const isMobile = window.matchMedia("(max-width: 767px)").matches;
-  const scrollOffset = window.scrollY;
-  const titleFadeProgress = isMobile ? Math.min(Math.max(scrollOffset / titleFadeDistance, 0), 1) : 0;
-
-  document.documentElement.style.setProperty("--mobile-page-title-opacity", String(1 - titleFadeProgress));
-  document.documentElement.style.setProperty("--mobile-page-title-translate", `${titleFadeProgress * -6}px`);
-
-  if (!isMobile) {
-    isPageControlCondensed.value = false;
-    pageControlHasLeftTop = false;
-  }
-
-  if (isPageControlCondensed.value) {
-    if (scrollOffset > 1) pageControlHasLeftTop = true;
-    if (pageControlHasLeftTop && scrollOffset <= 1 && scrollOffset < previousScrollOffset) {
-      isPageControlCondensed.value = false;
-      pageControlHasLeftTop = false;
-    }
-  }
-
-  const shouldCondense = isCondensed.value
-    ? isMobile && (isPageControlCondensed.value || scrollOffset > compactExitOffset)
-    : isMobile && (isPageControlCondensed.value || scrollOffset >= compactEnterOffset);
-
-  applyCondensedState(shouldCondense);
-  previousScrollOffset = scrollOffset;
-};
-
-const requestScrollStateUpdate = () => {
-  if (scrollFrame !== null) return;
-  scrollFrame = window.requestAnimationFrame(() => {
-    scrollFrame = null;
-    updateScrollState();
-  });
-};
-
-const condenseForPageControl = () => {
-  if (!window.matchMedia("(max-width: 767px)").matches) return;
-  isPageControlCondensed.value = true;
-  pageControlHasLeftTop = window.scrollY > 1;
-  previousScrollOffset = window.scrollY;
-  applyCondensedState(true);
-};
-
-onMounted(() => {
-  previousScrollOffset = window.scrollY;
-  updateScrollState();
-  window.addEventListener("scroll", requestScrollStateUpdate, { passive: true });
-  window.addEventListener("resize", updateScrollState, { passive: true });
-  window.addEventListener("mobile-header:condense", condenseForPageControl);
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("scroll", requestScrollStateUpdate);
-  window.removeEventListener("resize", updateScrollState);
-  window.removeEventListener("mobile-header:condense", condenseForPageControl);
-  if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
-  document.documentElement.classList.remove("mobile-header-condensed");
-  document.documentElement.style.removeProperty("--mobile-page-title-opacity");
-  document.documentElement.style.removeProperty("--mobile-page-title-translate");
-});
 </script>
 
 <template>
-  <section class="mobile-tool-header" :class="{ 'is-condensed': isCondensed }" :aria-label="ariaLabel">
+  <section class="mobile-tool-header" :class="{ 'has-page-title': pageTitle }" :aria-label="ariaLabel">
     <div class="mobile-brand-row">
       <a
         class="mobile-brand-link"
@@ -195,8 +116,6 @@ onBeforeUnmount(() => {
 @media (max-width: 767px) {
   .mobile-tool-header {
     position: sticky;
-    /* The header box owns the viewport edge; page-specific safe-area padding
-       belongs to its content, so it is not counted again by sticky layout. */
     top: 0;
     z-index: 80;
     display: grid;
@@ -204,8 +123,6 @@ onBeforeUnmount(() => {
     width: 100%;
     margin-bottom: var(--mobile-page-title-gap, 8px);
     padding: 0;
-    /* Keep the sticky shell continuous with the page canvas. Its controls
-       retain their own surfaces, so the header never becomes a dark band. */
     background: transparent;
   }
 
@@ -214,10 +131,22 @@ onBeforeUnmount(() => {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
     align-items: center;
-    min-height: var(--mobile-header-control-height, var(--mobile-control-height, 36px));
+    min-height: 32px;
+    box-sizing: border-box;
+    width: calc(100% + var(--mobile-header-bleed, 16px) + var(--mobile-header-bleed, 16px));
+    margin-inline: var(--mobile-header-bleed-negative, -16px);
+    padding: max(env(safe-area-inset-top), 18px)
+      max(16px, env(safe-area-inset-right))
+      12px
+      max(16px, env(safe-area-inset-left));
+    color: var(--app-text, var(--ink, #171717));
+    background: color-mix(in srgb, var(--app-bg, var(--bc-bg-page, #fff)) 88%, transparent);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
   }
 
   .mobile-brand-link {
+    position: relative;
     display: inline-flex;
     align-items: center;
     min-width: 0;
@@ -228,9 +157,9 @@ onBeforeUnmount(() => {
 
   .mobile-brand-mark {
     flex: 0 0 auto;
-    width: 22px;
-    height: 22px;
-    opacity: 0.86;
+    width: 29px;
+    height: 29px;
+    opacity: 0.9;
     object-fit: contain;
   }
 
@@ -243,7 +172,8 @@ onBeforeUnmount(() => {
     min-width: 0;
     margin-left: 8px;
     overflow: hidden;
-    font-size: 0.8rem;
+    font-size: 1rem;
+    font-weight: 680;
     line-height: 1;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -252,17 +182,18 @@ onBeforeUnmount(() => {
 
   .mobile-current-title {
     position: absolute;
-    left: 30px;
+    top: 50%;
+    left: 37px;
     right: 0;
     overflow: hidden;
     opacity: 0;
     color: var(--ink, #171717);
-    font-size: 0.8rem;
+    font-size: 0.875rem;
     font-weight: 600;
-    line-height: 1;
+    line-height: 20px;
     pointer-events: none;
     text-overflow: ellipsis;
-    transform: translateX(-6px);
+    transform: translate(-6px, -50%);
     transition: opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
     white-space: nowrap;
   }
@@ -380,14 +311,14 @@ onBeforeUnmount(() => {
     stroke-width: 1.8;
   }
 
-  .mobile-tool-header.is-condensed .mobile-brand-name {
+  .mobile-tool-header.has-page-title .mobile-brand-name {
     opacity: 0;
     transform: translateX(-5px);
   }
 
-  .mobile-tool-header.is-condensed .mobile-current-title {
+  .mobile-tool-header.has-page-title .mobile-current-title {
     opacity: 1;
-    transform: translateX(0);
+    transform: translate(0, -50%);
   }
 
   .mobile-header-language button::before,
@@ -417,7 +348,7 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .mobile-tool-header {
+  .mobile-brand-row {
     background: var(--bc-bg-page, #fff);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;

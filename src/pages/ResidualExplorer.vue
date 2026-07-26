@@ -2,7 +2,6 @@
 import * as d3 from "d3";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
-import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import MathFormula from "../components/common/MathFormula.vue";
 import { residualCopy } from "../i18n/residual-explorer";
@@ -461,7 +460,6 @@ onBeforeUnmount(() => {
       :show-selector="false"
       @set-language="setLocale"
     />
-    <MobilePageTitle :title="copy.title" />
     <header class="explorer-header">
       <h1>{{ copy.title }}</h1>
     </header>
@@ -1394,7 +1392,7 @@ select {
 @media (max-width: 767px) {
   .residual-explorer {
     width: min(100% - 32px, 1360px);
-    padding-top: 12px;
+    padding-top: 0;
   }
   .residual-explorer .tool-topbar {
     display: none;
@@ -1403,10 +1401,10 @@ select {
     display: none;
   }
   .module-sticky {
-    top: 0;
+    top: calc(max(env(safe-area-inset-top), 18px) + 52px);
     gap: 8px;
     margin: 0;
-    padding: var(--mobile-safe-top, 12px) 0 8px;
+    padding: 0 0 8px;
     background: color-mix(in srgb, var(--paper) 94%, transparent);
   }
   .control-group {
@@ -1986,13 +1984,6 @@ select {
       var(--mobile-safe-top) + var(--mobile-header-control-height) + 8px
     );
     padding-top: 0;
-  }
-
-  .mobile-residual-header {
-    z-index: 40;
-    padding: var(--mobile-safe-top) 0 0;
-    background: color-mix(in srgb, var(--paper) 94%, transparent);
-    backdrop-filter: blur(14px);
   }
 
   .model-switch.segmented-control {

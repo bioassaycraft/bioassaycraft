@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
-import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
 import { useLocale } from "../utils/locale";
@@ -507,7 +506,6 @@ onBeforeUnmount(() => {
         :show-selector="false"
         @set-language="setLanguage"
       />
-      <MobilePageTitle :title="copy.title" />
       <div class="mobile-sticky-header" aria-label="Concentration Converter mobile navigation">
         <section class="mobile-unit-state-bar" aria-label="Mobile unit conversion direction">
           <label>
@@ -1371,10 +1369,6 @@ select:focus,
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
-  }
-
-  .converter-mobile-header {
-    padding-top: var(--mobile-safe-top);
   }
 
   .mobile-unit-state-bar {

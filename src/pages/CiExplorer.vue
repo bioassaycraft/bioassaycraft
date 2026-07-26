@@ -5,7 +5,6 @@ import { useRoute, useRouter } from "vue-router";
 import MobileStepController from "../components/anova/MobileStepController.vue";
 import AdvancedApplications from "../components/ci/AdvancedApplications.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
-import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import {
   confidenceInterval,
@@ -511,7 +510,6 @@ function formatPercent(value) {
 
 function setSection(section, scroll = true) {
   if (!sections.includes(section)) return;
-  window.dispatchEvent(new Event("mobile-header:condense"));
   if (section !== activeSection.value) {
     activeSection.value = section;
     router.push({ query: { ...route.query, section } });
@@ -566,14 +564,12 @@ function scrollIntuitionToStart() {
 }
 
 function goToAdjacentIntuitionStep(direction) {
-  window.dispatchEvent(new Event("mobile-header:condense"));
   intuitionStep.value = Math.min(Math.max(intuitionStep.value + direction, 0), 3);
 }
 
 function setIntuitionStepById(stepId) {
   const nextIndex = intuitionStepIds.indexOf(stepId);
   if (nextIndex >= 0) {
-    window.dispatchEvent(new Event("mobile-header:condense"));
     intuitionStep.value = nextIndex;
   }
 }
@@ -671,7 +667,6 @@ watch(intuitionStep, () => {
       :show-selector="false"
       @set-language="setLanguage"
     />
-    <MobilePageTitle :title="copy.title" />
     <div class="ci-mobile-sticky-header" :aria-label="copy.sectionLabel">
       <div class="mobile-section-tabs" :aria-label="copy.sectionLabel">
         <button
@@ -2388,8 +2383,8 @@ input:focus-visible {
 
   .ci-mobile-sticky-header {
     position: sticky;
-    /* Match the in-flow header: safe-area padding + 32px brand row + 8px gap. */
-    top: calc(var(--mobile-safe-top) + 40px);
+    /* Keep the fixed controls one standard card gap below the masked brand row. */
+    top: calc(max(env(safe-area-inset-top), 18px) + 52px);
     z-index: 70;
     display: grid;
     gap: var(--mobile-sticky-gap, 8px);
@@ -2400,10 +2395,6 @@ input:focus-visible {
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
-  }
-
-  .ci-mobile-top-header {
-    padding-top: var(--mobile-safe-top);
   }
 
   .content-anchor {

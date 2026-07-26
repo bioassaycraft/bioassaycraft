@@ -543,17 +543,11 @@ const navigateTo = (to, event) => {
 @media (max-width: 767px) {
   .module-index-page {
     --topbar-sticky-height: 0px;
+    --mobile-header-bleed: 0px;
+    --mobile-header-bleed-negative: 0px;
   }
   .module-index-page :deep(.tool-topbar) {
     display: none;
-  }
-  .module-index-mobile-header {
-    z-index: 70;
-    display: block;
-    width: min(100% - 32px, 1360px);
-    margin: 0 auto;
-    padding-top: max(env(safe-area-inset-top), 12px);
-    background: transparent;
   }
   .module-index-content {
     padding-top: 16px;

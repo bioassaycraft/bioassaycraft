@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from "vue";
-import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import { usePageSeo } from "../composables/usePageSeo";
 import { useLocale } from "../utils/locale";
@@ -39,7 +38,6 @@ const copy = computed(() =>
       :show-selector="false"
       @set-language="setLocale"
     />
-    <MobilePageTitle :title="copy.title" />
     <section class="not-found-content">
       <p class="eyebrow">404</p>
       <h1>{{ copy.title }}</h1>
@@ -64,7 +62,8 @@ const copy = computed(() =>
 }
 @media (max-width: 767px) {
   .not-found-mobile-header {
-    padding-top: max(env(safe-area-inset-top), 12px);
+    --mobile-header-bleed: 0px;
+    --mobile-header-bleed-negative: 0px;
   }
   .not-found-content {
     min-height: calc(100svh - env(safe-area-inset-top) - 84px);

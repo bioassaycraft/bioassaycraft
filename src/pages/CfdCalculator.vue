@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import BcTooltip from "../components/common/BcTooltip.vue";
 import MathFormula from "../components/common/MathFormula.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
-import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
 import { calculateCfd, compareReportValues, CFD_MODES } from "../lib/cfd";
@@ -257,7 +256,6 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
         :show-selector="false"
         @set-language="setLanguage"
       />
-      <MobilePageTitle :title="copy.title" />
       <ToolTopbar
         :title="copy.title"
         :language="language"
@@ -1023,9 +1021,8 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
     display: grid;
     width: 100%;
     margin-bottom: 0;
-    padding-top: var(--mobile-safe-top);
+    padding-top: 0;
   }
-  .cfd-mobile-header { padding-top: var(--mobile-safe-top); }
   .cfd-content {
     gap: 8px;
     margin-top: 0;

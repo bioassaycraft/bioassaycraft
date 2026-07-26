@@ -2,7 +2,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
-import MobilePageTitle from "../components/common/MobilePageTitle.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
 import EndotoxinCalculator from "../components/specification/EndotoxinCalculator.vue";
@@ -176,7 +175,6 @@ onBeforeUnmount(() => {
         :show-selector="false"
         @set-language="setLanguage"
       />
-      <MobilePageTitle :title="copy.title" />
 
       <ToolTopbar
         :title="copy.title"
@@ -472,14 +470,12 @@ onBeforeUnmount(() => {
     gap: var(--mobile-sticky-gap);
     width: 100%;
     margin-bottom: 0;
-    padding-top: var(--mobile-safe-top);
+    padding-top: 0;
     background: transparent;
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
   }
-  .spec-limit-mobile-header { padding-top: var(--mobile-safe-top); }
-
   .inline-module-switcher {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
