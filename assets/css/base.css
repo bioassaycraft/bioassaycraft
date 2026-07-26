@@ -59,6 +59,7 @@
   --bc-breakpoint-tablet-max: 1199px;
   --bc-breakpoint-mobile-max: 767px;
   --bc-container-max: 1120px;
+  --bc-content-max: var(--bc-container-max);
   --bc-container-inline: 48px;
   --bc-page-padding-block: 34px 64px;
   --bc-header-padding-block: 18px 42px;

@@ -263,7 +263,7 @@ onBeforeUnmount(() => {
 .spec-limit-calculator {
   position: relative;
   flex: 1 0 auto;
-  width: min(1280px, calc(100% - var(--bc-container-inline, 48px)));
+  width: min(var(--bc-content-max), calc(100% - var(--bc-container-inline, 48px)));
   margin: 0 auto;
   padding: calc(var(--topbar-sticky-height) + 12px) 0 18px;
 }

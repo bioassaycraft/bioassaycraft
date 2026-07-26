@@ -1064,7 +1064,7 @@ select {
   --accent-border: var(--bc-accent-border);
   --focus-ring: var(--bc-focus-ring);
   --danger: var(--bc-danger);
-  width: min(1280px, calc(100% - var(--bc-container-inline, 48px)));
+  width: min(var(--bc-content-max), calc(100% - var(--bc-container-inline, 48px)));
   min-height: 100svh;
   position: relative;
   padding: calc(var(--topbar-sticky-height) + 10px) 0 24px;

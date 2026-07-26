@@ -95,7 +95,7 @@ const emit = defineEmits(["set-language", "navigate-home"]);
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  width: min(1280px, calc(100% - var(--bc-container-inline, 48px)));
+  width: min(var(--bc-content-max), calc(100% - var(--bc-container-inline, 48px)));
   min-height: var(--topbar-sticky-height);
   margin: 0 auto;
 }

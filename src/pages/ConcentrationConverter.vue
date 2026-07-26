@@ -922,7 +922,7 @@ onBeforeUnmount(() => {
 }
 
 .concentration-converter {
-  width: min(1280px, calc(100% - var(--bc-container-inline, 48px)));
+  width: min(var(--bc-content-max), calc(100% - var(--bc-container-inline, 48px)));
   margin: 0 auto;
 }
 

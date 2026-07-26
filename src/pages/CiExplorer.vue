@@ -1136,7 +1136,7 @@ watch(intuitionStep, () => {
   --selected-bg: var(--bc-bg-selected);
   --card-shadow: var(--bc-shadow-card);
   position: relative;
-  width: min(1280px, calc(100% - var(--bc-container-inline, 48px)));
+  width: min(var(--bc-content-max), calc(100% - var(--bc-container-inline, 48px)));
   min-height: 100svh;
   margin: 0 auto;
   padding: calc(var(--topbar-sticky-height) + 10px) 0 36px;
@@ -1992,7 +1992,7 @@ input:focus-visible {
      by the advanced t-distribution chart. */
   .visual-workspace .axis-line,
   .visual-workspace .axis-tick line {
-    stroke-width: 1px;
+    stroke-width: 1.15px;
   }
 
   .visual-workspace .axis-tick text,
@@ -2003,25 +2003,25 @@ input:focus-visible {
   .visual-workspace .ci-endpoint,
   .visual-workspace .ci-label,
   .visual-workspace .unknown-parameter text {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .visual-workspace .spec-limit {
-    stroke-width: 1.2px;
+    stroke-width: 1.5px;
   }
 
   .visual-workspace .population-line {
-    stroke-width: 2px;
+    stroke-width: 2.6px;
   }
 
   .visual-workspace .population-line.is-unknown,
   .visual-workspace .unknown-parameter line {
-    stroke-width: 1px;
+    stroke-width: 1.2px;
   }
 
   .visual-workspace .precision-envelope {
-    stroke-width: 1.5px;
-    stroke-dasharray: 2px 4px;
+    stroke-width: 1.8px;
+    stroke-dasharray: 3px 5px;
   }
 
   .chart-summary {
@@ -2034,26 +2034,26 @@ input:focus-visible {
   }
 
   .sample-mark circle {
-    r: 4.2px;
-    stroke-width: 1.5px;
+    r: 5.8px;
+    stroke-width: 1.9px;
   }
 
   .bias-connector {
-    stroke-width: 1.3px;
+    stroke-width: 1.7px;
     stroke-dasharray: 5 6;
   }
 
   .chart-index-marker {
-    font-size: 10.5px;
+    font-size: 13px;
   }
 
   .visual-workspace .sample-mean-line {
-    stroke-width: 1.4px;
+    stroke-width: 1.8px;
   }
 
   .visual-workspace .ci-line,
   .visual-workspace .ci-cap {
-    stroke-width: 2px;
+    stroke-width: 2.5px;
   }
 
   .chart-legend {
@@ -2219,7 +2219,8 @@ input:focus-visible {
       "visual statistics";
     grid-template-columns: minmax(0, 1.36fr) minmax(340px, 0.64fr);
     grid-template-rows: minmax(0, 1fr) auto;
-    gap: 16px;
+    column-gap: 16px;
+    row-gap: 12px;
   }
 
   .workspace-grid > * {
@@ -2238,6 +2239,10 @@ input:focus-visible {
     grid-area: controls;
     align-self: stretch;
     min-height: 0;
+  }
+
+  .mobile-stat-card {
+    align-self: stretch;
   }
 
   .workspace-grid.has-decision-step {
@@ -2295,10 +2300,6 @@ input:focus-visible {
 }
 
 @media (min-width: 1200px) {
-  .content-anchor {
-    width: min(1240px, calc(100% - var(--bc-container-inline, 48px)));
-  }
-
   .question-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
