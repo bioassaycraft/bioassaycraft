@@ -19,7 +19,7 @@ const { locale: language, setLocale } = useLocale();
 const module = ref("single"),
   structure = ref("ideal"),
   residualType = ref("raw"),
-  view = ref("fitted"),
+  view = ref("dose"),
   varianceView = ref("scale"),
   transform = ref("raw"),
   weightMode = ref("unweighted"),
@@ -317,6 +317,16 @@ function drawDiagnostic() {
     .attr("class", "axis")
     .attr("transform", `translate(${m.left},0)`)
     .call(d3.axisLeft(y).ticks(5));
+  const plotClipId = "residual-diagnostic-plot-clip";
+  svg
+    .append("defs")
+    .append("clipPath")
+    .attr("id", plotClipId)
+    .append("rect")
+    .attr("x", m.left)
+    .attr("y", m.top)
+    .attr("width", width - m.left - m.right)
+    .attr("height", height - m.top - m.bottom);
   if (refLine !== null && refLine >= y.domain()[0] && refLine <= y.domain()[1])
     svg
       .append("line")
@@ -334,6 +344,7 @@ function drawDiagnostic() {
     svg
       .append("line")
       .attr("class", "qq-line")
+      .attr("clip-path", `url(#${plotClipId})`)
       .attr("x1", x.range()[0])
       .attr("x2", x.range()[1])
       .attr("y1", y(intercept + slope * x.domain()[0]))
@@ -408,7 +419,7 @@ watch([result, view, residualType, varianceView, language, selectedId], async ()
   drawDiagnostic();
 });
 watch(weightMode, (next) => {
-  if (next !== "unweighted") residualType.value = "standardized";
+  if (next !== "unweighted") residualType.value = "weighted";
 });
 onMounted(async () => {
   await nextTick();
