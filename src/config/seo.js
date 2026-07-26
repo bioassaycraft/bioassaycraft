@@ -12,7 +12,7 @@ const page = (path, title, description, options = {}) => ({
 export const seoPages = [
   page(
     "/",
-    "BioassayCraft | Bioassay reasoning, tools, and learning",
+    "BioassayCraft",
     "Interactive tools and learning modules for bioassay development, validation, and statistical reasoning.",
   ),
   page(
