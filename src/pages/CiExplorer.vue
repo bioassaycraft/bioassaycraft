@@ -2003,7 +2003,7 @@ input:focus-visible {
   .visual-workspace .ci-endpoint,
   .visual-workspace .ci-label,
   .visual-workspace .unknown-parameter text {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .visual-workspace .spec-limit {
@@ -2044,7 +2044,7 @@ input:focus-visible {
   }
 
   .chart-index-marker {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .visual-workspace .sample-mean-line {

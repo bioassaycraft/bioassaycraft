@@ -76,6 +76,12 @@
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 }
 
+@media (min-width: 1200px) {
+  :root {
+    --bc-container-max: 1280px;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --bc-bg-page: #0d1117;
