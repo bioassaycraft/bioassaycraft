@@ -685,7 +685,7 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
 .notes details {
   min-width: 0;
   border: 1px solid var(--soft-line);
-  border-radius: 10px;
+  border-radius: var(--bc-card-radius);
   background: var(--panel);
   box-shadow: var(--card-shadow);
   backdrop-filter: blur(14px);
@@ -705,7 +705,6 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 600;
-  text-transform: uppercase;
 }
 .section-heading h2,
 .result-panel h2,
@@ -830,7 +829,7 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   margin: 0;
   padding: 18px;
   border: 1px solid var(--accent-border);
-  border-radius: 8px;
+  border-radius: var(--bc-card-radius);
   color: var(--ink);
   background: linear-gradient(135deg, var(--accent-soft), transparent), var(--accent-soft);
   font-family: var(--font-mono, ui-monospace, monospace);
@@ -928,7 +927,7 @@ onBeforeUnmount(() => headerMorphObserver?.disconnect());
   padding: 14px;
   border: 1px solid var(--accent-border);
   border-left: 3px solid #4b7f62;
-  border-radius: 8px;
+  border-radius: var(--bc-card-radius);
   background: linear-gradient(135deg, rgba(75, 127, 98, 0.08), transparent), var(--panel);
 }
 .verdict.exceeds {

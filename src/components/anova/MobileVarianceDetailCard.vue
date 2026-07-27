@@ -153,7 +153,6 @@ const emit = defineEmits(["toggle-info"]);
     color: var(--muted, #6e7278);
     font-size: 0.58rem;
     font-weight: 700;
-    text-transform: uppercase;
   }
 
   .mobile-detail-grid dd {

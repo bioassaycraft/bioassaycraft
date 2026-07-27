@@ -1017,7 +1017,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   padding: 18px;
   border: 1px solid var(--soft-line);
-  border-radius: 10px;
+  border-radius: var(--bc-card-radius);
   background: var(--panel);
 }
 
@@ -1040,7 +1040,6 @@ onBeforeUnmount(() => {
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .workspace-title-row strong {
@@ -1157,7 +1156,7 @@ select:focus,
   margin: 0;
   padding: 19px 17px 17px;
   border: 1px solid var(--accent-border);
-  border-radius: 7px;
+  border-radius: var(--bc-card-radius);
   background: linear-gradient(135deg, var(--accent-soft), transparent), var(--accent-soft);
 }
 
@@ -1169,7 +1168,6 @@ select:focus,
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 600;
-  text-transform: uppercase;
 }
 
 .result-primary strong {
@@ -1231,7 +1229,6 @@ select:focus,
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 600;
-  text-transform: uppercase;
 }
 
 .result-grid dd {
@@ -1401,7 +1398,6 @@ select:focus,
     font-size: 0.58rem;
     font-weight: 700;
     line-height: 1;
-    text-transform: uppercase;
   }
 
   .mobile-unit-state-bar select {
@@ -1474,7 +1470,6 @@ select:focus,
     font-size: 0.62rem;
     font-weight: 700;
     line-height: 1.2;
-    text-transform: uppercase;
   }
 
   .mobile-converter-row input,

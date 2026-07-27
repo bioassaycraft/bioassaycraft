@@ -1076,7 +1076,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   padding: 16px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--bc-card-radius);
   background: var(--panel);
   box-shadow: var(--app-card-shadow);
 }
@@ -1094,7 +1094,6 @@ onBeforeUnmount(() => {
   color: var(--accent);
   font-size: 0.72rem;
   font-weight: 700;
-  text-transform: uppercase;
 }
 .basis-card {
   padding: 0;
@@ -1316,7 +1315,7 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   padding: 0 11px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--bc-control-radius);
   background: var(--panel-soft);
   color: var(--ink);
   font-family: "IBM Plex Mono", monospace;
@@ -1693,6 +1692,11 @@ onBeforeUnmount(() => {
     font-size: 0.9rem;
   }
 
+  .mean-flow:not(.rsd-flow) > .sample-card .sd-sample-fields input,
+  .rsd-flow > .sample-card .sample-fields input {
+    font-size: 0.78rem;
+  }
+
   .mean-flow:not(.rsd-flow) > .confidence-card .parameter-grid {
     padding: 6px;
   }
@@ -1987,7 +1991,7 @@ onBeforeUnmount(() => {
   .sample-fields input {
     min-height: 36px;
     padding: 0 8px;
-    border-radius: 9px;
+    border-radius: var(--bc-control-radius);
     font-size: 0.66rem;
   }
   .t-chart-card svg {

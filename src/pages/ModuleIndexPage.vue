@@ -352,7 +352,7 @@ const navigateTo = (to, event) => {
   padding: 14px 14px 14px 16px;
   color: var(--app-text);
   border: 1px solid var(--app-rule-subtle);
-  border-radius: 16px;
+  border-radius: var(--bc-card-radius);
   background: var(--app-glass);
   box-shadow:
     0 4px 14px color-mix(in srgb, var(--app-text) 3%, transparent),
@@ -488,7 +488,7 @@ const navigateTo = (to, event) => {
   .module-list-item {
     min-height: 144px;
     padding: 16px 18px 17px;
-    border-radius: 18px;
+    border-radius: var(--bc-card-radius);
     align-content: space-between;
   }
   .module-list-copy {

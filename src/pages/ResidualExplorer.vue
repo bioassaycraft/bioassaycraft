@@ -551,7 +551,10 @@ onBeforeUnmount(() => {
               <option value="inverse2">{{ copy.inverse2 }}</option>
               <option value="power">{{ copy.powerWeight }}</option>
             </select></label>
-            <div class="setup-dynamic-slot">
+            <div
+              class="setup-dynamic-slot"
+              :class="{ 'has-dynamic-control': transform === 'boxcox' || weightMode === 'power' }"
+            >
               <label v-if="transform === 'boxcox'"><span>{{ copy.boxCoxLambda }} <output>{{ n(parameters.boxCoxLambda) }}</output></span><input
                 type="range"
                 :value="parameters.boxCoxLambda"
@@ -665,7 +668,6 @@ onBeforeUnmount(() => {
   color: var(--muted);
   font-size: 0.59rem;
   font-weight: 600;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 .fit-formula-summary > i {
@@ -685,6 +687,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .residual-explorer {
+  --residual-card-radius: var(--bc-card-radius);
   --ink: var(--bc-text-primary, #171717);
   --muted: var(--bc-text-secondary, #6e7278);
   --panel: var(--bc-bg-surface-elevated, #fff);
@@ -716,7 +719,7 @@ onBeforeUnmount(() => {
 .panel,
 .switch-card {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--residual-card-radius);
   background: var(--panel);
   box-shadow: var(--bc-shadow-card, 0 8px 22px rgba(23, 23, 23, 0.024));
 }
@@ -741,7 +744,6 @@ onBeforeUnmount(() => {
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 .segmented {
@@ -1129,7 +1131,6 @@ select {
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 600;
-  text-transform: uppercase;
 }
 .module-group {
   opacity: 0.78;
@@ -1184,7 +1185,7 @@ select {
   min-width: 0;
   height: var(--teaching-panel-height);
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--residual-card-radius);
   background: var(--panel);
 }
 .visual-panel.chart-panel {
@@ -1435,7 +1436,7 @@ select {
   .visual-panel.chart-panel,
   .insight-panel.controls {
     padding: 12px;
-    border-radius: 16px;
+    border-radius: var(--residual-card-radius);
   }
   .chart-legend {
     display: none;
@@ -1457,7 +1458,7 @@ select {
 .diagnostics {
   margin-top: 12px;
   padding: 14px 16px 12px;
-  border-radius: 10px;
+  border-radius: var(--residual-card-radius);
 }
 .diagnostic-head {
   display: flex;
@@ -1477,7 +1478,6 @@ select {
   font-weight: 650;
   letter-spacing: 0.04em;
   line-height: 1.1;
-  text-transform: uppercase;
 }
 .diagnostic-title strong {
   color: var(--ink);
@@ -1558,7 +1558,7 @@ select {
   min-height: 78px;
   padding: 12px 14px;
   align-content: start;
-  border-radius: 10px;
+  border-radius: var(--residual-card-radius);
 }
 .diagnosis > span {
   color: var(--muted);
@@ -1566,7 +1566,6 @@ select {
   font-weight: 650;
   letter-spacing: 0.04em;
   line-height: 1.1;
-  text-transform: uppercase;
 }
 .diagnosis strong {
   color: var(--ink);
@@ -1624,7 +1623,7 @@ select {
   min-height: 124px;
   padding: 12px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--residual-card-radius);
   background: var(--panel);
 }
 .module-group {
@@ -1701,7 +1700,6 @@ select {
   color: var(--muted);
   font-size: 0.63rem;
   font-weight: 600;
-  text-transform: uppercase;
 }
 .fit-information dd {
   margin: 0;
@@ -1775,7 +1773,7 @@ select {
   .module-group,
   .setup-card {
     padding: 12px;
-    border-radius: 12px;
+    border-radius: var(--residual-card-radius);
   }
   .setup-fields,
   .fit-options {
@@ -1817,10 +1815,11 @@ select {
 }
 .setup-card {
   min-height: 0;
+  align-self: start;
   padding: 16px 14px 14px;
   gap: 14px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--residual-card-radius);
   background: var(--panel);
 }
 .setup-card .setup-fields {
@@ -1858,6 +1857,9 @@ select {
 }
 .setup-dynamic-slot {
   grid-column: 1/-1;
+  min-height: 0;
+}
+.setup-dynamic-slot.has-dynamic-control {
   min-height: 42px;
 }
 .setup-dynamic-slot label {
@@ -1875,11 +1877,15 @@ select {
 .fit-information {
   min-height: 0;
   height: auto;
+  align-self: start;
   gap: 7px;
   padding: 11px 12px;
   border-color: var(--line);
   background: var(--panel);
   box-shadow: var(--bc-shadow-card, 0 8px 22px rgba(23, 23, 23, 0.024));
+}
+.fit-formula-summary {
+  border-bottom: 0;
 }
 .fit-information > dl,
 .parameter-list dl {
@@ -1904,7 +1910,6 @@ select {
 }
 .fit-parameter-grid > div {
   padding-top: 2px;
-  border-top: 1px solid var(--soft-line);
 }
 .fit-parameter-grid dt {
   font-size: 0.58rem;
@@ -1939,10 +1944,6 @@ select {
     grid-template-columns: 1.25fr 0.75fr;
     grid-template-rows: none;
   }
-  .setup-card,
-  .fit-information {
-    min-height: 200px;
-  }
 }
 @media (max-width: 767px) {
   .fit-sidebar {
@@ -1964,6 +1965,18 @@ select {
   }
   .diagnosis {
     min-height: 64px;
+  }
+}
+@media (min-width: 768px) {
+  .setup-card,
+  .fit-information {
+    align-self: stretch;
+  }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .setup-card,
+  .fit-information {
+    min-height: 200px;
   }
 }
 @media (prefers-color-scheme: dark) {

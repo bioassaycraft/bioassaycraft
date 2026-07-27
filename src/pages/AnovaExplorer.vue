@@ -1780,6 +1780,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .anova-explorer {
+  --anova-card-radius: var(--bc-card-radius);
   --topbar-sticky-height: 48px;
   --paper: var(--bc-bg-page);
   --ink: var(--bc-text-primary);
@@ -1844,7 +1845,7 @@ button {
   gap: 4px;
   padding: 2px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--bc-control-radius);
   background: var(--panel-soft);
 }
 
@@ -1852,7 +1853,7 @@ button {
 .step-control button {
   min-height: 28px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--bc-control-radius);
   background: transparent;
   color: var(--muted);
   font-size: 0.66rem;
@@ -1943,7 +1944,6 @@ button {
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .parameter-strip {
@@ -1954,7 +1954,7 @@ button {
   margin-top: 8px;
   padding: 8px 10px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--anova-card-radius);
   background: var(--panel);
 }
 
@@ -1970,7 +1970,6 @@ button {
   color: var(--muted);
   font-size: 0.64rem;
   font-weight: 600;
-  text-transform: uppercase;
 }
 
 .quiet-button {
@@ -2072,7 +2071,7 @@ button {
   min-width: 0;
   height: var(--teaching-panel-height);
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--anova-card-radius);
   background: var(--panel);
 }
 
@@ -2189,7 +2188,6 @@ button {
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 600;
-  text-transform: uppercase;
 }
 
 .model-facts dd {
@@ -2312,7 +2310,7 @@ button {
   margin-top: 10px;
   padding: 10px 12px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--anova-card-radius);
   background: var(--panel);
 }
 
@@ -2587,7 +2585,7 @@ button {
     --mobile-slider-height: 24px;
     --mobile-chart-aspect-ratio: 16 / 9;
     --mobile-bar-gap: 0px;
-    --mobile-card-radius: 16px;
+    --mobile-card-radius: var(--anova-card-radius);
     --mobile-card-border: var(--bc-border-subtle);
     --mobile-card-bg: var(--bc-bg-glass);
     --mobile-shadow: var(--bc-shadow-card);

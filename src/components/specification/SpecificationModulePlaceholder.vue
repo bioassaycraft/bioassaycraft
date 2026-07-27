@@ -29,7 +29,7 @@ defineProps({
   min-width: 0;
   padding: 18px;
   border: 1px solid var(--soft-line);
-  border-radius: 10px;
+  border-radius: var(--bc-card-radius);
   background: var(--panel);
   box-shadow: var(--card-shadow);
 }

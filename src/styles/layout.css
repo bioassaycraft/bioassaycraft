@@ -51,6 +51,101 @@ a,
   touch-action: manipulation;
 }
 
+/* Desktop geometry follows semantic roles rather than one universal rounded rectangle. */
+@media (min-width: 768px) {
+  :where(
+    .page-main,
+    .anova-explorer,
+    .ci-explorer,
+    .residual-explorer,
+    .concentration-converter,
+    .cfd-calculator,
+    .spec-limit-calculator
+  ) :is(
+    button:not(.mobile-info-button),
+    input:not([type="radio"]):not([type="checkbox"]),
+    select,
+    textarea
+  ) {
+    border-radius: var(--bc-control-radius) !important;
+  }
+
+  :where(
+    .page-main,
+    .anova-explorer,
+    .ci-explorer,
+    .residual-explorer,
+    .concentration-converter,
+    .cfd-calculator,
+    .spec-limit-calculator
+  ) :is(
+    .segmented,
+    .segmented-control,
+    .step-control,
+    .section-tabs,
+    .desktop-step-tabs,
+    .mode-switch
+  ) {
+    border-radius: var(--bc-group-radius) !important;
+  }
+
+  :where(
+    .page-main,
+    .anova-explorer,
+    .ci-explorer,
+    .residual-explorer,
+    .concentration-converter,
+    .cfd-calculator,
+    .spec-limit-calculator
+  ) :is(
+    .formula-panel,
+    .fit-formula-summary,
+    .desktop-question-intro,
+    .parameter-grid,
+    .mini-stats div,
+    .warning,
+    .result-focus,
+    .reporting-result,
+    .timeline-node,
+    .cfd-value,
+    .verdict,
+    .question-intro,
+    .question-card,
+    .module-parameter-card
+  ) {
+    border-radius: var(--bc-panel-radius) !important;
+  }
+
+  :where(
+    .page-main,
+    .anova-explorer,
+    .ci-explorer,
+    .residual-explorer,
+    .concentration-converter,
+    .cfd-calculator,
+    .spec-limit-calculator
+  ) :is(
+    .workspace-pane,
+    .result-primary,
+    .input-panel,
+    .result-panel,
+    .comparison-panel,
+    .notes details,
+    .ci-card,
+    .visual-workspace,
+    .control-panel,
+    .decision-flow,
+    .application-content,
+    .coming-soon-card,
+    .result-card,
+    .principle-card,
+    .product-card,
+    .specification-card
+  ) {
+    border-radius: var(--bc-card-radius) !important;
+  }
+}
+
 .page-shell {
   display: grid;
   min-height: 100svh;

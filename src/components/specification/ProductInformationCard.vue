@@ -20,7 +20,7 @@ const copyMap = {
     title: "Product Information",
     route: "Administration Route",
     maximumDose: "Maximum Dose",
-    doseUnit: "Dose Unit",
+    doseUnit: "Dose Unit (per dose)",
     bodyWeight: "Body Weight",
     frequency: "Maximum Administration within 1 Hour",
     concentration: "Product Concentration",
@@ -46,16 +46,16 @@ const copyMap = {
       custom: "Custom",
     },
     doseUnitLabels: {
-      mgDose: "mg/dose",
-      mgKgDose: "mg/kg/dose",
-      mLDose: "mL/dose",
+      mgDose: "mg",
+      mgKgDose: "mg/kg",
+      mLDose: "mL",
     },
   },
   zh: {
     title: "产品信息",
     route: "给药途径",
     maximumDose: "最大给药剂量",
-    doseUnit: "剂量单位",
+    doseUnit: "剂量单位（每 dose）",
     bodyWeight: "体重",
     frequency: "1 小时内最大给药次数",
     concentration: "产品浓度",
@@ -78,9 +78,9 @@ const copyMap = {
       custom: "自定义",
     },
     doseUnitLabels: {
-      mgDose: "mg/dose",
-      mgKgDose: "mg/kg/dose",
-      mLDose: "mL/dose",
+      mgDose: "mg",
+      mgKgDose: "mg/kg",
+      mLDose: "mL",
     },
   },
 };
@@ -236,7 +236,7 @@ function normalizeFrequency(event) {
   min-width: 0;
   padding: 18px;
   border: 1px solid var(--soft-line);
-  border-radius: 10px;
+  border-radius: var(--bc-card-radius);
   background: var(--panel);
   box-shadow: var(--card-shadow);
   backdrop-filter: blur(14px);
@@ -267,7 +267,6 @@ function normalizeFrequency(event) {
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .tooltip-label {

@@ -350,19 +350,19 @@ onBeforeUnmount(() => {
         :aria-labelledby="`mobile-${group.key}-title`"
       >
         <div class="mobile-section-heading">
-          <div class="mobile-section-title-row">
+          <div class="mobile-section-copy">
             <h2 :id="`mobile-${group.key}-title`">{{ groupTitle(group) }}</h2>
-            <a
-              v-if="group.key !== 'journey'"
-              class="mobile-view-all"
-              :href="group.key === 'learn' ? '/learn/' : '/tools/'"
-              :aria-label="`${copy.viewAll} ${groupTitle(group)}`"
-              @click="navigateTo(group.key === 'learn' ? '/learn/' : '/tools/', $event)"
-            >
-              {{ copy.viewAll }} <span aria-hidden="true">›</span>
-            </a>
+            <p>{{ groupNote(group) }}</p>
           </div>
-          <p>{{ groupNote(group) }}</p>
+          <a
+            v-if="group.key !== 'journey'"
+            class="mobile-view-all"
+            :href="group.key === 'learn' ? '/learn/' : '/tools/'"
+            :aria-label="`${copy.viewAll} ${groupTitle(group)}`"
+            @click="navigateTo(group.key === 'learn' ? '/learn/' : '/tools/', $event)"
+          >
+            {{ copy.viewAll }} <span aria-hidden="true">›</span>
+          </a>
         </div>
 
         <div

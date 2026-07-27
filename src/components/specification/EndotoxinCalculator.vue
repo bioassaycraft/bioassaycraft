@@ -583,7 +583,7 @@ onMounted(() => {
   min-width: 0;
   padding: 16px;
   border: 1px solid var(--soft-line);
-  border-radius: 10px;
+  border-radius: var(--bc-card-radius);
   background: var(--panel);
   box-shadow: var(--card-shadow);
   backdrop-filter: blur(14px);
@@ -622,7 +622,6 @@ h2 {
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .numeric-input,
@@ -696,7 +695,7 @@ select:focus,
   place-items: center;
   padding: 18px;
   border: 1px solid var(--accent-border);
-  border-radius: 8px;
+  border-radius: var(--bc-card-radius);
   background: linear-gradient(135deg, var(--accent-soft), transparent), var(--accent-soft);
 }
 
@@ -770,7 +769,7 @@ select:focus,
   margin-left: 32px;
   padding: 11px 13px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--bc-card-radius);
   background: var(--panel);
   box-shadow: var(--card-shadow);
 }
@@ -888,7 +887,7 @@ select:focus,
   gap: 7px;
   padding: 14px;
   border: 1px solid var(--accent-border);
-  border-radius: 8px;
+  border-radius: var(--bc-card-radius);
   background: linear-gradient(135deg, var(--accent-soft), transparent), var(--accent-soft);
 }
 
@@ -897,7 +896,6 @@ select:focus,
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .reporting-result strong {

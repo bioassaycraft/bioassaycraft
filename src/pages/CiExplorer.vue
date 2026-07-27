@@ -36,6 +36,7 @@ const populationMean = ref(100);
 const targetBias = ref(4);
 const spread = ref(1);
 const seed = ref(41);
+const maximumConfidenceLevel = 0.99999;
 const confidenceLevel = ref(0.95);
 const highlightedSample = ref(null);
 const isDesktopViewport = () =>
@@ -419,7 +420,9 @@ const sampleValues = computed(() => teachingSample.value.values);
 const sampleMean = computed(() => mean(sampleValues.value));
 const sampleSd = computed(() => sampleStandardDeviation(sampleValues.value));
 const sampleRsd = computed(() => cv(sampleValues.value));
-const effectiveConfidenceLevel = computed(() => Math.min(confidenceLevel.value, 0.999));
+const effectiveConfidenceLevel = computed(() =>
+  Math.min(confidenceLevel.value, maximumConfidenceLevel),
+);
 const ci = computed(() => confidenceInterval(sampleValues.value, effectiveConfidenceLevel.value));
 const mainStats = computed(() => [
   { label: copy.value.n, value: sampleValues.value.length },
@@ -505,7 +508,11 @@ function formatNumber(value, digits = 2) {
 }
 
 function formatPercent(value) {
-  return `${Math.round(value * 100)}%`;
+  const percentage = value * 100;
+  const formatted = Number.isInteger(percentage)
+    ? percentage
+    : percentage.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  return `${formatted}%`;
 }
 
 function setSection(section, scroll = true) {
@@ -557,7 +564,7 @@ function updateConfidence(event) {
 }
 
 function scrollIntuitionToStart() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !isDesktopViewport()) return;
   nextTick(() => {
     contentRoot.value?.scrollIntoView({ behavior: "auto", block: "start" });
   });
@@ -855,10 +862,10 @@ watch(intuitionStep, () => {
                   <rect
                     class="precision-envelope"
                     :x="precisionEnvelope.x"
-                    y="104"
+                    y="112"
                     :width="precisionEnvelope.width"
-                    height="78"
-                    rx="24"
+                    height="62"
+                    rx="12"
                   ></rect>
 
                   <g
@@ -882,7 +889,7 @@ watch(intuitionStep, () => {
 
                   <line
                     :x1="xScale(sampleMean)"
-                    y1="104"
+                    y1="112"
                     :x2="xScale(sampleMean)"
                     y2="300"
                     class="sample-mean-line"
@@ -900,15 +907,31 @@ watch(intuitionStep, () => {
                     <g class="bias-annotation">
                       <line
                         :x1="xScale(populationMean)"
-                        y1="246"
+                        y1="262"
                         :x2="xScale(sampleMean)"
-                        y2="246"
+                        y2="262"
                         class="bias-connector"
                       ></line>
                       <text
                         :x="biasMarkerX"
-                        y="270"
-                        class="chart-index-marker"
+                        y="282"
+                        class="bias-label"
+                        text-anchor="middle"
+                      >
+                        {{ copy.biasAccuracyLabel }}
+                      </text>
+                      <text
+                        :x="precisionEnvelope.x + precisionEnvelope.width / 2"
+                        y="194"
+                        class="precision-label"
+                        text-anchor="middle"
+                      >
+                        {{ copy.deviationPrecisionLabel }}
+                      </text>
+                      <text
+                        :x="biasMarkerX"
+                        y="284"
+                        class="chart-index-marker mobile-chart-index-marker"
                         text-anchor="middle"
                       >
                         ①
@@ -916,7 +939,7 @@ watch(intuitionStep, () => {
                       <text
                         :x="deviationMarkerX"
                         y="148"
-                        class="chart-index-marker"
+                        class="chart-index-marker mobile-chart-index-marker"
                         text-anchor="middle"
                       >
                         ②
@@ -925,6 +948,14 @@ watch(intuitionStep, () => {
                   </template>
 
                   <template v-if="intuitionStep === 3">
+                    <rect
+                      :x="xScale(ci.lower)"
+                      y="211"
+                      :width="xScale(ci.upper) - xScale(ci.lower)"
+                      height="14"
+                      rx="7"
+                      class="ci-band"
+                    ></rect>
                     <line
                       :x1="xScale(ci.lower)"
                       y1="218"
@@ -946,6 +977,14 @@ watch(intuitionStep, () => {
                       y2="230"
                       class="ci-cap"
                     ></line>
+                    <text
+                      :x="(xScale(ci.lower) + xScale(ci.upper)) / 2"
+                      y="242"
+                      class="ci-label"
+                      text-anchor="middle"
+                    >
+                      {{ formatPercent(confidenceLevel) }} {{ copy.ciLabel }}
+                    </text>
                   </template>
                 </svg>
                 <div v-if="intuitionStep <= 3" class="chart-legend">
@@ -1021,9 +1060,9 @@ watch(intuitionStep, () => {
                   <input
                     type="range"
                     min="50"
-                    max="100"
-                    step="1"
-                    :value="Math.round(confidenceLevel * 100)"
+                    :max="maximumConfidenceLevel * 100"
+                    step="0.001"
+                    :value="confidenceLevel * 100"
                     @input="updateConfidence"
                   />
                 </label>
@@ -1160,7 +1199,6 @@ watch(intuitionStep, () => {
   margin: 0;
   font-size: 0.72rem;
   font-weight: 650;
-  text-transform: uppercase;
 }
 
 .ci-mobile-sticky-header {
@@ -1215,7 +1253,6 @@ watch(intuitionStep, () => {
   font-size: 0.68rem;
   font-weight: 600;
   line-height: 1;
-  text-transform: uppercase;
 }
 
 .section-tabs,
@@ -1227,7 +1264,7 @@ watch(intuitionStep, () => {
   width: 100%;
   padding: 2px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--bc-control-radius);
   background: var(--panel-soft);
 }
 
@@ -1260,7 +1297,7 @@ watch(intuitionStep, () => {
 .desktop-step-tabs button {
   min-width: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--bc-control-radius);
   background: transparent;
   color: var(--muted);
   font-size: 0.68rem;
@@ -1375,7 +1412,7 @@ select {
   min-height: 30px;
   padding: 0 7px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--bc-control-radius);
   font-size: 0.68rem;
   line-height: 1;
 }
@@ -1384,7 +1421,7 @@ select {
   min-height: 30px;
   padding: 0 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--bc-control-radius);
   font-size: 0.68rem;
   line-height: 1;
 }
@@ -1448,7 +1485,7 @@ input:focus-visible {
 .question-intro,
 .question-card {
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--bc-card-radius);
   background: var(--panel);
   box-shadow: var(--card-shadow);
 }
@@ -1516,10 +1553,10 @@ input:focus-visible {
 }
 
 .precision-envelope {
-  fill: transparent;
-  stroke: rgba(36, 86, 179, 0.36);
-  stroke-width: 2;
-  stroke-dasharray: 2 5;
+  fill: color-mix(in srgb, var(--muted) 5%, transparent);
+  stroke: color-mix(in srgb, var(--muted) 32%, transparent);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 6;
 }
 
 .sample-mark {
@@ -1528,15 +1565,15 @@ input:focus-visible {
 
 .sample-mark line,
 .sample-rug line {
-  stroke: var(--accent);
+  stroke: var(--muted);
   stroke-width: 1.4;
   opacity: 0.64;
 }
 
 .sample-mark circle {
   fill: var(--paper);
-  stroke: var(--accent);
-  stroke-width: 2;
+  stroke: var(--muted);
+  stroke-width: 1.5;
 }
 
 .sample-mark.is-highlighted circle,
@@ -1550,23 +1587,46 @@ input:focus-visible {
 }
 
 .bias-connector {
-  stroke: var(--accent);
-  stroke-dasharray: 5 5;
+  stroke: var(--muted);
+  stroke-dasharray: 4 5;
   stroke-linecap: round;
-  stroke-width: 1.6;
+  stroke-width: 1.2;
+}
+
+.bias-label,
+.precision-label {
+  fill: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mobile-chart-index-marker {
+  display: none;
 }
 
 .chart-index-marker {
   fill: var(--accent);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
+}
+
+.ci-band {
+  fill: color-mix(in srgb, var(--bc-accent-strong, #315fba) 12%, transparent);
 }
 
 .ci-line,
 .ci-cap {
-  stroke: var(--ink);
-  stroke-width: 3;
+  stroke: var(--bc-accent-strong, #315fba);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.ci-label {
+  fill: var(--bc-accent-strong, #315fba);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .chart-summary {
@@ -1637,7 +1697,7 @@ input:focus-visible {
   gap: 4px;
   padding: 12px;
   border: 1px solid var(--soft-line);
-  border-radius: 8px;
+  border-radius: var(--bc-card-radius);
   color: var(--muted);
   line-height: 1.5;
 }
@@ -1873,7 +1933,6 @@ input:focus-visible {
   color: var(--accent);
   font-size: 0.72rem;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 .coming-soon-card h3,
@@ -1957,6 +2016,10 @@ input:focus-visible {
 }
 
 @media (min-width: 768px) {
+  .content-anchor {
+    padding-top: 12px;
+  }
+
   .step-heading,
   .step-nav {
     display: none;
@@ -2011,7 +2074,7 @@ input:focus-visible {
   }
 
   .visual-workspace .population-line {
-    stroke-width: 2.6px;
+    stroke-width: 1.8px;
   }
 
   .visual-workspace .population-line.is-unknown,
@@ -2020,8 +2083,8 @@ input:focus-visible {
   }
 
   .visual-workspace .precision-envelope {
-    stroke-width: 1.8px;
-    stroke-dasharray: 3px 5px;
+    stroke-width: 1px;
+    stroke-dasharray: 3px 6px;
   }
 
   .chart-summary {
@@ -2034,33 +2097,35 @@ input:focus-visible {
   }
 
   .sample-mark circle {
-    r: 5.8px;
-    stroke-width: 1.9px;
+    r: 5.2px;
+    stroke-width: 1.4px;
   }
 
   .bias-connector {
-    stroke-width: 1.7px;
-    stroke-dasharray: 5 6;
+    stroke-width: 1px;
+    stroke-dasharray: 4 5;
   }
 
-  .chart-index-marker {
-    font-size: 12px;
+  .bias-label,
+  .precision-label {
+    font-size: 10px;
   }
 
   .visual-workspace .sample-mean-line {
-    stroke-width: 1.8px;
+    stroke-width: 1.4px;
   }
 
   .visual-workspace .ci-line,
   .visual-workspace .ci-cap {
-    stroke-width: 2.5px;
+    stroke-width: 1.5px;
+  }
+
+  .visual-workspace .ci-label {
+    font-size: 10px;
   }
 
   .chart-legend {
-    gap: 6px 10px;
-    margin-top: 8px;
-    font-size: 0.62rem;
-    line-height: 1.25;
+    display: none;
   }
 
   .control-panel {
@@ -2147,7 +2212,6 @@ input:focus-visible {
     font-size: 0.64rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    text-transform: uppercase;
   }
 
   .mobile-slider-stack .range-control strong,
@@ -2179,7 +2243,7 @@ input:focus-visible {
     gap: 10px;
     padding: 14px;
     border: 1px solid var(--soft-line);
-    border-radius: 8px;
+    border-radius: var(--bc-card-radius);
     background: var(--panel);
     box-shadow: var(--card-shadow);
   }
@@ -2421,7 +2485,7 @@ input:focus-visible {
   .unknown-card,
   .contrast-card,
   .decision-class {
-    border-radius: var(--mobile-glass-radius, 14px);
+    border-radius: var(--bc-card-radius);
   }
 
   .question-intro p,
@@ -2518,8 +2582,19 @@ input:focus-visible {
     stroke-dasharray: 5 6;
   }
 
-  .chart-index-marker {
-    font-size: 16px;
+  .bias-label,
+  .precision-label,
+  .ci-label {
+    display: none;
+  }
+
+  .ci-line,
+  .ci-cap {
+    stroke-width: 1.7px;
+  }
+
+  .mobile-chart-index-marker {
+    display: block;
   }
 
   .chart-legend {
@@ -2585,7 +2660,6 @@ input:focus-visible {
     font-size: 0.58rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    text-transform: uppercase;
   }
 
   .mobile-slider-stack .range-control strong {

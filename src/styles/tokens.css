@@ -13,4 +13,16 @@
   --app-accent-soft: var(--bc-accent-soft, rgba(36, 86, 179, 0.08));
   --app-focus: var(--bc-focus-ring, rgba(36, 86, 179, 0.16));
   --app-card-shadow: var(--bc-shadow-card, 0 8px 22px rgba(23, 23, 23, 0.024));
+  --bc-card-radius: 16px;
+  --bc-control-radius: var(--bc-card-radius);
+  --bc-group-radius: var(--bc-control-radius);
+  --bc-panel-radius: var(--bc-control-radius);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --bc-control-radius: 10px;
+    --bc-group-radius: 12px;
+    --bc-panel-radius: 12px;
+  }
 }
