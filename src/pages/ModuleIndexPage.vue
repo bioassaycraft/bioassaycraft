@@ -549,6 +549,9 @@ const navigateTo = (to, event) => {
   .module-index-page :deep(.tool-topbar) {
     display: none;
   }
+  .module-index-mobile-header {
+    display: grid;
+  }
   .module-index-content {
     padding-top: 16px;
   }
@@ -568,7 +571,7 @@ const navigateTo = (to, event) => {
     display: block !important;
   }
   .module-search-sticky {
-    top: 36px;
+    top: calc(max(env(safe-area-inset-top), 18px) + 44px);
     margin: 0 -8px;
     padding: 10px 8px;
   }

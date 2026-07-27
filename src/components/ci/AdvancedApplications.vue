@@ -1343,7 +1343,7 @@ onBeforeUnmount(() => {
   grid-column: 2;
 }
 .mean-sample-fields .sample-size-field > small {
-  text-align: right;
+  text-align: left;
 }
 .mean-sample-fields .sample-measure-row > label,
 .rsd-flow .sample-measure-row > label {
@@ -1979,6 +1979,10 @@ onBeforeUnmount(() => {
   }
   .sample-size-field small {
     grid-column: 1 / -1;
+  }
+  .mean-sample-fields .sample-size-field > small {
+    grid-column: 2;
+    text-align: left;
   }
   .sample-fields input {
     min-height: 36px;
