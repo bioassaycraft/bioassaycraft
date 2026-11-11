@@ -85,6 +85,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bc-bg-page: #0d1117;
+    --bc-bg-section: #161b22;
     --bc-bg-surface: #161b22;
     --bc-bg-surface-solid: #161b22;
     --bc-bg-surface-elevated: #21262d;

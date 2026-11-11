@@ -11,6 +11,24 @@ export const moduleCategories = {
 
 export const modules = [
   {
+    id: "target-to-assay-explorer",
+    type: "explore",
+    route: "/learn/target-to-assay-explorer/",
+    status: "ready",
+    featured: true,
+    homeOrder: 4,
+    listOrder: 4,
+    category: "methodDevelopment",
+    title: { zh: "探索靶点方法", en: "Target-to-Assay Explorer" },
+    homeTitle: { zh: "探索靶点方法", en: "Target-to-Assay Explorer" },
+    description: {
+      zh: "从靶点组合查找药物与证据。",
+      en: "Find drugs and evidence through target combinations.",
+    },
+    keywords: ["target", "assay", "CD3", "CD19", "CD20", "靶点", "药物", "方法"],
+    tags: ["development", "evidence"],
+  },
+  {
     id: "anova-explorer",
     type: "explore",
     route: "/learn/anova-explorer/",
@@ -81,8 +99,8 @@ export const modules = [
     type: "explore",
     status: "planned",
     featured: true,
-    homeOrder: 4,
-    listOrder: 4,
+    homeOrder: 5,
+    listOrder: 5,
     category: "statisticalInference",
     title: { zh: "探索方法验证", en: "Explore Method Validation" },
     homeTitle: { zh: "探索方法验证", en: "Explore validation" },
@@ -231,7 +249,7 @@ export const getFeaturedModules = (type) =>
   getModules(type)
     .filter((module) => module.featured)
     .sort((a, b) => a.homeOrder - b.homeOrder)
-    .slice(0, 4);
+    .slice(0, type === "explore" ? 5 : 4);
 
 export const getLuckyModules = () =>
   modules.filter((module) => module.status === "ready" && module.route);

@@ -7,6 +7,7 @@ describe("module registry", () => {
       "anova-explorer",
       "ci-explorer",
       "residual-explorer",
+      "target-to-assay-explorer",
       "validation-explorer",
     ]);
     expect(getFeaturedModules("tools")).toHaveLength(4);
