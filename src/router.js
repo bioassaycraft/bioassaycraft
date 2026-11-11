@@ -15,6 +15,10 @@ export const routes = [
   { path: "/learn/anova-explorer/", component: AnovaExplorer },
   { path: "/learn/ci-explorer/", component: CiExplorer },
   { path: "/learn/residual-explorer/", component: ResidualExplorer },
+  {
+    path: "/learn/target-to-assay-explorer/",
+    component: () => import("./pages/TargetToAssayExplorer.vue"),
+  },
   { path: "/tools/converter/", component: ConcentrationConverter },
   { path: "/tools/cfd-calculator/", component: CfdCalculator },
   { path: "/tools/specification-limit-calculator/", component: SpecificationLimitCalculator },

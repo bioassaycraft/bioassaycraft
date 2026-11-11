@@ -51,6 +51,11 @@ export const seoPages = [
     "Convert scientific concentration units for bioassay work.",
   ),
   page(
+    "/learn/target-to-assay-explorer/",
+    "Target-to-Assay Explorer | BioassayCraft",
+    "Explore target combinations, a source-backed drug starter catalog, and regulatory evidence.",
+  ),
+  page(
     "/tools/cfd-calculator/",
     "CFD Critical Fold Difference Calculator | BioassayCraft",
     "Calculate critical fold difference from validation variance components.",
