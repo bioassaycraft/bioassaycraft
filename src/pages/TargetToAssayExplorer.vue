@@ -239,6 +239,13 @@ const chemblKey = computed(() =>
     .join(","),
 );
 const chemblResults = ref({});
+const openApprovals = ref(null);
+function toggleApprovals(key) {
+  openApprovals.value = openApprovals.value === key ? null : key;
+}
+watch(result, () => {
+  openApprovals.value = null;
+});
 const overviewCards = computed(() =>
   overviewScopes.value.map((scope) => {
     const sample = overviewSample.value.filter((drug) => scope.drugs.includes(drug));
@@ -253,6 +260,13 @@ const overviewCards = computed(() =>
     return {
       ...scope,
       mechanisms: summarizeMechanisms(scope.drugs),
+      approvedDrugs: scope.drugs
+        .filter((drug) => (drug.clinicalStage || "APPROVAL") === "APPROVAL")
+        .map((drug) => ({
+          drug,
+          profile: researchProfile(drug),
+          mechanisms: summarizeMechanisms([drug]),
+        })),
       stages: [...stages].sort(([a], [b]) => a.localeCompare(b)),
       profiles: scope.drugs.map(researchProfile).filter(Boolean),
       indications: rows
@@ -330,15 +344,6 @@ function confirmTarget(candidate) {
   resolutions.value = { ...resolutions.value, [error.value.input]: candidate.id };
   submit();
 }
-function example() {
-  controller?.abort();
-  input.value = "CD3 × CD20";
-  submitted.value = input.value;
-  data.value = sampleCatalog;
-  activeKey.value = "CD3|CD20";
-  mode.value = "sample";
-  error.value = null;
-}
 async function loadDocuments(drug) {
   if (["loading", "loaded", "empty"].includes(documentState.value[drug.id])) return;
   documentState.value[drug.id] = "loading";
@@ -383,6 +388,7 @@ async function loadTrials(drug) {
       @set-language="setLocale"
     />
     <MobileToolHeader
+      class="ta-mobile-header"
       :aria-label="c.title"
       :selector-label="c.title"
       :page-title="c.title"
@@ -409,21 +415,16 @@ async function loadTrials(drug) {
               v-model="input"
               rows="1"
               maxlength="1000"
-              :placeholder="c.placeholder"
               :aria-invalid="!!error"
               :aria-label="c.label"
-              :aria-describedby="error ? 'target-error' : undefined"
+              :aria-describedby="error ? 'target-help target-error' : 'target-help'"
               @input="resolutions = {}"
               @keydown.enter="submitOnEnter"
             /><button class="ta-primary" type="submit" :disabled="loading">
               {{ loading ? c.searching : c.searchShort }}
             </button>
           </div>
-          <div class="ta-input-help">
-            <button class="ta-text-button" type="button" :disabled="loading" @click="example">
-              {{ c.example }} ↗
-            </button>
-          </div>
+          <p id="target-help" class="ta-input-hint">{{ c.inputHint }}</p>
           <div v-if="error" id="target-error" role="alert" class="ta-error">
             <p>{{ c.errors[error.code] }}{{ error.input ? `: ${error.input}` : "" }}</p>
             <fieldset v-if="error.candidates.length" class="ta-candidates">
@@ -453,16 +454,62 @@ async function loadTrials(drug) {
               index === 0 ? c.fullOverview : c.singleOverview
             }}</span>
           </div>
-          <div class="ta-overview-mechanisms">
-            <strong>{{ c.mechanismTypes }}</strong>
-            <span v-for="[kind] in card.mechanisms" :key="kind" class="ta-tag">
-              {{ mechanismLabels[kind][locale] }}
-            </span>
-            <span v-if="!card.mechanisms.length">{{ c.mechanismUnavailable }}</span>
-          </div>
-          <div class="ta-overview-stages">
-            <strong>{{ mode === "sample" ? c.sampleCount(card.drugs.length) : card.drugs.length + " " + c.matches }}</strong>
-            <span v-for="[stage, count] in card.stages" :key="stage" class="ta-tag">{{ stageLabel(stage) }} · {{ count }}</span>
+          <p class="ta-overview-mechanisms">
+            <strong>{{ c.mechanismTypes }}</strong>{{ locale === "zh" ? "：" : ": " }}<span>{{
+              card.mechanisms.length
+                ? card.mechanisms.map(([kind]) => mechanismLabels[kind][locale]).join(locale === "zh" ? "、" : ", ")
+                : c.mechanismUnavailable
+            }}</span>
+          </p>
+          <ul v-if="card.mechanisms.length" class="ta-mechanism-summaries">
+            <li v-for="[kind] in card.mechanisms" :key="kind">
+              <strong v-if="card.mechanisms.length > 1">{{ mechanismLabels[kind][locale] }}：</strong>
+              {{ c.mechanismSummaries[kind] }}
+            </li>
+          </ul>
+          <div class="ta-overview-stage-group">
+            <div class="ta-overview-stages">
+              <strong>{{ mode === "sample" ? c.sampleCount(card.drugs.length) : card.drugs.length + " " + c.matches }}</strong>
+              <template v-for="[stage, count] in card.stages" :key="stage">
+                <button
+                  v-if="stage === 'APPROVAL'"
+                  type="button"
+                  class="ta-tag ta-approval-trigger"
+                  :aria-expanded="openApprovals === card.key"
+                  :aria-controls="`ta-approved-${index}`"
+                  @click="toggleApprovals(card.key)"
+                  @keydown.esc="openApprovals === card.key && (openApprovals = null)"
+                >
+                  {{ c.approvalList }} · {{ count }} <span aria-hidden="true">▾</span>
+                </button>
+                <span v-else class="ta-tag">{{ stageLabel(stage) }} · {{ count }}</span>
+              </template>
+            </div>
+            <ul
+              v-if="card.approvedDrugs.length"
+              v-show="openApprovals === card.key"
+              :id="`ta-approved-${index}`"
+              class="ta-approved-list"
+              :aria-label="c.approvalList"
+            >
+              <li v-for="{ drug, profile, mechanisms } in card.approvedDrugs" :key="drug.id">
+                <strong>{{ drugHeadingName(drug.name, locale) }}</strong>
+                <dl class="ta-approved-fields">
+                  <div>
+                    <dt>{{ c.brandName }}</dt>
+                    <dd>{{ profile?.brand || (drug.brand && drugDisplayName(drug.brand)) || c.approvalUnknown }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ c.euHolder }}</dt>
+                    <dd>{{ profile?.sponsor ? organizationName(profile.sponsor, locale) : c.approvalUnknown }}</dd>
+                  </div>
+                  <div v-if="mechanisms.length">
+                    <dt>{{ c.mechanismTypes }}</dt>
+                    <dd>{{ mechanisms.map(([kind]) => mechanismLabels[kind][locale]).join(" · ") }}</dd>
+                  </div>
+                </dl>
+              </li>
+            </ul>
           </div>
           <div v-if="card.profiles.length || card.indications.length" class="ta-overview-grid">
             <h4>{{ c.indications }}</h4>
@@ -928,10 +975,6 @@ textarea {
   font-size: 1rem;
   line-height: 1.5;
 }
-textarea::placeholder,
-input::placeholder {
-  color: var(--app-faint);
-}
 button {
   cursor: pointer;
   background: transparent;
@@ -975,17 +1018,8 @@ a:focus-visible {
   color: var(--app-accent);
   text-align: left;
 }
-.ta-input-help {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  gap: 24px;
-  margin-top: 8px;
-}
-.ta-input-help button {
-  white-space: nowrap;
-  min-height: 32px;
-  font-size: 0.7rem;
+.ta-input-hint {
+  margin: 8px 0 0;
 }
 .ta-error {
   border-left: 2px solid var(--app-accent);
@@ -1204,9 +1238,6 @@ a:focus-visible {
 .ta-input-row {
   margin-top: 0;
 }
-.ta-input-help {
-  margin-top: 4px;
-}
 .ta-overview {
   margin: 12px 0 22px;
 }
@@ -1217,7 +1248,6 @@ a:focus-visible {
   margin-top: 14px;
   border-top: 1px solid var(--app-rule-subtle);
 }
-.ta-overview-mechanisms,
 .ta-overview-stages {
   display: flex;
   flex-wrap: wrap;
@@ -1227,7 +1257,57 @@ a:focus-visible {
   font-size: 0.85rem;
 }
 .ta-overview-mechanisms {
-  margin-bottom: 0;
+  margin: 14px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.ta-mechanism-summaries {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  color: var(--app-muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.ta-overview-stage-group {
+  display: flow-root;
+}
+.ta-approval-trigger {
+  cursor: pointer;
+  min-height: 32px;
+}
+.ta-approval-trigger:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+.ta-approved-list {
+  list-style: none;
+  padding: 0 12px;
+  margin: 0 0 14px;
+  border: 1px solid var(--app-rule-subtle);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.ta-approved-list li {
+  padding: 12px 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.ta-approved-list li + li {
+  border-top: 1px solid var(--app-rule-subtle);
+}
+.ta-approved-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: 8px 16px;
+  margin: 6px 0 0;
+}
+.ta-approved-fields dt {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+}
+.ta-approved-fields dd {
+  margin: 1px 0 0;
 }
 .ta-approvals {
   display: flex;
@@ -1368,8 +1448,11 @@ details.ta-evidence {
   .tool-topbar {
     display: none;
   }
-  .mobile-tool-header {
-    display: block;
+  .ta-mobile-header {
+    --mobile-header-control-border: var(--bc-border-subtle);
+    --mobile-header-control-bg: var(--bc-bg-glass);
+    --mobile-header-control-shadow: var(--bc-shadow-card);
+    display: grid;
     width: calc(100% - var(--bc-container-inline, 32px));
     margin-inline: auto;
   }
@@ -1385,8 +1468,7 @@ details.ta-evidence {
   .ta-panel {
     padding: 18px 14px;
   }
-  .ta-input-row,
-  .ta-input-help {
+  .ta-input-row {
     flex-direction: column;
     gap: 8px;
   }
