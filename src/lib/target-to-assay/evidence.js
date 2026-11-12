@@ -1,3 +1,4 @@
+import { reviewedFdaRecord, validApprovalDate } from "./approval-records.js";
 import { ingredientKey } from "./display.js";
 
 const starter = {
@@ -86,24 +87,28 @@ function starterRecord(drug) {
   );
 }
 
-export function approvalMilestones(drug, documents = []) {
+export function approvalMilestones(drug, documents = [], european) {
   const record = starterRecord(drug);
   const us = documents
     .filter((doc) => doc.agency === "FDA" && doc.kind === "application" && doc.approvedAt)
     .sort((a, b) => a.approvedAt.localeCompare(b.approvedAt))[0];
+  const reviewed = reviewedFdaRecord(drug);
+  const fda = drug.regulatoryApprovals?.find(({ agency }) => agency === "FDA");
+  const ema = drug.regulatoryApprovals?.find(({ agency }) => agency === "EMA");
   return [
     { region: "CN", date: record?.cnIssued, url: record?.cnUrl, certificate: true },
     {
       region: "US",
-      date: record?.usApproval || us?.approvedAt,
-      url: record
+      date: fda?.date || reviewed?.date || record?.usApproval || us?.approvedAt,
+      url: fda?.url || reviewed?.url || (record
         ? `https://www.accessdata.fda.gov/scripts/purplebooksearch/index.cfm?blaNo=${record.application}&event=productdetails`
-        : us?.url,
+        : us?.url),
     },
     {
       region: "EU",
-      date: record?.euApproval,
-      url: record ? `https://www.ema.europa.eu/en/medicines/human/EPAR/${record.brand}` : null,
+      date: european?.date || ema?.date || record?.euApproval,
+      status: european?.status,
+      url: european?.url || ema?.url || (record ? `https://www.ema.europa.eu/en/medicines/human/EPAR/${record.brand}` : null),
     },
   ];
 }
@@ -122,6 +127,25 @@ export function evidenceFor(drug, sources = []) {
           },
         ]
       : [];
+  const reviewed = reviewedFdaRecord(drug);
+  if (reviewed) documents.push({
+    agency: "FDA", kind: "application", status: "document", approvedAt: reviewed.date,
+    application: reviewed.application, title: "FDA · " + reviewed.brand, url: reviewed.url,
+  });
+  if (drug.regulatoryApprovals?.length) {
+    documents.push(...drug.regulatoryApprovals.map((approval) => ({
+      agency: approval.agency,
+      kind: "application",
+      status: "document",
+      approvedAt: approval.date,
+      application: approval.identifier,
+      title: approval.agency + " · " + approval.identifier,
+      url: approval.url,
+    })));
+    if (source && !documents.some((doc) => doc.url === source.url)) {
+      documents.push({ ...source, agency: drug.approval.agency, kind: "label", status: "document" });
+    }
+  }
   if (ingredientKey(drug.name) === "gefitinib") {
     documents.push({
       agency: "FDA",
@@ -216,9 +240,9 @@ export function safeOfficialUrl(value) {
 }
 function approvedDate(submission) {
   const value = submission.submission_status_date;
-  return submission.submission_status === "AP" && /^\d{8}$/.test(value || "") && value > "19000101"
-    ? `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6)}`
-    : null;
+  if (submission.submission_status !== "AP" || !/^\d{8}$/.test(value || "")) return null;
+  const iso = `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6)}`;
+  return validApprovalDate(iso) ? iso : null;
 }
 
 export function sortReviewEvidence(documents) {
@@ -234,9 +258,18 @@ export async function fetchFdaDocuments(
   const record = starterRecord(drug);
   const name = drug.name.replace(/[^\p{L}\p{N} -]/gu, " ").trim();
   if (!name) return [];
-  const search = record
-    ? `application_number:BLA${record.application}`
-    : `(products.active_ingredients.name:"${name}" OR openfda.generic_name:"${name}" OR products.active_ingredients.name:"${ingredientKey(name)}") AND application_number:(NDA* OR BLA*)`;
+  const applicationId = reviewedFdaRecord(drug)?.application || (record && `BLA${record.application}`);
+  const brandNames = [...new Set([drug.brand, ...(drug.aliases || [])])]
+    .filter((value) => typeof value === "string" && /^[a-z0-9][a-z0-9 .-]{2,55}$/i.test(value))
+    .slice(0, 4);
+  const terms = [
+    `products.active_ingredients.name:"${name}"`,
+    `openfda.generic_name:"${name}"`,
+    `products.active_ingredients.name:"${ingredientKey(name)}"`,
+    ...brandNames.map((brand) => `products.brand_name:"${brand}"`),
+  ];
+  const search = applicationId ? `application_number:${applicationId}` :
+    `(${terms.join(" OR ")}) AND application_number:(NDA* OR BLA*)`;
   const response = await fetcher(
     `https://api.fda.gov/drug/drugsfda.json?${new URLSearchParams({ search, limit: "30" })}`,
     { signal },
@@ -247,13 +280,13 @@ export async function fetchFdaDocuments(
   const documents = new Map();
   const matching = (body.results || []).filter(
     (application) =>
-      record ||
+      (applicationId ? application.application_number === applicationId :
       (/^(NDA|BLA)\d{6}$/.test(application.application_number || "") &&
         (application.products || []).some(
           (product) =>
             product.active_ingredients?.length === 1 &&
             ingredientKey(product.active_ingredients[0].name || "") === ingredientKey(name),
-        )),
+        ))),
   );
   for (const application of matching) {
     for (const submission of application.submissions || []) {

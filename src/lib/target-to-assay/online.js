@@ -1,4 +1,6 @@
-import { catalog, sampleCatalog } from "./catalog.js";
+import { providerIssue } from "./provider-status.js";
+import { catalog, sampleCatalog, regulatoryCd3Cd20 } from "./catalog.js";
+import { ingredientKey } from "./display.js";
 import { SearchError, searchDrugs } from "./search.js";
 
 export const openTargetsEndpoint = "https://api.platform.opentargets.org/api/v4/graphql";
@@ -22,10 +24,14 @@ async function graphql(query, variables, fetcher, signal) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
     signal,
+    redirect: "manual",
   });
-  if (!response.ok) throw new SearchError("upstream_unavailable");
+  if (!response.ok) throw new SearchError("upstream_unavailable", { status: response.status });
   const payload = await response.json();
-  if (payload.errors || !payload.data) throw new SearchError("upstream_unavailable");
+  if (payload?.errors?.length)
+    throw new SearchError("upstream_unavailable", { reason: "graphql_errors" });
+  if (!payload?.data || typeof payload.data !== "object")
+    throw new Error("unexpected_graphql_response");
   return payload.data;
 }
 async function resolveHit(hits, value, fetcher, signal) {
@@ -65,55 +71,57 @@ async function resolveHit(hits, value, fetcher, signal) {
 
 export async function searchOnline(
   input,
-  { fetcher = fetch, signal = AbortSignal.timeout(25000) } = {},
+  { fetcher = fetch, signal = AbortSignal.timeout(25000), resolvedTargets, discoveryTargets = [] } = {},
 ) {
   const values = parseTargetInput(input.targets);
-  const resolved = await Promise.all(
-    values.map(async (value) => {
-      // CD3 is a complex: never silently replace it with the CD3E subunit.
-      if (["cd3", "cd3 complex"].includes(normalize(value))) return catalog.targets[0];
-      const requested = Object.hasOwn(input.resolutions || {}, value)
-        ? input.resolutions[value]
-        : value;
-      const lookup = normalize(requested) === "cd20" ? "MS4A1" : requested;
-      const data = await graphql(
-        `
-          query FindTarget($q: String!) {
-            search(queryString: $q, entityNames: ["target"], page: { index: 0, size: 8 }) {
-              hits {
-                id
-                name
-                description
+  const resolved =
+    resolvedTargets ||
+    (await Promise.all(
+      values.map(async (value) => {
+        // CD3 is a complex: never silently replace it with the CD3E subunit.
+        if (["cd3", "cd3 complex"].includes(normalize(value))) return catalog.targets[0];
+        const requested = Object.hasOwn(input.resolutions || {}, value)
+          ? input.resolutions[value]
+          : value;
+        const lookup = normalize(requested) === "cd20" ? "MS4A1" : requested;
+        const data = await graphql(
+          `
+            query FindTarget($q: String!) {
+              search(queryString: $q, entityNames: ["target"], page: { index: 0, size: 8 }) {
+                hits {
+                  id
+                  name
+                  description
+                }
               }
             }
-          }
-        `,
-        { q: lookup },
-        fetcher,
-        signal,
-      );
-      const hits = data.search.hits;
-      const chosen = await resolveHit(hits, lookup, fetcher, signal);
-      if (!chosen)
-        throw new SearchError(hits.length ? "choose_target" : "unknown_target", {
-          input: value,
-          candidates: hits,
-        });
-      return {
-        id: chosen.name,
-        label: chosen.name,
-        ensemblId: chosen.id,
-        aliases: [value],
-        kind: "protein",
-      };
-    }),
-  );
+          `,
+          { q: lookup },
+          fetcher,
+          signal,
+        );
+        const hits = data.search.hits;
+        const chosen = await resolveHit(hits, lookup, fetcher, signal);
+        if (!chosen)
+          throw new SearchError(hits.length ? "choose_target" : "unknown_target", {
+            input: value,
+            candidates: hits,
+          });
+        return {
+          id: chosen.name,
+          label: chosen.name,
+          ensemblId: chosen.id,
+          aliases: [value],
+          kind: "protein",
+        };
+      }),
+    ));
   const targets = [...new Map(resolved.map((t) => [t.id, t])).values()];
-  const remote = targets.filter((t) => t.ensemblId);
+  const remote = [...targets, ...discoveryTargets.filter((t) => !targets.some(({ id }) => id === t.id))].filter((t) => t.ensemblId);
   const fetchedAt = new Date().toISOString();
-  const responses = await Promise.all(
-    remote.map((t) =>
-      graphql(
+  const responses = await Promise.allSettled(
+    remote.map(async (t) => {
+      const data = await graphql(
         `
           query TargetDrugs($id: String!) {
             target(ensemblId: $id) {
@@ -124,9 +132,22 @@ export async function searchOnline(
                     id
                     name
                     maximumClinicalStage
+                    drugType
+                    synonyms {
+                      label
+                    }
+                    tradeNames {
+                      label
+                    }
                     mechanismsOfAction {
                       rows {
                         mechanismOfAction
+                        actionType
+                        references {
+                          source
+                          ids
+                          urls
+                        }
                         targets {
                           id
                           approvedSymbol
@@ -142,66 +163,140 @@ export async function searchOnline(
         { id: t.ensemblId },
         fetcher,
         signal,
-      ),
-    ),
+      );
+      const candidates = data.target?.drugAndClinicalCandidates;
+      if (
+        candidates != null &&
+        (!Array.isArray(candidates.rows) ||
+          candidates.rows.some((row) => {
+            if (!row || typeof row !== "object") return true;
+            const drug = row.drug;
+            if (drug == null) return false;
+            const mechanisms = drug.mechanismsOfAction?.rows;
+            return (
+              typeof drug.id !== "string" ||
+              typeof drug.name !== "string" ||
+              [drug.synonyms, drug.tradeNames].some(
+                (labels) =>
+                  labels != null &&
+                  (!Array.isArray(labels) ||
+                    labels.some((label) => !label || typeof label.label !== "string")),
+              ) ||
+              (mechanisms != null &&
+                (!Array.isArray(mechanisms) ||
+                  mechanisms.some(
+                    (row) =>
+                      !row ||
+                      (row.mechanismOfAction != null && typeof row.mechanismOfAction !== "string") ||
+                      (row.targets != null && !Array.isArray(row.targets)) ||
+                      row.targets?.some(
+                        (target) => !target || typeof target.approvedSymbol !== "string",
+                      ),
+                  )))
+            );
+          }))
+      )
+        throw new Error("unexpected_graphql_response");
+      const rows = candidates?.rows || [];
+      return { rows, count: candidates?.count ?? rows.length };
+    }),
   );
   const byId = new Map();
-  const hasCd20 = remote.some((target) => target.id === "MS4A1");
+  const hasCd20 = targets.some((target) => target.id === "MS4A1");
   const curatedCatalog = hasCd20 ? sampleCatalog : catalog;
-  const sources = [...curatedCatalog.sources];
-  for (const data of responses) {
-    for (const { drug } of data.target?.drugAndClinicalCandidates?.rows || []) {
+  const official = resolvedTargets && hasCd20 ? regulatoryCd3Cd20 : [];
+  const sources = [...curatedCatalog.sources, ...official.map(({ source }) => source)];
+  for (const [index, response] of responses.entries()) {
+    if (response.status !== "fulfilled") {
+      if (!resolvedTargets) throw response.reason;
+      continue;
+    }
+    for (const { drug } of response.value.rows) {
       if (!drug) continue;
       const stage = drug.maximumClinicalStage;
       if (
         stage !== "APPROVAL" &&
-        !(input.includeClinical && /^PHASE_[1234](?:_[234])?$/.test(stage))
+        !(input.includeClinical && (resolvedTargets || /^PHASE_[1234](?:_[234])?$/.test(stage)))
       )
         continue;
-      const mechanisms = drug.mechanismsOfAction?.rows || [];
+      const mechanisms = (drug.mechanismsOfAction?.rows || []).filter(
+        (row) => row.mechanismOfAction && Array.isArray(row.targets),
+      );
       const targetIds = [
         ...new Set(mechanisms.flatMap((m) => m.targets.map((t) => t.approvedSymbol))),
       ];
       // Only mechanism-backed target relationships count as matches.
-      if (!targetIds.length) continue;
+      if (!targetIds.length && !resolvedTargets) continue;
       const sourceId = `ot-${drug.id}`;
+      const previous = byId.get(drug.id);
       byId.set(drug.id, {
         id: drug.id,
         name: drug.name,
         brand: "",
+        aliases: [...(drug.synonyms || []), ...(drug.tradeNames || [])]
+          .map(({ label }) => label)
+          .filter(Boolean),
+        molecularFormat: drug.drugType,
         targetIds,
+        proposedTargetIds: [...new Set([...(previous?.proposedTargetIds || []), remote[index].discoveryFor || remote[index].id])],
         sourceId,
-        clinicalStage: stage,
-        approval: { agency: "global", status: stage === "APPROVAL" ? "approved" : "unknown" },
+        clinicalStage: stage || "UNKNOWN",
+        approval: {
+          agency: "global",
+          status: stage === "APPROVAL" && !resolvedTargets ? "approved" : "unknown",
+        },
         verification: "imported",
         updatedAt: fetchedAt.slice(0, 10),
         mechanisms: mechanisms.map((m) => m.mechanismOfAction),
-        targetSetComplete: false,
+        mechanismRecords: mechanisms
+          .filter((m) => m.mechanismOfAction && m.targets.length)
+          .map((m) => ({
+            text: m.mechanismOfAction,
+            actionType: m.actionType,
+            references: m.references,
+            targetIds: m.targets.map((t) => t.approvedSymbol),
+          })),
+        targetSetComplete: Boolean(targetIds.length > 1 && mechanisms.some((row) =>
+          new Set(row.targets.map(({ approvedSymbol }) => approvedSymbol)).size === targetIds.length &&
+          row.references?.some(({ urls, ids }) => urls?.length || ids?.length))),
+
+        ...(resolvedTargets
+          ? {
+              reportedTargetSets: mechanisms
+                .filter((row) => row.mechanismOfAction)
+                .map((row) => row.targets.map((target) => target.approvedSymbol)),
+            }
+          : {}),
       });
       if (!sources.some((s) => s.id === sourceId))
         sources.push({
           id: sourceId,
           title: "Open Targets · " + drug.name,
           url: `https://platform.opentargets.org/drug/${drug.id}`,
-          locator: `Drug mechanisms of action · ${stage}`,
+          locator: `Target–drug association · ${stage || "unknown stage"}`,
           checkedAt: fetchedAt.slice(0, 10),
           verification: "imported",
         });
     }
   }
   // Retain curated complex-level evidence and merge equivalent gene aliases.
-  for (const drug of curatedCatalog.drugs) {
-    const gene = remote.find((t) => t.id === "MS4A1");
+  const importedCount = byId.size;
+  for (const drug of [...curatedCatalog.drugs, ...official.map(({ drug }) => drug)]) {
+    const gene = targets.find((t) => t.id === "MS4A1");
     const curated = {
       ...drug,
       targetIds: drug.targetIds.map((id) => (id === "CD20" && gene ? "MS4A1" : id)),
     };
     const duplicate = [...byId.values()].find(
-      (d) => normalize(d.name).replace(/-(axgb|gxbm|xiiy)$/, "") ===
-        normalize(drug.name).replace(/-(axgb|gxbm|xiiy)$/, ""),
+      (d) => d.name.toLowerCase() === drug.name.toLowerCase() ||
+        (ingredientKey(d.name) === ingredientKey(drug.name) &&
+          !/ (sodium|potassium|hydrochloride)$/i.test(d.name)),
     );
     // A curated CD3 complex record must not replace a CD3E gene record.
     if (duplicate) {
+      curated.proposedTargetIds = duplicate.proposedTargetIds;
+      curated.externalIds = { chembl: duplicate.id };
+      curated.aliases = [...new Set([...(curated.aliases || []), ...(duplicate.aliases || [])])];
       const needsGeneRecord = targets.some(
         (t) => duplicate.targetIds.includes(t.id) && !curated.targetIds.includes(t.id),
       );
@@ -210,13 +305,51 @@ export async function searchOnline(
     }
     byId.set(curated.id, curated);
   }
-  const data = { targets, sources, drugs: [...byId.values()] };
+  const drugs = [...byId.values()];
+  const usedSources = new Set(drugs.map(({ sourceId }) => sourceId));
+  const data = { targets, sources: sources.filter(({ id }) => usedSources.has(id)), drugs };
   const result = searchDrugs({ ...input, targets: targets.map((t) => t.id) }, data);
   return {
     ...result,
     catalog: data,
     fetchedAt,
     mode: "online",
+    openTargetsChecks: responses.map((response, index) => ({
+      targetId: remote[index].id,
+      ...(response.status === "rejected"
+        ? providerIssue(response.reason)
+        : {
+            count: response.value.count,
+            returned: response.value.rows.length,
+            truncated: response.value.count > response.value.rows.length,
+            state: response.value.rows.some(({ drug }) => drug)
+              ? "success_with_data"
+              : "success_empty",
+          }),
+    })),
+    openTargetsErrors: responses.flatMap((response, index) => {
+      if (response.status !== "rejected") return [];
+      const error = response.reason;
+      return [
+        {
+          targetId: remote[index].id,
+          code: error.details?.status
+            ? `upstream_${error.details.status}`
+            : error.name === "TimeoutError"
+              ? "timeout"
+              : "upstream_unavailable",
+        },
+      ];
+    }),
+    openTargetsStatus: !remote.length
+      ? "not_queried"
+      : responses.every((item) => item.status === "rejected")
+        ? "failed"
+        : responses.some((item) => item.status === "rejected")
+          ? "partial"
+          : importedCount
+            ? "ok"
+            : "empty",
     sourceStatus: { FDA: "documents_on_request", EMA: "official_search", NMPA: "manual_search" },
   };
 }

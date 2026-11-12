@@ -72,7 +72,10 @@ export function searchDrugs(input, data = catalog) {
       .filter(
         (d) =>
           combo.targetIds.every((id) => d.targetIds.includes(id)) &&
-          (matchMode !== "recorded_exact" || d.targetIds.length === combo.targetIds.length) &&
+          (combo.targetIds.length === 1 || !d.reportedTargetSets ||
+            d.reportedTargetSets.some((set) => combo.targetIds.every((id) => set.includes(id)))) &&
+          (matchMode !== "recorded_exact" || (d.targetIds.length === combo.targetIds.length &&
+            (combo.targetIds.length === 1 || d.targetSetComplete !== false))) &&
           (matchMode !== "exact" ||
             (d.targetSetComplete !== false && d.targetIds.length === combo.targetIds.length)),
       )

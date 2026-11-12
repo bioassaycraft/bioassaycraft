@@ -267,6 +267,7 @@ it("looks up trials by intervention and preserves deduplicated study locations",
         {
           protocolSection: {
             identificationModule: { nctId: "NCT06084936", briefTitle: "Trial" },
+            armsInterventionsModule: { interventions: [{ name: "Glofitamab" }] },
             designModule: { phases: ["PHASE3"] },
             sponsorCollaboratorsModule: { leadSponsor: { name: "Sponsor" } },
             contactsLocationsModule: {

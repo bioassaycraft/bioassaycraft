@@ -1,3 +1,6 @@
+import { ingredientKey } from "./display.js";
+import { validApprovalDate } from "./approval-records.js";
+
 // Product-level fields verified against the EMA assessment and authorization record.
 const columvi = {
   type: { zh: "双特异性抗体", en: "Bispecific antibody" },
@@ -77,7 +80,22 @@ export function researchGroups(result) {
   return [full, ...result.combinations.filter((combo) => combo.targetIds.length === 1)];
 }
 
-export function rankMatches(matches) {
-  const priority = { exact: 0, superset: 1, reported: 2 };
-  return [...matches].sort((a, b) => priority[a.matchType] - priority[b.matchType]);
+const stageOrder = ["FILED", "PHASE_3", "PHASE_2_3", "PHASE_2", "PHASE_1_2", "PHASE_1", "EARLY_PHASE_1", "PRECLINICAL"];
+const special = new Set(["WITHDRAWN", "SUSPENDED", "TERMINATED", "DISCONTINUED"]);
+
+export function rankMatches(matches, records) {
+  function key(match) {
+    const drug = records[match.drugId] || {};
+    const stage = drug.stage || "UNKNOWN";
+    const date = validApprovalDate(drug.date) ? drug.date : "";
+    const rank = stageOrder.indexOf(stage === "UNDER_REVIEW" ? "FILED" : stage);
+    const group = special.has(stage) ? 2 + stageOrder.length + 1 :
+      stage === "APPROVAL" ? (date ? 0 : 1) : stage === "REPORTED_APPROVAL" ? 1 :
+        rank >= 0 ? 2 + rank : 2 + stageOrder.length;
+    return { group, date: group === 0 ? date : "", name: ingredientKey(drug.name || match.drugId), id: match.drugId };
+  }
+  return matches.map((match) => ({ match, ...key(match) })).sort((a, b) =>
+    a.group - b.group || a.date.localeCompare(b.date) ||
+    a.name.localeCompare(b.name, "en") || a.id.localeCompare(b.id, "en"),
+  ).map(({ match }) => match);
 }

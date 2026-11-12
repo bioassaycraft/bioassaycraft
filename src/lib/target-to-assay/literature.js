@@ -30,7 +30,7 @@ export function literatureTerm(targets) {
     .map((target) => {
       const aliases = target.id === "CD20" || target.id === "MS4A1" ? ["CD20", "MS4A1"] : [];
       const names = new Set(
-        [target.label, ...target.aliases, ...aliases].map((name) =>
+        [target.label, ...target.aliases, ...(target.literatureNames || []), ...aliases].map((name) =>
           name
             .replace(/["\\\u005b\u005d]/g, " ")
             .trim()
@@ -70,11 +70,17 @@ export function parsePubmedArticles(xml, aliases = []) {
           : [...sentences.segment(sectionText)].at(-1)?.segment.trim() || sectionText;
       const words = text.split(" ");
       const excerpt = words.slice(0, 25).join(" ");
+      const publicationTypes = [...record.querySelectorAll("PublicationType")]
+        .map((type) => type.textContent);
+      const publicationKind = publicationTypes.some((type) => /Review|Meta-Analysis/i.test(type)) ? "review" :
+        publicationTypes.some((type) => /Clinical Trial|Observational Study|Comparative Study/i.test(type)) ? "primary" :
+          null;
       const pmc = record.querySelector('ArticleId[IdType="pmc"]')?.textContent;
       return [
         {
           id,
           title,
+          publicationKind,
           methodScore: methodScore(title, parts.map((part) => part.textContent).join(" "), aliases),
           journal: record.querySelector("Journal > Title")?.textContent,
           year: record.querySelector("JournalIssue > PubDate > Year")?.textContent,

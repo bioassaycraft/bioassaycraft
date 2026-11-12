@@ -15,6 +15,7 @@ export const targets = [
 export const sources = [
   {
     id: "blincyto-label",
+    recordId: "125557s030",
     title: "FDA · BLINCYTO prescribing information (2024)",
     url: "https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/125557s030lbl.pdf",
     locator: "Highlights; sections 1 and 12.1",
@@ -23,6 +24,7 @@ export const sources = [
   },
   {
     id: "lunsumio-label",
+    recordId: "761263s010",
     title: "FDA · LUNSUMIO prescribing information (2026)",
     url: "https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/761263s010lbl.pdf",
     locator: "Highlights; sections 1 and 12.1",
@@ -31,6 +33,7 @@ export const sources = [
   },
   {
     id: "columvi-label",
+    recordId: "761309s006",
     title: "FDA · COLUMVI prescribing information (2026)",
     url: "https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/761309s006lbl.pdf",
     locator: "Highlights; sections 1 and 12.1",
@@ -43,6 +46,9 @@ export const drugs = [
     id: "blinatumomab",
     name: "blinatumomab",
     brand: "BLINCYTO",
+    molecularFormat: "Bispecific antibody",
+    actionType: "T-cell engagement",
+    mechanisms: ["Binds CD19 on B cells and CD3 on T cells, promoting T-cell-mediated killing of CD19-expressing cells."],
     targetIds: ["CD3", "CD19"],
     sourceId: "blincyto-label",
     approval: { agency: "FDA", identifier: "BLA 125557", status: "approved", initialYear: 2014 },
@@ -53,6 +59,9 @@ export const drugs = [
     id: "mosunetuzumab-axgb",
     name: "mosunetuzumab-axgb",
     brand: "LUNSUMIO",
+    molecularFormat: "Bispecific antibody",
+    actionType: "T-cell engagement",
+    mechanisms: ["Engages CD20 on B cells and CD3 on T cells, inducing T-cell-mediated lysis of CD20-expressing cells."],
     targetIds: ["CD3", "CD20"],
     sourceId: "lunsumio-label",
     approval: { agency: "FDA", identifier: "BLA 761263", status: "approved", initialYear: 2022 },
@@ -63,6 +72,9 @@ export const drugs = [
     id: "glofitamab-gxbm",
     name: "glofitamab-gxbm",
     brand: "COLUMVI",
+    molecularFormat: "Bispecific antibody",
+    actionType: "T-cell engagement",
+    mechanisms: ["Engages CD20 on B cells and CD3 on T cells, redirecting T cells to lyse CD20-expressing cells."],
     targetIds: ["CD3", "CD20"],
     sourceId: "columvi-label",
     approval: { agency: "FDA", identifier: "BLA 761309", status: "approved", initialYear: 2023 },
@@ -114,3 +126,64 @@ export const sampleCatalog = {
     })),
   ],
 };
+
+// Independently reviewed regulator records, explicitly dated and separate from live API results.
+export const regulatoryCd3Cd20 = [
+  {
+    drug: {
+      id: "epcoritamab-bysp",
+      name: "epcoritamab-bysp",
+      brand: "Epkinly / Tepkinly",
+      aliases: ["epcoritamab", "GEN3013", "DuoBody-CD3xCD20"],
+      sourceId: "epcoritamab-fda",
+      targetIds: ["CD3", "CD20"],
+      mechanisms: ["Bridges CD3 on T cells and CD20 on B cells, promoting T-cell-mediated killing of CD20-expressing cells."],
+      molecularFormat: "Bispecific antibody",
+      actionType: "T-cell engagement",
+      approval: { agency: "FDA", identifier: "BLA 761324", status: "approved", initialYear: 2023 },
+      regulatoryApprovals: [
+        { agency: "FDA", identifier: "BLA 761324", status: "approved", date: "2023-05-19", url: "https://www.accessdata.fda.gov/scripts/purplebooksearch/index.cfm?blaNo=761324&event=productdetails" },
+        { agency: "EMA", identifier: "EMEA/H/C/005985", status: "approved", date: "2023-09-22", url: "https://www.ema.europa.eu/en/medicines/human/EPAR/tepkinly" },
+      ],
+      verification: "reviewed",
+      updatedAt: "2026-11-12",
+    },
+    source: {
+      id: "epcoritamab-fda",
+      recordId: "761324s003",
+      title: "FDA · Epkinly prescribing information",
+      url: "https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/761324s003lbl.pdf",
+      locator: "Highlights; section 12.1",
+      checkedAt: "2026-11-12",
+      verification: "reviewed",
+    },
+  },
+  {
+    drug: {
+      id: "odronextamab",
+      name: "odronextamab",
+      brand: "Ordspono",
+      aliases: ["REGN1979"],
+      sourceId: "odronextamab-ema",
+      targetIds: ["CD3", "CD20"],
+      mechanisms: ["Binds CD20 on B cells and CD3 on T cells, bringing them together so that T cells can kill the B cells."],
+      molecularFormat: "Bispecific antibody",
+      actionType: "T-cell engagement",
+      approval: { agency: "EMA", identifier: "EMEA/H/C/006215", status: "approved", initialYear: 2024 },
+      regulatoryApprovals: [
+        { agency: "EMA", identifier: "EMEA/H/C/006215", status: "approved", date: "2024-08-22", url: "https://www.ema.europa.eu/en/medicines/human/EPAR/ordspono" },
+      ],
+      verification: "reviewed",
+      updatedAt: "2026-11-12",
+    },
+    source: {
+      id: "odronextamab-ema",
+      recordId: "EMEA/H/C/006215",
+      title: "EMA · Ordspono EPAR",
+      url: "https://www.ema.europa.eu/en/medicines/human/EPAR/ordspono",
+      locator: "How does Ordspono work?",
+      checkedAt: "2026-11-12",
+      verification: "reviewed",
+    },
+  },
+];
