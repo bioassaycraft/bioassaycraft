@@ -1,3 +1,4 @@
+import { classifyTargetMatch, prepareTargetMatch } from "./target-match.js";
 import { catalog } from "./catalog.js";
 
 export class SearchError extends Error {
@@ -50,7 +51,7 @@ export function searchDrugs(input, data = catalog) {
     throw new SearchError("invalid_request");
   const { matchMode = "contains", agency = "all", query = "", verification = "all" } = input;
   if (
-    !["contains", "exact", "recorded_exact"].includes(matchMode) ||
+    !["contains", "exact", "recorded_exact", "verified_scope"].includes(matchMode) ||
     !["all", "FDA", "EMA", "NMPA"].includes(agency) ||
     !["all", "reviewed", "verified"].includes(verification) ||
     typeof query !== "string" ||
@@ -66,28 +67,53 @@ export function searchDrugs(input, data = catalog) {
       (verification === "all" || d.verification === verification) &&
       normalize(`${d.name} ${d.brand}`).includes(normalize(query)),
   );
+  const evidenceMode =
+    matchMode === "verified_scope" ||
+    (matchMode === "recorded_exact" && data.targetEvidenceMatching);
+  const prepared = evidenceMode
+    ? available.map((drug) => [drug, prepareTargetMatch(drug, data.targets)])
+    : [];
   const combinations = generateCombinations(resolvedTargets).map((combo) => ({
     ...combo,
-    matches: available
-      .filter(
-        (d) =>
-          combo.targetIds.every((id) => d.targetIds.includes(id)) &&
-          (combo.targetIds.length === 1 || !d.reportedTargetSets ||
-            d.reportedTargetSets.some((set) => combo.targetIds.every((id) => set.includes(id)))) &&
-          (matchMode !== "recorded_exact" || (d.targetIds.length === combo.targetIds.length &&
-            (combo.targetIds.length === 1 || d.targetSetComplete !== false))) &&
-          (matchMode !== "exact" ||
-            (d.targetSetComplete !== false && d.targetIds.length === combo.targetIds.length)),
-      )
-      .map((d) => ({
-        drugId: d.id,
-        matchType:
-          d.targetSetComplete === false
-            ? "reported"
-            : d.targetIds.length === combo.targetIds.length
-              ? "exact"
-              : "superset",
-      })),
+    ...(evidenceMode
+      ? (() => {
+          const assessed = prepared.flatMap(([drug, record]) => {
+            const match = classifyTargetMatch(record, combo.targetIds);
+            return match ? [{ drugId: drug.id, ...match }] : [];
+          });
+          return {
+            matches: assessed
+              .filter(({ state }) => state === "verified")
+              .map(({ drugId }) => ({ drugId, matchType: "exact" })),
+            candidates: assessed.filter(({ state }) => state !== "verified"),
+          };
+        })()
+      : {
+          matches: available
+            .filter(
+              (d) =>
+                combo.targetIds.every((id) => d.targetIds.includes(id)) &&
+                (combo.targetIds.length === 1 ||
+                  !d.reportedTargetSets ||
+                  d.reportedTargetSets.some((set) =>
+                    combo.targetIds.every((id) => set.includes(id)),
+                  )) &&
+                (matchMode !== "recorded_exact" ||
+                  (d.targetIds.length === combo.targetIds.length &&
+                    (combo.targetIds.length === 1 || d.targetSetComplete !== false))) &&
+                (matchMode !== "exact" ||
+                  (d.targetSetComplete !== false && d.targetIds.length === combo.targetIds.length)),
+            )
+            .map((d) => ({
+              drugId: d.id,
+              matchType:
+                d.targetSetComplete === false
+                  ? "reported"
+                  : d.targetIds.length === combo.targetIds.length
+                    ? "exact"
+                    : "superset",
+            })),
+        }),
   }));
   const ids = new Set(combinations.flatMap((c) => c.matches.map((m) => m.drugId)));
   return {

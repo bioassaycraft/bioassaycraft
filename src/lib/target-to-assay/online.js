@@ -69,6 +69,26 @@ async function resolveHit(hits, value, fetcher, signal) {
   return matches.length === 1 ? matches[0] : null;
 }
 
+export function mergeEvidence(...groups) {
+  return [...new Map(groups.flatMap((group) => group || []).map((row) => [JSON.stringify(row), row])).values()];
+}
+export function curatedTargetEvidence(drug) {
+  return drug.targetEvidence || (drug.verification === "reviewed" ? [{
+    sourceType: "reviewed_regulatory", sourceId: drug.sourceId, role: "direct",
+    targetIds: drug.targetIds, complete: drug.targetSetComplete !== false,
+  }] : []);
+}
+function openTargetsRole(row) {
+  const statement = row.mechanismOfAction;
+  if (/\b(?:payload|cytotoxic warhead)\b/i.test(statement)) return "payload";
+  if (/\b(?:downstream|indirect)\b/i.test(statement)) return "indirect";
+  if (/\b(?:not|may|might|designed to)\b/i.test(statement)) return "unverified";
+  if (/\b(?:binds|recognizes)\b/i.test(statement))
+    return "direct";
+  return /^(?:AGONIST|ANTAGONIST|INHIBITOR|BLOCKER|ACTIVATOR|BINDING AGENT|ANTIBODY)$/i.test(row.actionType || "")
+    ? "direct" : "unverified";
+}
+
 export async function searchOnline(
   input,
   { fetcher = fetch, signal = AbortSignal.timeout(25000), resolvedTargets, discoveryTargets = [] } = {},
@@ -143,6 +163,7 @@ export async function searchOnline(
                       rows {
                         mechanismOfAction
                         actionType
+                        targetName
                         references {
                           source
                           ids
@@ -220,10 +241,10 @@ export async function searchOnline(
       )
         continue;
       const mechanisms = (drug.mechanismsOfAction?.rows || []).filter(
-        (row) => row.mechanismOfAction && Array.isArray(row.targets),
+        (row) => row.mechanismOfAction,
       );
       const targetIds = [
-        ...new Set(mechanisms.flatMap((m) => m.targets.map((t) => t.approvedSymbol))),
+        ...new Set(mechanisms.flatMap((m) => (m.targets || []).map((t) => t.approvedSymbol))),
       ];
       // Only mechanism-backed target relationships count as matches.
       if (!targetIds.length && !resolvedTargets) continue;
@@ -233,11 +254,10 @@ export async function searchOnline(
         id: drug.id,
         name: drug.name,
         brand: "",
-        aliases: [...(drug.synonyms || []), ...(drug.tradeNames || [])]
-          .map(({ label }) => label)
-          .filter(Boolean),
+        aliases: [...new Set([...(previous?.aliases || []),
+          ...[...(drug.synonyms || []), ...(drug.tradeNames || [])].map(({ label }) => label).filter(Boolean)])],
         molecularFormat: drug.drugType,
-        targetIds,
+        targetIds: [...new Set([...(previous?.targetIds || []), ...targetIds])],
         proposedTargetIds: [...new Set([...(previous?.proposedTargetIds || []), remote[index].discoveryFor || remote[index].id])],
         sourceId,
         clinicalStage: stage || "UNKNOWN",
@@ -247,24 +267,37 @@ export async function searchOnline(
         },
         verification: "imported",
         updatedAt: fetchedAt.slice(0, 10),
-        mechanisms: mechanisms.map((m) => m.mechanismOfAction),
-        mechanismRecords: mechanisms
-          .filter((m) => m.mechanismOfAction && m.targets.length)
+        mechanisms: [...new Set([...(previous?.mechanisms || []), ...mechanisms.map((m) => m.mechanismOfAction)])],
+        targetEvidence: mergeEvidence(previous?.targetEvidence, mechanisms.map((row) => ({
+          sourceType: "open_targets",
+          sourceId,
+          text: row.mechanismOfAction,
+          targetName: row.targetName,
+          actionType: row.actionType,
+          rawTargets: (row.targets || []).map(({ id, approvedSymbol }) => ({
+            id: typeof id === "string" ? id : undefined, approvedSymbol,
+          })),
+          references: row.references,
+          allowBindingAssertion: Boolean(row.references?.some(({ urls, ids }) => urls?.length || ids?.length)),
+          role: openTargetsRole(row),
+        }))),
+        mechanismRecords: [...(previous?.mechanismRecords || []), ...mechanisms
+          .filter((m) => m.mechanismOfAction && m.targets?.length)
           .map((m) => ({
             text: m.mechanismOfAction,
             actionType: m.actionType,
             references: m.references,
-            targetIds: m.targets.map((t) => t.approvedSymbol),
-          })),
+            targetIds: (m.targets || []).map((t) => t.approvedSymbol),
+          }))].filter((row, index, rows) => rows.findIndex((other) => JSON.stringify(other) === JSON.stringify(row)) === index),
         targetSetComplete: Boolean(targetIds.length > 1 && mechanisms.some((row) =>
-          new Set(row.targets.map(({ approvedSymbol }) => approvedSymbol)).size === targetIds.length &&
+          new Set((row.targets || []).map(({ approvedSymbol }) => approvedSymbol)).size === targetIds.length &&
           row.references?.some(({ urls, ids }) => urls?.length || ids?.length))),
 
         ...(resolvedTargets
           ? {
               reportedTargetSets: mechanisms
                 .filter((row) => row.mechanismOfAction)
-                .map((row) => row.targets.map((target) => target.approvedSymbol)),
+                .map((row) => (row.targets || []).map((target) => target.approvedSymbol)),
             }
           : {}),
       });
@@ -294,19 +327,23 @@ export async function searchOnline(
     );
     // A curated CD3 complex record must not replace a CD3E gene record.
     if (duplicate) {
+      if (resolvedTargets) {
+        curated.targetEvidence = mergeEvidence(curatedTargetEvidence(curated), duplicate.targetEvidence);
+        curated.sourceIds = [duplicate.sourceId];
+      }
       curated.proposedTargetIds = duplicate.proposedTargetIds;
       curated.externalIds = { chembl: duplicate.id };
       curated.aliases = [...new Set([...(curated.aliases || []), ...(duplicate.aliases || [])])];
       const needsGeneRecord = targets.some(
         (t) => duplicate.targetIds.includes(t.id) && !curated.targetIds.includes(t.id),
       );
-      if (needsGeneRecord) continue;
+      if (needsGeneRecord && !resolvedTargets) continue;
       byId.delete(duplicate.id);
     }
     byId.set(curated.id, curated);
   }
   const drugs = [...byId.values()];
-  const usedSources = new Set(drugs.map(({ sourceId }) => sourceId));
+  const usedSources = new Set(drugs.flatMap(({ sourceId, sourceIds }) => [sourceId, ...(sourceIds || [])]));
   const data = { targets, sources: sources.filter(({ id }) => usedSources.has(id)), drugs };
   const result = searchDrugs({ ...input, targets: targets.map((t) => t.id) }, data);
   return {

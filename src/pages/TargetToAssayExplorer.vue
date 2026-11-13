@@ -75,7 +75,7 @@ const result = computed(() =>
   searchDrugs(
     {
       targets: submitted.value,
-      matchMode: "recorded_exact",
+      matchMode: "verified_scope",
       includeClinical: true,
     },
     data.value,
@@ -83,7 +83,7 @@ const result = computed(() =>
 );
 const baseline = computed(() =>
   searchDrugs(
-    { targets: submitted.value, includeClinical: true, matchMode: "recorded_exact" },
+    { targets: submitted.value, includeClinical: true, matchMode: "verified_scope" },
     data.value,
   ),
 );
@@ -114,18 +114,18 @@ const discoveryTruncated = computed(() => discoveryChecks.value.some(({ truncate
 const discoveryFailed = computed(() => discoveryChecks.value.some(({ state }) => !["success_with_data", "success_empty", "unresolved_target", "not_queried"].includes(state)));
 const additionalCandidates = computed(() => {
   if (!mechanismResult.value) return [];
-  const scope = active.value.targetIds;
-  const matches = new Set(active.value.matches.map(({ drugId }) => drugId));
-  return rankMatches(data.value.drugs.filter((drug) => !matches.has(drug.id) &&
-    [...drug.targetIds, ...(drug.proposedTargetIds || [])].some((id) => scope.includes(id)))
-    .map(({ id }) => ({ drugId: id })), drugPresentation.value)
-    .map(({ drugId }) => {
-      const drug = drugById(drugId);
-      const recorded = scope.filter((id) => drug.targetIds.includes(id)).length;
-      const status = recorded && recorded < scope.length ? "partialMatch"
-        : recorded && drug.targetIds.some((id) => !scope.includes(id)) ? "otherTargets" : "unverifiedMatch";
-      return { drug, status, url: sourceById(drug.sourceId)?.url };
-    });
+  const candidates = active.value.candidates || [];
+  const byId = new Map(candidates.map((item) => [item.drugId, item]));
+  const labels = {
+    partial: "partialMatch", unverified: "unverifiedMatch",
+    other: "otherTargets", conflict: "conflictingMatch",
+  };
+  return rankMatches(candidates, drugPresentation.value).map(({ drugId }) => {
+    const drug = drugById(drugId);
+    const match = byId.get(drugId);
+    return { drug, status: match.reason === "non_direct_relationship" ? "nonDirectMatch" : labels[match.state],
+      url: sourceById(drug.sourceId)?.url };
+  });
 });
 const sourceById = (id) => data.value.sources.find((source) => source.id === id);
 const activeTargets = computed(() =>
@@ -236,7 +236,7 @@ function drugMechanism(drug, details) {
     ? card.cd19CarT : translations[application];
   const row = mechanismResult.value?.drugMechanisms.find(({ drugId }) => drugId === drug.id);
   const original = details.type === "car_t" && details.reviewed ? targetAssayCopy.en.drugCard.cd19CarT :
-    details.isZynlonta ? targetAssayCopy.en.drugCard.zynlonta : drug.mechanisms?.[0] || row?.mechanismDescription;
+    details.isZynlonta ? targetAssayCopy.en.drugCard.zynlonta : (row?.completeTargetSet ? row.mechanismDescription : drug.mechanisms?.[0] || row?.mechanismDescription);
   return bilingualMechanism(drug.name, original, row?.sources[0], zh);
 }
 

@@ -1,3 +1,5 @@
+import { classifyTargetMatch, prepareTargetMatch } from "./target-match.js";
+import { reviewFdaLabels } from "./candidate-review.js";
 import { providerIssue } from "./provider-status.js";
 import {
   fetchDiseaseAssociations,
@@ -7,7 +9,7 @@ import {
 } from "./target-discovery.js";
 import { discoverTrialInterventions, reconcileTrialInterventions } from "./trials.js";
 import { reviewedMechanism } from "./bilingual-mechanism.js";
-import { parseTargetInput, searchOnline } from "./online.js";
+import { curatedTargetEvidence, mergeEvidence, parseTargetInput, searchOnline } from "./online.js";
 import { SearchError } from "./search.js";
 import {
   canonicalAlias,
@@ -95,6 +97,7 @@ async function fetchChemblMechanisms(targets, fetcher, signal, retrievedAt) {
     fetcher,
     signal,
   );
+  const rawTargets = new Map(targetsPage.rows.map((row) => [row.target_chembl_id, row]));
   const targetIds = new Map(
     targetsPage.rows.flatMap((row) => {
       if (
@@ -179,6 +182,24 @@ async function fetchChemblMechanisms(targets, fetcher, signal, retrievedAt) {
         },
       ]),
   );
+  const targetEvidence = records.filter((row) => byId.has(row.molecule_chembl_id))
+    .map((row) => ({
+      drugId: row.molecule_chembl_id,
+      recordId: row.mec_id ?? row.target_chembl_id,
+      originalUrl: chemblBase + "mechanism.json?" + new URLSearchParams({
+        molecule_chembl_id: row.molecule_chembl_id, target_chembl_id: row.target_chembl_id,
+      }),
+      targetIds: [targetIds.get(row.target_chembl_id)],
+      sourceType: "chembl",
+      rawTargetRecord: rawTargets.get(row.target_chembl_id),
+      actionType: row.action_type,
+      text: row.mechanism_of_action,
+      references: row.mechanism_refs,
+      role: /\b(?:payload|cytotoxic warhead)\b/i.test(row.mechanism_of_action || "") ? "payload"
+        : [true, 1].includes(row.direct_interaction) ? "direct"
+        : [false, 0].includes(row.direct_interaction) ? "indirect" : "unverified",
+      allowBindingAssertion: Boolean(row.mechanism_refs?.length),
+    }));
   const mechanisms = records
     .filter(
       (row) =>
@@ -222,7 +243,62 @@ async function fetchChemblMechanisms(targets, fetcher, signal, retrievedAt) {
         ],
       };
     });
-  return { state: byId.size ? "ok" : "empty", drugs: [...byId.values()], mechanisms, coverage };
+  return { state: byId.size ? "ok" : "empty", drugs: [...byId.values()], mechanisms, targetEvidence, coverage };
+}
+
+// Query by drug after discovery. Querying by selected target alone cannot
+// surface other arms or distinguish a partial projection from a full scope.
+async function reviewChemblDrugs(drugs, targets, fetcher, signal) {
+  const scope = targets.map(({ id }) => id);
+  const selected = drugs.flatMap((drug) => {
+    const id = drug.externalIds?.chembl || drug.id;
+    if (!chemblId(id)) return [];
+    const match = classifyTargetMatch(prepareTargetMatch(drug, targets), scope);
+    return match && match.state !== "verified" ? [{ id, drug, support: match.supported.length }] : [];
+  }).sort((a, b) => b.support - a.support || a.drug.name.localeCompare(b.drug.name, "en"));
+  const batch = selected.slice(0, 24);
+  if (!batch.length) return null;
+  const ids = new Set(batch.map(({ id }) => id));
+  const page = await chemblRows("mechanism", { molecule_chembl_id__in: [...ids].join(",") },
+    "mechanisms", fetcher, signal);
+  const records = page.rows.filter((row) => ids.has(row.molecule_chembl_id) && chemblId(row.target_chembl_id));
+  const targetIds = [...new Set(records.map((row) => row.target_chembl_id))];
+  const metadata = targetIds.length ? await chemblRows("target", { target_chembl_id__in: targetIds.join(",") },
+    "targets", fetcher, signal) : { rows: [] };
+  const byTarget = new Map(metadata.rows.map((row) => [row.target_chembl_id, row]));
+  for (const { id, drug } of batch) {
+    const evidence = records.filter((row) => row.molecule_chembl_id === id).map((row) => {
+      const raw = byTarget.get(row.target_chembl_id);
+      const accessions = new Set(raw?.target_components?.map(({ accession }) => accession) || []);
+      const matches = targets.filter((target) => {
+        const complex = target.kind === "complex";
+        const accepted = complex ? target.componentAccessions || [] : target.uniprotIds || [];
+        return raw?.organism === "Homo sapiens" && accessions.size &&
+          raw.target_type === (complex ? "PROTEIN COMPLEX" : "SINGLE PROTEIN") &&
+          (complex ? accessions.size === accepted.length && accepted.every((value) => accessions.has(value))
+            : accessions.size === 1 && accepted.some((value) => accessions.has(value)));
+      });
+      return {
+        sourceType: "chembl",
+        recordId: row.mec_id ?? row.target_chembl_id,
+        originalUrl: chemblBase + "mechanism.json?" + new URLSearchParams({ molecule_chembl_id: id, target_chembl_id: row.target_chembl_id }),
+        rawTargetRecord: raw || { target_chembl_id: row.target_chembl_id },
+        targetIds: [matches.length === 1 ? matches[0].id : row.target_chembl_id],
+        text: row.mechanism_of_action,
+        actionType: row.action_type,
+        role: /\b(?:payload|cytotoxic warhead)\b/i.test(row.mechanism_of_action || "") ? "payload"
+          : [false, 0].includes(row.direct_interaction) ? "indirect"
+          : [true, 1].includes(row.direct_interaction) && matches.length === 1 ? "direct" : "unverified",
+        allowBindingAssertion: Boolean(row.mechanism_refs?.length),
+        references: row.mechanism_refs,
+      };
+    });
+    drug.targetEvidence = mergeEvidence(curatedTargetEvidence(drug), evidence);
+  }
+  return { state: records.length ? "success_with_data" : "success_empty",
+    queryType: "drug_mechanisms", count: selected.length, returned: batch.length,
+    truncated: selected.length > batch.length || page.truncated || metadata.truncated,
+    issue: page.issue || metadata.issue };
 }
 
 export async function queryMechanisms(
@@ -373,7 +449,15 @@ export async function queryMechanisms(
   const resolvedTargets = identities.map((identity) => ({
     id: identity.id,
     label: identity.id,
-    aliases: [],
+    aliases: [...new Set([identity.inputName, ...identity.synonyms])],
+    canonicalId: identity.canonicalId,
+    canonicalName: identity.canonicalName,
+    resolutionStatus: identity.resolutionStatus,
+    ensemblIds: identity.ensemblIds,
+    uniprotIds: identity.uniprotIds,
+    hgncId: identity.hgncId,
+    subunits: identity.subunits,
+    componentAccessions: identity.componentAccessions,
     literatureNames: [
       ...new Set([identity.inputName, identity.canonicalName, ...identity.synonyms]),
     ]
@@ -430,10 +514,12 @@ export async function queryMechanisms(
     })),
   ]);
 
+  online.catalog.targetEvidenceMatching = true;
   const mechanisms = [...chembl.mechanisms];
   const existing = new Map(online.catalog.drugs.map((drug) => [drug.id, drug]));
   for (const molecule of chembl.drugs) {
     const rows = mechanisms.filter((row) => row.drugId === molecule.molecule_chembl_id);
+    const evidenceRows = (chembl.targetEvidence || []).filter((row) => row.drugId === molecule.molecule_chembl_id);
     const sameName = online.catalog.drugs.filter(
       (drug) =>
         drug.verification === "reviewed" &&
@@ -452,32 +538,7 @@ export async function queryMechanisms(
       rows.forEach((row) => {
         row.drugId = prior.id;
       });
-      for (const row of rows) {
-        const complex = identities.find(
-          ({ id, subunits, componentAccessions }) =>
-            row.targetIds.includes(id) &&
-            componentAccessions?.length &&
-            subunits.every((subunit) => prior.targetIds.includes(subunit)),
-        );
-        if (!complex) continue;
-        // ChEMBL supports the exact complex. Keep the Open Targets subunit annotations
-        // in their original mechanism records while using the complex in the match scope.
-        prior.targetIds = [
-          ...new Set([
-            ...prior.targetIds.filter((id) => !complex.subunits.includes(id)),
-            complex.id,
-          ]),
-        ];
-      }
-      if (prior.targetSetComplete === false) {
-        prior.targetIds = [
-          ...new Set([...prior.targetIds, ...rows.flatMap((row) => row.targetIds)]),
-        ];
-        prior.reportedTargetSets = [
-          ...(prior.reportedTargetSets || []),
-          ...rows.map((row) => row.targetIds),
-        ];
-      }
+      prior.targetEvidence = mergeEvidence(curatedTargetEvidence(prior), evidenceRows);
       continue;
     }
     const drug = {
@@ -486,6 +547,7 @@ export async function queryMechanisms(
       brand: "",
       targetIds: [...new Set(rows.flatMap((row) => row.targetIds))],
       targetSetComplete: false,
+      targetEvidence: evidenceRows,
       proposedTargetIds: molecule.proposedTargetIds,
       reportedTargetSets: rows.map((row) => row.targetIds),
       clinicalStage: chemblStage(molecule),
@@ -516,9 +578,7 @@ export async function queryMechanisms(
     if (primary?.clinicalStage === "WITHDRAWN" || drug.clinicalStage === "WITHDRAWN") continue;
     if (
       !primary ||
-      drug.id === primary.id ||
-      primary.targetIds.length !== drug.targetIds.length ||
-      !primary.targetIds.every((id) => drug.targetIds.includes(id))
+      drug.id === primary.id
     )
       continue;
     primary.aliases = [
@@ -527,6 +587,7 @@ export async function queryMechanisms(
     primary.proposedTargetIds = [
       ...new Set([...(primary.proposedTargetIds || []), ...(drug.proposedTargetIds || [])]),
     ];
+    primary.targetEvidence = mergeEvidence(curatedTargetEvidence(primary), curatedTargetEvidence(drug));
     primary.sourceIds = [...new Set([...(primary.sourceIds || []), drug.sourceId].filter(Boolean))];
     if (identity?.source) primary.identityEvidence = identity.source;
     if (
@@ -537,6 +598,9 @@ export async function queryMechanisms(
     remappedDrugs.set(drug.id, primary.id);
   }
   if (remappedDrugs.size) {
+    for (const [id, parent] of remappedDrugs) {
+      if (remappedDrugs.has(parent)) remappedDrugs.delete(id);
+    }
     for (const row of mechanisms) {
       row.drugId = remappedDrugs.get(row.drugId) || row.drugId;
     }
@@ -631,6 +695,14 @@ export async function queryMechanisms(
     biology.diseaseAssociations = associations[index].value || [];
     biology.diseaseExpression = reviewedDiseaseExpression(eligibleBiology[index].identity);
   });
+  const normalizeDrugs = () => {
+    for (const drug of online.catalog.drugs) {
+      const prepared = prepareTargetMatch(drug, resolvedTargets);
+      drug.targetIds = [...prepared.direct];
+      drug.normalizedTargetEvidence = prepared.evidence;
+    }
+  };
+  normalizeDrugs();
   const scopedDrugs = online.catalog.drugs.filter(
     (drug) =>
       drug.targetIds.some((id) => identities.some((target) => target.id === id)) ||
@@ -644,13 +716,55 @@ export async function queryMechanisms(
         a.name.localeCompare(b.name, "en"),
     )
     .flatMap((drug) => [drug.name, ...(drug.aliases || []).slice(0, 1)]);
-  const namedTrials = await discoverTrialInterventions([], {
+  const [namedTrials, fdaReview, chemblReview] = await Promise.all([
+    discoverTrialInterventions([], {
     fetcher,
     signal,
     drugNames: trialNames,
-  }).catch((error) => ({ rows: [], ...providerIssue(error) }));
+  }).catch((error) => ({ rows: [], ...providerIssue(error) })),
+    reviewFdaLabels(online.catalog.drugs, resolvedTargets, {
+      fetcher, signal: AbortSignal.any([signal, AbortSignal.timeout(4500)]),
+    }),
+    reviewChemblDrugs(online.catalog.drugs, resolvedTargets, fetcher,
+      AbortSignal.any([signal, AbortSignal.timeout(4500)])).catch((error) => ({
+      ...providerIssue(error), queryType: "drug_mechanisms",
+    })),
+  ]);
   reconcileTrialInterventions(online.catalog.drugs, namedTrials.rows);
   const trialCandidates = reconcileTrialInterventions(online.catalog.drugs, trials.rows);
+  for (const drug of online.catalog.drugs) {
+    const records = [...(fdaReview.verified.get(drug.id) || [])];
+    for (const study of drug.clinicalEvidence || []) {
+      if (!study.interventionDescription) continue;
+      records.push(...study.interventionDescription.split(/(?<=\.)\s+/).map((text) => ({
+        role: "direct", sourceType: "clinical_trial", text, allowBindingAssertion: true,
+        references: [{ source: "ClinicalTrials.gov", ids: [study.id], urls: [study.url] }],
+      })));
+    }
+    if (records.length) drug.targetEvidence = mergeEvidence(curatedTargetEvidence(drug), records);
+  }
+  normalizeDrugs();
+  for (const drug of online.catalog.drugs) {
+    const prepared = prepareTargetMatch(drug, resolvedTargets);
+    for (const row of prepared.evidence.filter(({ assertedTargetIds }) => assertedTargetIds)) {
+      const reference = row.references?.find(({ urls }) =>
+        Array.isArray(urls) && urls.some((url) => typeof url === "string" && /^https:\/\//i.test(url)));
+      const originalUrl = reference?.urls.find((url) => typeof url === "string" && /^https:\/\//i.test(url))
+        || row.originalUrl;
+      if (!originalUrl) continue;
+      const classification = classifyTargetMatch(prepared, row.assertedTargetIds);
+      mechanisms.unshift({
+        drugId: drug.id,
+        drugName: drug.name,
+        targetIds: row.assertedTargetIds,
+        mechanismDescription: row.text,
+        evidenceStatus: classification?.state === "conflict" ? "conflicting_evidence" : "direct_evidence",
+        completeTargetSet: classification?.state === "verified",
+        sources: [evidence(reference?.source || row.sourceType, reference?.ids?.[0] || String(row.recordId ?? drug.id),
+          originalUrl, retrievedAt, { evidenceDescription: row.text })],
+      });
+    }
+  }
   const aggregateChecks = (rows) =>
     sourceState(
       rows.map(({ state }) =>
@@ -677,7 +791,7 @@ export async function queryMechanisms(
     ),
     ChEMBL: chembl.coverage?.some(({ issue }) => issue) ? "partial" : chembl.state,
     "Open Targets": online.openTargetsStatus,
-    FDA: "not_queried",
+    FDA: aggregateChecks(fdaReview.checks.filter(({ state }) => state !== "not_queried")),
     EMA: "not_queried",
     NMPA: "not_queried",
     "ClinicalTrials.gov": sourceState(
@@ -714,18 +828,20 @@ export async function queryMechanisms(
       })),
     ChEMBL:
       chembl.state === "not_queried"
-        ? []
+        ? (chemblReview ? [chemblReview] : [])
         : [
             chembl.issue || {
               state: chembl.state === "ok" ? "success_with_data" : "success_empty",
               truncated: chembl.coverage?.some(({ truncated }) => truncated),
               resources: chembl.coverage,
             },
+            ...(chemblReview ? [chemblReview] : []),
             ...(chembl.coverage || []).flatMap(({ resource, issue }) =>
               issue ? [{ resource, ...issue }] : [],
             ),
           ],
     "Open Targets": online.openTargetsChecks,
+    FDA: [...fdaReview.checks, ...(fdaReview.truncated ? [{ state: "not_queried", truncated: true }] : [])],
   };
   return {
     query: values,

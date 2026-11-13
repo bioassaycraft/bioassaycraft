@@ -74,7 +74,7 @@ export async function discoverTrialInterventions(identities, { signal, fetcher =
   if (!queryTerms.length) return { rows: [], state: "not_queried" };
   const query = queryTerms.map((term) => `"${term}"`).join(" OR ");
   const params = new URLSearchParams({
-    [drugNames ? "query.intr" : "query.term"]: query, pageSize: "30", fields: [...fields, "InterventionType"].join(","), countTotal: "true",
+    [drugNames ? "query.intr" : "query.term"]: query, pageSize: "30", fields: [...fields, "InterventionType", "InterventionDescription"].join(","), countTotal: "true",
   });
   const response = await fetcher(`https://clinicaltrials.gov/api/v2/studies?${params}`, {
     signal: AbortSignal.any([signal, AbortSignal.timeout(6500)]), redirect: "manual",
@@ -96,6 +96,7 @@ export async function discoverTrialInterventions(identities, { signal, fetcher =
         id, url: "https://clinicaltrials.gov/study/" + id,
         phases: study.designModule?.phases || [],
         status: study.statusModule?.overallStatus,
+        ...(typeof entry.description === "string" ? { interventionDescription: entry.description.slice(0, 2500) } : {}),
       });
       records.set(key, record);
     }

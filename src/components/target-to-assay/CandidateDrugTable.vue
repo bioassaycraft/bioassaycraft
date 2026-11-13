@@ -12,7 +12,6 @@ const props = defineProps({
 });
 const pageSize = 10;
 const limit = ref(pageSize);
-const cd3Subunits = ["CD3D", "CD3E", "CD3G", "CD247"];
 const translations = new Map([
   ["b-lymphocyte antigen cd19 binding agent", "B 淋巴细胞抗原 CD19 结合剂。"],
   ["t cell surface glycoprotein cd3 binding agent", "T 细胞表面糖蛋白 CD3 结合剂。"],
@@ -41,7 +40,8 @@ const rows = computed(() => props.candidates.slice(0, limit.value).map(({ drug, 
   const mechanisms = [...evidence.values()];
   const adc = /antibody[ -]+drug conjugate|\badc\b/i.test(drug.molecularFormat || "");
   const targets = new Set(drug.targetIds);
-  const payload = [];
+  const payload = (drug.normalizedTargetEvidence || [])
+    .filter(({ role }) => role === "payload").flatMap(({ normalizedTargetIds }) => normalizedTargetIds);
   for (const entry of mechanisms) {
     const key = termKey(entry.mechanismOriginal);
     // Only collapse target families explicitly named by a mechanism record.
@@ -52,14 +52,6 @@ const rows = computed(() => props.candidates.slice(0, limit.value).map(({ drug, 
     ids.forEach((id) => targets.delete(id));
     if (adc && key === "tubulin inhibitor") payload.push(family);
     else targets.add(family);
-  }
-  const subunits = cd3Subunits.filter((id) => targets.has(id));
-  if (targets.has("CD3") || subunits.length) {
-    const complex = targets.delete("CD3");
-    subunits.forEach((id) => targets.delete(id));
-    const label = complex || subunits.length > 1 ? "CD3" : subunits[0];
-    const detail = subunits.length > 1 || (complex && subunits.length) ? ` (${subunits.join(", ")})` : "";
-    targets.add(label + detail);
   }
   const names = [...targets].map((id) => id === "MS4A1" ? "CD20 (MS4A1)" : id);
   return {
