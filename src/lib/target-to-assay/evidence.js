@@ -60,37 +60,46 @@ const starter = {
   },
 };
 const reviewTypes = [
-  [/toc\.html|review package/i, "Review package", "审评文件目录"],
-  [/chemr|quality|chemistry|\bcmc\b/i, "Product quality review", "药学审评"],
-  [/pharmr|pharmtox|nonclinical|pharmacology.{0,4}toxicology/i, "Nonclinical review", "非临床审评"],
-  [/multidisciplin|integrated review|integratedr/i, "Multidisciplinary review", "多学科审评"],
-  [/sumr|summary review|cross.discipline|cdtl/i, "Summary review", "总结审评"],
-  [/clinpharm|clinical pharmacology/i, "Clinical pharmacology review", "临床药理审评"],
-  [/medr|clinical review|clinr/i, "Clinical review", "临床审评"],
-  [/statistical|statr/i, "Statistical review", "统计审评"],
+  [/integrated quality assessment|\biqa\b/i, "Integrated Quality Assessment", 2],
+  [/chemr|product quality|chemistry review|\bcmc\b/i, "Product Quality Review", 1],
+  [/multi[- ]?disciplin|integrated review|integratedr/i, "Multidisciplinary Review", 3],
+  [/sumr|summary review|cross.discipline|cdtl/i, "Summary Review", 4],
+  [/clinpharm|clinical pharmacology/i, "Clinical Pharmacology Review", 5],
+  [/pharmr|pharmtox|non[- ]?clinical|pharmacology.{0,4}toxicology/i, "Nonclinical Review", 6],
+  [/medr|clinical review|clinr/i, "Clinical Review", 7],
+  [/statistical|statr/i, "Statistical Review", 8],
 ];
 
-function reviewType(description) {
-  return (
-    reviewTypes.find(([pattern]) => pattern.test(description)) || [
-      null,
-      "Review (type unspecified)",
-      "审评文件（类型未标注）",
-    ]
-  );
+export function classifyFdaReview(metadata) {
+  const [, category, priority] = reviewTypes.find(([pattern]) => pattern.test(metadata)) ||
+    [null, "Other Reviews", 9];
+  return { category, priority };
 }
 
+const relevanceTerms = [/\bpotency\b/i, /\bbioassays?\b/i, /biological activity/i,
+  /analytical methods?/i, /method validation/i];
+
+export const fdaNavigation = (doc) => doc.agency === "FDA" &&
+  (doc.kind === "overview" || doc.kind === "review_package");
+
+const overview = (id, approvedAt = null) => ({
+  agency: "FDA",
+  kind: "overview",
+  application: id,
+  approvedAt,
+  status: "document",
+  title: `Drugs@FDA – Application Overview · ${id}`,
+  url: `https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&ApplNo=${id.slice(-6)}`,
+});
+
 function starterRecord(drug) {
-  return (
-    starter[drug.id] ||
-    Object.entries(starter).find(([id]) => ingredientKey(id) === ingredientKey(drug.name))?.[1]
-  );
+  return Object.entries(starter).find(([id]) => ingredientKey(id) === ingredientKey(drug.name))?.[1];
 }
 
 export function approvalMilestones(drug, documents = [], european) {
   const record = starterRecord(drug);
   const us = documents
-    .filter((doc) => doc.agency === "FDA" && doc.kind === "application" && doc.approvedAt)
+    .filter((doc) => doc.agency === "FDA" && doc.kind === "overview" && doc.approvedAt)
     .sort((a, b) => a.approvedAt.localeCompare(b.approvedAt))[0];
   const reviewed = reviewedFdaRecord(drug);
   const fda = drug.regulatoryApprovals?.find(({ agency }) => agency === "FDA");
@@ -128,10 +137,16 @@ export function evidenceFor(drug, sources = []) {
         ]
       : [];
   const reviewed = reviewedFdaRecord(drug);
-  if (reviewed) documents.push({
+  if (reviewed && !reviewed.documents) documents.push({
     agency: "FDA", kind: "application", status: "document", approvedAt: reviewed.date,
     application: reviewed.application, title: "FDA · " + reviewed.brand, url: reviewed.url,
   });
+  const application = reviewed?.application || (record && `BLA${record.application}`);
+  if (application && reviewed?.type !== "car_t")
+    documents.push(overview(application, reviewed?.date || record?.usApproval));
+  if (reviewed?.documents)
+    documents.push(...reviewed.documents.map((doc) => ({ agency: "FDA", kind: "review",
+      status: "document", application, ...doc, ...classifyFdaReview(doc.title) })));
   if (drug.regulatoryApprovals?.length) {
     documents.push(...drug.regulatoryApprovals.map((approval) => ({
       agency: approval.agency,
@@ -152,8 +167,7 @@ export function evidenceFor(drug, sources = []) {
       kind: "review",
       status: "document",
       application: "NDA206995",
-      title: "FDA · Summary review · NDA206995",
-      titleZh: "FDA · 总结审评 · NDA206995",
+      title: "FDA · Summary Review · NDA206995",
       url: "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2015/206995Orig1s000SumR.pdf",
     });
   }
@@ -163,8 +177,8 @@ export function evidenceFor(drug, sources = []) {
       kind: "activity",
       status: "document",
       application: "BLA761309",
+      submissionType: "ORIG",
       title: "Product Quality Review · Potency control · pp. 4–5",
-      titleZh: "查看 FDA 药学审评 · 效价控制 · 第 4–5 页",
       summary:
         "The quality review describes a cell-based reporter assay for potency control. The readout is NFAT-driven luciferase activity.",
       summaryZh: "药学审评明确将细胞报告基因法用于效价控制，读数为 NFAT 驱动的荧光素酶活性。",
@@ -177,19 +191,18 @@ export function evidenceFor(drug, sources = []) {
       kind: "review",
       status: "document",
       application: "BLA761309",
-      title: "FDA · Multidisciplinary review · BLA761309",
-      titleZh: "FDA · 多学科审评 · BLA761309",
+      submissionType: "ORIG",
+      title: "FDA · Multidisciplinary Review · BLA761309",
       url: "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2023/761309Orig1s000MultidisciplineR.pdf",
     });
   }
   if (record?.year) {
     documents.push({
       agency: "FDA",
-      kind: "review",
+      kind: "review_package",
       status: "document",
       application: `BLA${record.application}`,
-      title: "FDA · Review package",
-      titleZh: "查看 FDA 申报审评包",
+      title: "Review Package / Table of Contents",
       url: `https://www.accessdata.fda.gov/drugsatfda_docs/nda/${record.year}/${record.application}Orig1s000TOC.html`,
     });
     documents.push({
@@ -228,7 +241,7 @@ export function safeOfficialUrl(value) {
   try {
     const url = new URL(value);
     if (
-      !["https:", "http:"].includes(url.protocol) ||
+      !["https:", "http:"].includes(url.protocol) || url.port || url.username || url.password ||
       !["www.accessdata.fda.gov", "www.fda.gov"].includes(url.hostname)
     )
       return null;
@@ -246,19 +259,90 @@ function approvedDate(submission) {
 }
 
 export function sortReviewEvidence(documents) {
-  return [...documents].sort((a, b) =>
-    (a.approvedAt || "9999").localeCompare(b.approvedAt || "9999"),
-  );
+  const rank = (doc) => doc.kind === "overview" ? -2 : doc.kind === "review_package" ? -1 :
+    doc.priority ?? classifyFdaReview(doc.title || "").priority;
+  const submissionRank = (doc) => ({ ORIG: 0, SUPPL: 1 })[doc.submissionType] ?? 2;
+  const sorted = [...documents].sort((a, b) =>
+    Number(b.agency === "FDA") - Number(a.agency === "FDA") ||
+    (a.agency === "FDA" && b.agency === "FDA" ? rank(a) - rank(b) ||
+      (b.relevance || 0) - (a.relevance || 0) || submissionRank(a) - submissionRank(b) : 0) ||
+    (a.approvedAt || "9999").localeCompare(b.approvedAt || "9999") ||
+    (a.date || "9999").localeCompare(b.date || "9999") ||
+    (a.url || "").localeCompare(b.url || "", "en") ||
+    String(a.recordId ?? "").localeCompare(String(b.recordId ?? ""), "en"));
+  // The UI groups by agency before sorting; deduplicate identical official URLs within each group.
+  const seen = new Set();
+  return sorted.filter((doc) => {
+    const key = doc.url && (doc.agency === "FDA"
+      ? doc.url.split(/[?#]/)[0] + (doc.kind === "overview" ? doc.application : "")
+      : doc.url);
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// Some FDA indexes render their links from a file list embedded in the index.
+// Read only explicit anchors and enabled review entries; do not execute the page script.
+export function fdaIndexReviews(html, index) {
+  const indexUrl = new URL(index.url);
+  const baseName = indexUrl.pathname.split("/").at(-1).replace(/toc\.(?:html?|cfm)$/i, "");
+  const entries = [...html.matchAll(/<a\b[^>]*\bhref=["']([^"'\s]+\.pdf)["'][^>]*>([^<]{1,200})<\/a>/gi)]
+    .filter(([, , title]) => /review|quality assessment/i.test(title)).map(([, file, title]) => ({ file, title }));
+  const config = html.match(/var\s+pdfFiles\s*=\s*\{([\s\S]{1,4000}?)\};/)?.[1];
+  const statedBase = html.match(/var\s+pdfBaseName\s*=\s*["']([\w-]+)["']\s*;/)?.[1];
+  if (config && statedBase === baseName) {
+    const enabled = new Set([...config.matchAll(/\b(\w+)\s*:\s*1\b/g)].map((match) => match[1]));
+    for (const [, key, suffix, title] of html.matchAll(
+      /if\s*\(pdfFiles\.(\w+)\s*==\s*1\)\s*\{\s*reviewHtml\s*\+=\s*'<li><a href="'\s*\+\s*pdfBaseName\s*\+\s*'([\w-]+\.pdf)"[^>]*>([^<]{1,200})<\/a>/g,
+    )) {
+      if (enabled.has(key)) entries.push({ file: statedBase + suffix, title });
+    }
+  }
+  return entries.flatMap(({ file, title }) => {
+    let target;
+    try { target = new URL(file, indexUrl); } catch { return []; }
+    const filename = target.pathname.split("/").at(-1);
+    if (target.origin !== indexUrl.origin || target.pathname.slice(0, -filename.length) !==
+      indexUrl.pathname.slice(0, indexUrl.pathname.lastIndexOf("/") + 1) ||
+      !filename.toLowerCase().startsWith(baseName.toLowerCase()) || !safeOfficialUrl(target.href)) return [];
+    const classification = classifyFdaReview(title + " " + filename);
+    return [{ ...index, ...classification, kind: "review", sourceUrl: index.url, originalType: title.trim(),
+      title: index.title.replace("Review Package / Table of Contents", classification.category),
+      url: target.href }];
+  });
+}
+
+async function readFdaIndex(response) {
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const decoder = new TextDecoder();
+  let size = 0;
+  let html = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) return html + decoder.decode();
+    size += value.byteLength;
+    if (size > 256_000) {
+      await reader.cancel();
+      throw new Error("unexpected_fda_index_size");
+    }
+    html += decoder.decode(value, { stream: true });
+  }
 }
 
 export async function fetchFdaDocuments(
   drug,
-  { fetcher = fetch, signal = AbortSignal.timeout(20000) } = {},
+  { fetcher = fetch, signal = AbortSignal.timeout(12000), withStatus = false } = {},
 ) {
   const record = starterRecord(drug);
+  const reviewed = reviewedFdaRecord(drug);
+  const fetchedAt = new Date().toISOString();
+  const finish = (rows, truncated = false, validationFailures = 0) => withStatus ? { rows, truncated, validationFailures, retrievedAt: fetchedAt } : rows;
   const name = drug.name.replace(/[^\p{L}\p{N} -]/gu, " ").trim();
-  if (!name) return [];
-  const applicationId = reviewedFdaRecord(drug)?.application || (record && `BLA${record.application}`);
+  if (!name) return finish([]);
+  const applicationId = reviewed?.application || (record && `BLA${record.application}`);
   const brandNames = [...new Set([drug.brand, ...(drug.aliases || [])])]
     .filter((value) => typeof value === "string" && /^[a-z0-9][a-z0-9 .-]{2,55}$/i.test(value))
     .slice(0, 4);
@@ -272,40 +356,59 @@ export async function fetchFdaDocuments(
     `(${terms.join(" OR ")}) AND application_number:(NDA* OR BLA*)`;
   const response = await fetcher(
     `https://api.fda.gov/drug/drugsfda.json?${new URLSearchParams({ search, limit: "30" })}`,
-    { signal },
+    { signal, redirect: "manual" },
   );
-  if (response.status === 404) return [];
-  if (!response.ok) throw new Error("fda_unavailable");
+  if (response.status === 404) return finish([]);
+  if (!response.ok) throw new Error("upstream_" + response.status);
   const body = await response.json();
-  const documents = new Map();
-  const matching = (body.results || []).filter(
-    (application) =>
-      (applicationId ? application.application_number === applicationId :
-      (/^(NDA|BLA)\d{6}$/.test(application.application_number || "") &&
-        (application.products || []).some(
-          (product) =>
-            product.active_ingredients?.length === 1 &&
-            ingredientKey(product.active_ingredients[0].name || "") === ingredientKey(name),
-        ))),
+  if (!Array.isArray(body.results)) throw new Error("unexpected_fda_response");
+  const documents = [];
+  const matching = body.results.filter((application) =>
+    /^(NDA|BLA)\d{6}$/.test(application.application_number || "") &&
+    (!applicationId || application.application_number === applicationId) &&
+    ((application.products || []).some((product) =>
+      product.active_ingredients?.length === 1 &&
+      ingredientKey(product.active_ingredients[0].name || "") === ingredientKey(name),
+    ) || (!application.products?.length && applicationId)),
   );
   for (const application of matching) {
     for (const submission of application.submissions || []) {
       for (const doc of submission.application_docs || []) {
         const url = safeOfficialUrl(doc.url);
         if (!url || !/review/i.test(doc.type)) continue;
-        const description = `${doc.type} ${new URL(url).pathname}`;
-        const [, type, typeZh] = reviewType(description);
-        documents.set(url, {
+        const path = new URL(url).pathname;
+        const filename = path.split("/").at(-1);
+        // FDA's document metadata binds each review to an application. Require the URL to
+        // corroborate that binding; separately reviewed exceptions come from curated evidence.
+        if (filename.match(/^\d+/)?.[0] !== application.application_number.slice(-6)) continue;
+        const packageIndex = /toc\.(?:html?|cfm)$/i.test(filename);
+        if (!packageIndex && !/\.pdf$/i.test(filename)) continue;
+        const submissionType = submission.submission_type;
+        const submissionNumber = submission.submission_number;
+        const suffix = filename.match(/(?:Orig\d+)?s(\d{3})(?=\D|$)/i)?.[1];
+        if (suffix && /^\d+$/.test(submissionNumber) && Number(suffix) !==
+          (submissionType === "ORIG" ? 0 : Number(submissionNumber))) continue;
+        const description = `${doc.type} ${doc.title || ""} ${doc.description || ""}`;
+        const classification = classifyFdaReview(`${description} ${path}`);
+        const label = packageIndex ? "Review Package / Table of Contents" : classification.category;
+        const submissionLabel = submissionType === "ORIG" ? "Original Application" :
+          submissionType === "SUPPL" ? "Supplement" : "Submission type unspecified";
+        documents.push({
           agency: "FDA",
-          kind: "review",
+          kind: packageIndex ? "review_package" : "review",
+          ...(packageIndex ? {} : classification),
+          relevance: relevanceTerms.filter((term) => term.test(description)).length,
           approvedAt: approvedDate(submission),
           application: application.application_number,
+          submissionType, submissionNumber,
+          recordId: doc.id || null,
+          originalType: typeof doc.type === "string" ? doc.type.trim() : "",
           status: "document",
-          title: `FDA · ${type} · ${application.application_number} · ${submission.submission_type} ${submission.submission_number}`,
-          titleZh: `FDA · ${typeZh} · ${application.application_number} · ${submission.submission_type} ${submission.submission_number}`,
+          title: `${label} · ${application.application_number} · ${submissionLabel}${submissionNumber ? " " + submissionNumber : ""}`,
           url,
-          date: doc.date === "19000101" ? null : doc.date,
-          fetchedAt: new Date().toISOString(),
+          date: /^\d{8}$/.test(doc.date) && doc.date !== "19000101"
+            ? `${doc.date.slice(0, 4)}-${doc.date.slice(4, 6)}-${doc.date.slice(6)}` : null,
+          fetchedAt,
         });
       }
     }
@@ -320,16 +423,43 @@ export async function fetchFdaDocuments(
           .map(approvedDate)
           .filter(Boolean)
           .sort()[0] || null;
-      return {
-        agency: "FDA",
-        kind: "application",
-        application: id,
-        approvedAt,
-        status: "document",
-        title: `Open Drugs@FDA application ${id}`,
-        titleZh: `查看 FDA 申报记录 ${id}`,
-        url: `https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&ApplNo=${id.slice(-6)}`,
-      };
+      const applicationSponsor = typeof app.sponsor_name === "string" ? app.sponsor_name.trim() : "";
+      return { ...overview(id, approvedAt), fetchedAt, ...(approvedAt && applicationSponsor && { applicationSponsor }) };
     });
-  return sortReviewEvidence([...documents.values(), ...applications]);
+  const indexes = sortReviewEvidence(documents.filter((doc) => doc.kind === "review_package"));
+  const checked = [];
+  let validationFailures = 0;
+  const indexReviews = await Promise.all(indexes.slice(0, 4).map(async (doc) => {
+    try {
+      const result = await fetcher(doc.url, { redirect: "manual",
+        signal: AbortSignal.any([signal, AbortSignal.timeout(3000)]) });
+      if (!result.ok || !/^text\/html\b/i.test(result.headers.get("Content-Type") || ""))
+        throw new Error("unexpected_fda_index");
+      const html = await readFdaIndex(result);
+      checked.push(doc);
+      return fdaIndexReviews(html, doc);
+    } catch {
+      validationFailures++;
+      return [];
+    }
+  }));
+  const candidates = sortReviewEvidence([...documents.filter((doc) => doc.kind === "review"), ...indexReviews.flat()]);
+  let attempted = 0;
+  for (let offset = 0; offset < Math.min(candidates.length, 36) && !signal.aborted; offset += 6) {
+    const batch = candidates.slice(offset, Math.min(offset + 6, 36));
+    attempted += batch.length;
+    await Promise.all(batch.map(async (doc) => {
+      try {
+        const result = await fetcher(doc.url, { method: "HEAD", redirect: "manual",
+          signal: AbortSignal.any([signal, AbortSignal.timeout(2500)]) });
+        if (result.ok && /^application\/pdf\b/i.test(result.headers.get("Content-Type") || "")) checked.push(doc);
+        else validationFailures++;
+      } catch {
+        validationFailures++;
+      }
+    }));
+  }
+  return finish(sortReviewEvidence([...checked, ...applications]),
+    indexes.length > 4 || attempted < candidates.length ||
+    Number(body.meta?.results?.total) > body.results.length, validationFailures);
 }

@@ -42,6 +42,8 @@ const search = (targets, records, inputs = targets.map(({ id }) => id), proposed
 describe("direct target evidence and complete scope", () => {
   it.each([
     ["PD-1", "PDCD1"],
+    ["PD1", "PDCD1"],
+    ["PDCD1", "PDCD1"],
     ["CD20", "MS4A1"],
     ["BCMA", "TNFRSF17"],
   ])("normalizes %s to %s", (alias, id) => {
@@ -72,6 +74,14 @@ describe("direct target evidence and complete scope", () => {
     ).toHaveLength(1);
   });
 
+  it("recognizes two FDA label binding arms without treating cell locations as additional targets", () => {
+    const targets = [cd3, target("TNFRSF17")];
+    for (const text of [
+      "Fixturemab is a bispecific antibody that binds to the CD3 receptor expressed on the surface of T-cells and B-cell maturation antigen (BCMA) expressed on the surface of myeloma cells and some healthy cells.",
+      "Fixturemab is a bispecific antibody that binds BCMA on plasma cells, plasmablasts, and myeloma cells and CD3 on T-cells leading to cytolysis of the BCMA-expressing cells.",
+    ]) expect(search(targets, [assertion(text)]).matches).toHaveLength(1);
+  });
+
   it("upgrades an explicitly three-arm drug and does not reuse a two-arm statement for three", () => {
     const targets = [cd3, target("DLL3"), target("ERBB2")];
     const dual = assertion("Fixturemab is bispecific and binds CD3 and DLL3.");
@@ -96,8 +106,8 @@ describe("direct target evidence and complete scope", () => {
     (complex, subunits, label) => {
       const records = subunits.map((id) => component(id));
       expect(search([complex], records, undefined, [complex.id]).matches).toHaveLength(0);
-      expect(search([complex], [component(subunits[0], label)]).candidates[0]).toMatchObject({
-        supported: [complex.id],
+      expect(search([complex], [component(subunits[0], label)]).matches[0]).toMatchObject({
+        matchType: "direct",
         reason: "scope_not_established",
       });
       expect(
@@ -312,4 +322,39 @@ it("does not let a newer assertion hide an independently documented additional d
   const targets = [target("EGFR"), target("ERBB2"), target("MET")];
   const records = [assertion("Fixturemab is bispecific and binds EGFR and ERBB2."), row(["MET"])];
   expect(search(targets, records, ["EGFR", "ERBB2"]).candidates[0].state).toBe("conflict");
+});
+
+it.each(["PDCD1", "MS4A1", "PCSK9"])("separates direct %s evidence from completeness without promoting weak records", (id) => {
+  const queried = target(id);
+  const records = [row([id])];
+  expect(search([queried], records)).toMatchObject({
+    matches: [{ drugId: "CHEMBL123", matchType: "direct", reason: "scope_not_established" }],
+    candidates: [],
+  });
+  expect(search([queried], [row([id], { role: "unverified" })]).matches).toEqual([]);
+  expect(search([queried], [row([id], { actionType: "AGONIST" }),
+    row([id], { actionType: "ANTAGONIST", sourceType: "open_targets" })]).candidates[0].state).toBe("conflict");
+});
+
+it.each(["DLL3", "MS4A1", "TNFRSF17"])("keeps CD3 × %s strict", (id) => {
+  const targets = [cd3, target(id)];
+  expect(search(targets, [row(["CD3"]), row([id])]).matches).toEqual([]);
+  expect(search(targets, [row(["CD3", id], { complete: true })]).matches).toHaveLength(1);
+});
+
+it("uses one partition for the three PD-1 aliases and excludes indirect or proposed relationships", () => {
+  const drugs = ["Camrelizumab", "Cemiplimab", "Dostarlimab"].map((name, index) => ({
+    ...medicine([row(["PDCD1"], { sourceType: index ? "open_targets" : "chembl" })]),
+    id: name, name,
+  }));
+  const indirect = { ...medicine([row(["PDCD1"], { role: "indirect" })]), id: "indirect" };
+  const proposed = { ...medicine(undefined), id: "proposed", targetIds: ["PDCD1"], proposedTargetIds: ["PDCD1"] };
+  for (const alias of ["PD-1", "PDCD1", "PD1"]) {
+    const [combo] = searchDrugs({ targets: alias, matchMode: "verified_scope", includeClinical: true },
+      { targets: [target("PDCD1")], sources: [], drugs: [...drugs, indirect, proposed] }).combinations;
+    expect(combo.targetIds).toEqual(["PDCD1"]);
+    expect(combo.matches.map(({ drugId, matchType }) => [drugId, matchType]))
+      .toEqual(drugs.map(({ id }) => [id, "direct"]));
+    expect(combo.candidates.map(({ drugId }) => drugId)).toEqual(["indirect", "proposed"]);
+  }
 });

@@ -1,3 +1,4 @@
+import { handleSupplement, supplementActions } from "./target-to-assay-supplements.js";
 import { fetchEmaApprovals } from "../lib/target-to-assay/approval-records.js";
 import { queryMechanisms } from "../lib/target-to-assay/live-mechanisms.js";
 import { catalog } from "../lib/target-to-assay/catalog.js";
@@ -14,7 +15,7 @@ const json = (value, status = 200, extra = {}) =>
 export async function handleTargetToAssay(request) {
   const path = new URL(request.url).pathname;
   const action = path.slice(prefix.length);
-  const expected = ["search", "resolve", "mechanisms", "ema-approvals"].includes(action) ? "POST" : "GET";
+  const expected = ["search", "resolve", "mechanisms", "ema-approvals", ...supplementActions].includes(action) ? "POST" : "GET";
   if (request.method !== expected)
     return json({ error: { code: "method_not_allowed" } }, 405, { Allow: expected });
   if (action === "meta")
@@ -30,7 +31,7 @@ export async function handleTargetToAssay(request) {
       ? json({ drug, source: catalog.sources.find((s) => s.id === drug.sourceId) })
       : json({ error: { code: "not_found" } }, 404);
   }
-  if (!["search", "resolve", "mechanisms", "ema-approvals"].includes(action)) return json({ error: { code: "not_found" } }, 404);
+  if (!["search", "resolve", "mechanisms", "ema-approvals", ...supplementActions].includes(action)) return json({ error: { code: "not_found" } }, 404);
   if (!request.headers.get("content-type")?.includes("application/json"))
     return json({ error: { code: "unsupported_media_type" } }, 415);
   // Bound the stream, including chunked requests without Content-Length.
@@ -56,6 +57,7 @@ export async function handleTargetToAssay(request) {
     return json({ error: { code: "invalid_json" } }, 400);
   }
   try {
+    if (supplementActions.includes(action)) return handleSupplement(action, body, json, request.signal);
     if (action === "ema-approvals") {
       const names = body?.names;
       if (!Array.isArray(names) || names.length > 50 || names.some((name) =>

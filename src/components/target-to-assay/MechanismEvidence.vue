@@ -1,16 +1,20 @@
 <script setup>
 import { computed } from "vue";
-import BilingualMechanism from "./BilingualMechanism.vue";
+import { pd1Blockade } from "../../lib/target-to-assay/presentation.js";
+import { expressionLayers, expressionName } from "../../lib/target-to-assay/expression-display.js";
 import {
   bilingualMechanism,
   reviewedMechanism,
 } from "../../lib/target-to-assay/bilingual-mechanism.js";
-import { drugDisplayName, ingredientKey } from "../../lib/target-to-assay/display.js";
+import { conditionName, drugDisplayName, ingredientKey } from "../../lib/target-to-assay/display.js";
 import { targetAssayCopy } from "../../i18n/target-to-assay.js";
 
 const props = defineProps({
   result: { type: Object, default: null },
   locale: { type: String, required: true },
+  stageLabel: { type: Function, required: true },
+  drugPresentation: { type: Object, required: true },
+  matches: { type: Array, required: true },
 });
 const copy = computed(() => targetAssayCopy[props.locale].mechanism);
 // These verified Reactome records are promoted only when the live mapping returns them.
@@ -30,7 +34,7 @@ const targets = computed(() =>
       const priority = (id) => (preferred.includes(id) ? preferred.indexOf(id) : preferred.length);
       return priority(a.id) - priority(b.id);
     });
-    return { ...target, biology, pathways };
+    return { ...target, biology, pathways, ...expressionLayers(biology?.expressionProfiles) };
   }),
 );
 const matching = computed(() =>
@@ -40,81 +44,109 @@ const matching = computed(() =>
       targets.value.every(({ id }) => targetIds.includes(id)),
   ),
 );
+const matchById = computed(() => new Map(props.matches.map((match) => [match.drugId, match])));
 const direct = computed(() =>
-  matching.value.filter(
-    (row) =>
-      row.evidenceStatus !== "conflicting_evidence" &&
-      (row.completeTargetSet ||
-        (targets.value.length === 1 && row.evidenceStatus === "direct_evidence")),
-  ),
+  matching.value.filter((row) => matchById.value.has(row.drugId) &&
+    row.evidenceStatus === "direct_evidence" && (targets.value.length === 1 || row.completeTargetSet)),
 );
 const hasConflict = computed(() =>
   matching.value.some(({ evidenceStatus }) => evidenceStatus === "conflicting_evidence"),
 );
-const sharedCd3Cd20 = computed(
-  () =>
-    targets.value.length === 2 &&
-    targets.value.some(({ id }) => id === "CD3") &&
-    targets.value.some(({ id }) => id === "MS4A1") &&
-    direct.value.some(({ sources }) =>
-      sources.some(({ recordId }) =>
-        ["761263s010", "761309s006", "761324s003", "EMEA/H/C/006215"].includes(recordId),
-      ),
-    ),
-);
+const targetLabel = (target) => target.inputName && !/^ENSG\d+$/i.test(target.inputName)
+  ? target.inputName : target.id;
+const gridStyle = computed(() => ({ "--ta-columns": Math.min(3, Math.max(1, targets.value.length)) }));
 const examples = computed(() => {
-  if (hasConflict.value || sharedCd3Cd20.value) return [];
-  const singleTarget = targets.value.length === 1;
-  const isPcsk9 = singleTarget && targets.value[0].id === "PCSK9";
-  const eligible = matching.value.filter(
-    (row) => direct.value.includes(row) || (singleTarget && reviewedMechanism(row.drugName)),
-  );
-  const order = ["evolocumab", "tafolecimab", "inclisiran"];
-  const sorted = [...eligible].sort((a, b) => {
-    const priority = (row) => {
-      const index = order.indexOf(ingredientKey(row.drugName));
-      return index < 0 ? order.length : index;
-    };
-    return (
-      priority(a) - priority(b) ||
-      Number(b.developmentStatus?.globalDevelopmentPhase === "APPROVAL") -
-        Number(a.developmentStatus?.globalDevelopmentPhase === "APPROVAL") ||
-      a.drugName.localeCompare(b.drugName, "en") ||
-      a.mechanismDescription.localeCompare(b.mechanismDescription)
-    );
-  });
+  const conflicted = new Set(matching.value.filter(({ evidenceStatus }) =>
+    evidenceStatus === "conflicting_evidence").map(({ drugName }) => ingredientKey(drugName)));
+  const approved = (row) => summaryStage(row) === "APPROVAL";
+  const sorted = direct.value.filter((row) => row.mechanismDescription && row.sources?.length &&
+    !conflicted.has(ingredientKey(row.drugName)) && !/binding agent\.?$/i.test(row.mechanismDescription.trim())).sort((a, b) =>
+    Number(approved(b)) - Number(approved(a)) ||
+    Number(summaryStage(b) === "REPORTED_APPROVAL") - Number(summaryStage(a) === "REPORTED_APPROVAL") ||
+    Number(Boolean(reviewedSummary(b.drugName))) - Number(Boolean(reviewedSummary(a.drugName))) ||
+    Number(Boolean(reviewedMechanism(b.drugName))) - Number(Boolean(reviewedMechanism(a.drugName))) ||
+    a.drugName.localeCompare(b.drugName, "en"));
   const supported = new Map();
   for (const row of sorted) {
-    const reviewedCategory = reviewedMechanism(row.drugName)?.category;
-    if (isPcsk9 && !reviewedCategory) continue;
-    const category = reviewedCategory || [row.actionType, row.molecularFormat].filter(Boolean).join("|") || row.drugId;
-    if (!supported.has(category)) supported.set(category, row);
+    const key = ingredientKey(row.drugName);
+    if (!supported.has(key)) supported.set(key, row);
   }
-  return [...supported.values()].slice(0, singleTarget ? 2 : 1);
+  return [...supported.values()];
 });
+const summaryZh = new Map([
+  ["blinatumomab", targetAssayCopy.zh.drugCard.blinatumomab],
+  ["tarlatamab", "连接 T 细胞上的 CD3 与表达 DLL3 的靶细胞，引导 T 细胞杀伤靶细胞。"],
+]);
+const reviewedSummary = (name) => summaryZh.get(ingredientKey(name));
+function summaryStage(row) {
+  const presented = props.drugPresentation[row.drugId]?.stage;
+  if (presented && presented !== "UNKNOWN") return presented;
+  const phase = row.developmentStatus?.globalDevelopmentPhase;
+  return phase === "APPROVAL" ? "REPORTED_APPROVAL" : phase || "UNKNOWN";
+}
+const isPd1 = computed(() => targets.value.length === 1 && targets.value[0].id === "PDCD1");
+const groups = computed(() => {
+  const cards = [];
+  let blockade;
+  for (const row of examples.value) {
+    if (isPd1.value && pd1Blockade(row)) {
+      if (!blockade) {
+        blockade = { row, drugs: [] };
+        cards.push(blockade);
+      }
+      if (blockade.drugs.length < 3) blockade.drugs.push(row);
+    } else cards.push({ row });
+  }
+  return cards.slice(0, 3);
+});
+function matchLabel(row) {
+  const match = matchById.value.get(row.drugId);
+  const labels = targetAssayCopy[props.locale];
+  return match?.matchType === "direct" ? (match.reason === "additional_direct_targets"
+    ? labels.directAdditionalTargets : labels.directScopePending) : labels.exactBadge;
+}
 const mechanismEntries = computed(() =>
-  examples.value.map((row) => ({
+  groups.value.map(({ row, drugs }) => ({
+    drugs: drugs?.map((drug) => ({ id: drug.drugId, name: drugDisplayName(drug.drugName), label: matchLabel(drug) })),
+    label: matchLabel(row),
+    id: row.drugId,
     name: drugDisplayName(row.drugName),
+    format: props.locale === "zh" && /^bispecific antibody$/i.test(row.molecularFormat) ? "双特异性抗体" : row.molecularFormat,
+    stage: targetAssayCopy[props.locale].drugCard.stages[summaryStage(row)] || props.stageLabel(summaryStage(row)),
+    scope: row.targetIds.join(" × "),
     ...bilingualMechanism(
       row.drugName,
       row.mechanismDescription,
       row.sources[0],
-      ingredientKey(row.drugName) === "blinatumomab"
-        ? targetAssayCopy.zh.drugCard.blinatumomab
-        : undefined,
+      reviewedSummary(row.drugName),
     ),
   })),
 );
-const combinationMechanism = computed(() => ({
-  mechanismOriginal: targetAssayCopy.en.mechanism.cd3Cd20,
-  mechanismZh: targetAssayCopy.zh.mechanism.cd3Cd20,
-  translationStatus: "reviewed",
-}));
 const conclusion = computed(() => {
   if (hasConflict.value) return copy.value.status.conflicting_evidence;
   return targets.value.length > 1 ? copy.value.unconfirmed : copy.value.noDrugMechanism;
 });
 const sentences = new Intl.Segmenter("en", { granularity: "sentence" });
+const expressionCopy = computed(() => props.locale === "zh" ? {
+  cells: "主要表达细胞", disease: "疾病组织表达", noDirect: "暂无直接疾病组织表达证据。",
+  cd3: "T 细胞相关的受体复合物（定性证据）。", regulatoryProtein: "蛋白 · 监管产品资料",
+  noAssociation: "本次未取得疾病关联记录。",
+  otherTissues: "组织层面记录",
+  bulkLimit: "肿瘤组织混合样本 RNA，无法确定信号是否来自肿瘤细胞。",
+  limits: "RNA 读数不代表细胞表面蛋白表达；nCPM 与 nTPM 不直接比较。未核实译名保留原文。",
+} : {
+  cells: "Main expressing cells", disease: "Expression in diseased tissue", noDirect: "No direct evidence of expression in diseased tissue.",
+  cd3: "T-cell receptor complex (qualitative evidence).", regulatoryProtein: "Protein · regulatory product information",
+  noAssociation: "No disease association retrieved.",
+  otherTissues: "Tissue-level records",
+  bulkLimit: "Bulk tumor tissue RNA cannot establish whether the signal comes from tumor cells.",
+  limits: "RNA does not establish cell-surface protein expression. nCPM and nTPM are not directly comparable.",
+});
+function shortMechanism(value = "") {
+  const text = value.replace(/^\s*12\.1\s+Mechanism of Action\s*/i, "");
+  const first = [...sentences.segment(text)][0]?.segment.trim() || text;
+  return first.length > 240 ? first.slice(0, 237).replace(/\s+\S*$/, "") + "…" : first;
+}
 function functionSummary(target) {
   const item = target.biology?.biologicalFunctions[0];
   if (!item) return "";
@@ -171,9 +203,7 @@ const evidenceGroups = computed(() => {
   });
   const mechanismRows = hasConflict.value
     ? matching.value.filter((row) => row.evidenceStatus === "conflicting_evidence")
-    : sharedCd3Cd20.value
-      ? direct.value
-      : examples.value;
+    : groups.value.flatMap(({ row, drugs }) => drugs || [row]);
   const mechanisms = mechanismRows.flatMap((row) =>
     [
       ...new Map(
@@ -206,31 +236,37 @@ const queryTime = computed(() =>
   <div class="ta-live-mechanism">
     <p v-if="!result">{{ copy.sample }}</p>
     <template v-else>
+      <section class="ta-mechanism-group ta-moa-group">
+        <h3>{{ copy.drugMechanism }}</h3>
+        <div v-if="mechanismEntries.length" class="ta-target-grid" :style="{ '--ta-columns': mechanismEntries.length }">
+          <article v-for="entry in mechanismEntries" :key="entry.id" class="ta-target-info">
+            <template v-if="entry.drugs">
+              <h4>{{ locale === "zh" ? "PD-1 信号阻断" : "PD-1 signalling blockade" }}</h4>
+              <p>{{ locale === "zh" ? "抑制 PD-1 介导的免疫检查点信号。" : "Inhibits immune checkpoint signalling mediated by PD-1." }}</p>
+              <ul>
+                <li v-for="drug in entry.drugs" :key="drug.id">{{ drug.name }} <span class="ta-source-note">· {{ drug.label }}</span></li>
+              </ul>
+            </template>
+            <template v-else>
+              <h4>{{ entry.name }}</h4>
+              <p class="ta-source-note">{{ [entry.scope, entry.format, entry.stage, entry.label].filter(Boolean).join(" · ") }}</p>
+              <p :lang="locale === 'zh' && entry.mechanismZh ? 'zh' : 'en'">{{ shortMechanism(locale === 'zh' && entry.mechanismZh || entry.mechanismOriginal) }}</p>
+            </template>
+            <a :href="entry.mechanismSource.originalUrl" class="ta-source-note" target="_blank" rel="noopener noreferrer">{{ entry.mechanismSource.sourceName }} ↗</a>
+          </article>
+        </div>
+        <p v-else>{{ conclusion }}</p>
+        <a href="#results-title">{{ copy.viewDrugs }} ↓</a>
+      </section>
+
       <section class="ta-mechanism-group">
-        <h4>{{ copy.function }}</h4>
-        <div class="ta-target-grid">
-          <div v-for="target in targets" :key="target.id" class="ta-target-info">
-            <p>
-              <strong>{{ target.id }}</strong> ·
-              {{
-                target.id === "CD3"
-                  ? copy.types.CD3
-                  : copy.types[target.uniprotIds[0]] || copy.entity[target.entityType]
-              }}
-            </p>
-            <p
-              v-if="
-                target.id !== 'CD3' &&
-                  !copy.types[target.uniprotIds[0]] &&
-                  target.resolutionStatus === 'resolved'
-              "
-              class="ta-source-note"
-              lang="en"
-            >
-              {{ target.canonicalName }}
-            </p>
-            <p v-if="target.subunits?.length && target.id !== 'CD3'" class="ta-source-note">
-              {{ target.subunits.join(" + ") }}
+        <h3>{{ copy.function }}</h3>
+        <div class="ta-target-grid" :style="gridStyle">
+          <div v-for="target in targets" :key="target.id" class="ta-target-info ta-function-card">
+            <h4>{{ targetLabel(target) }}</h4>
+            <p class="ta-source-note">{{ [...new Set([target.id !== targetLabel(target) && target.id, target.canonicalName !== targetLabel(target) && target.canonicalName, target.primaryEnsemblId, ...(target.uniprotIds || [])].filter(Boolean))].join(" · ") }}</p>
+            <p class="ta-target-type">
+              {{ target.id === "CD3" ? copy.types.CD3 : copy.types[target.uniprotIds[0]] || copy.entity[target.entityType] }}
             </p>
             <p>
               {{
@@ -244,52 +280,60 @@ const queryTime = computed(() =>
       </section>
 
       <section class="ta-mechanism-group">
-        <h4>{{ copy.expression }}</h4>
-        <div class="ta-target-grid">
+        <h3>{{ copy.expression }}</h3>
+        <p class="ta-source-note">{{ expressionCopy.limits }}</p>
+        <div class="ta-target-grid" :style="gridStyle">
           <div v-for="target in targets" :key="target.id" class="ta-target-info">
-            <strong v-if="targets.length > 1">{{ target.id }}</strong>
-            <p
-              v-for="profile in (target.biology?.expressionProfiles || []).slice(0, 2)"
-              :key="profile.kind"
-            >
-              <a :href="profile.source.originalUrl" target="_blank" rel="noopener noreferrer">{{
-                copy.modalities[profile.kind]
-              }}</a>
-              · {{ expressionText(profile, 1) }}
-            </p>
-            <p v-if="!target.biology?.expressionProfiles?.length" class="ta-source-note">
-              {{
-                target.entityType === "protein_complex" ? copy.complexExpression : copy.noExpression
-              }}
-            </p>
-            <p
-              v-for="record in target.biology?.diseaseExpression || []"
-              :key="record.source.recordId"
-            >
-              {{ record.description[locale] }}
-              <a :href="record.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ record.source.sourceName }} ↗</a>
-            </p>
-            <template v-if="target.biology?.diseaseAssociations?.length">
-              <p>
-                {{ copy.association }} ·
-                {{
-                  target.biology.diseaseAssociations
-                    .slice(0, 2)
-                    .map(({ name }) => name)
-                    .join(" · ")
-                }}
+            <h4>{{ targetLabel(target) }}</h4>
+            <section class="ta-expression-field">
+              <h5>{{ expressionCopy.cells }}</h5>
+              <p v-if="target.id === 'CD3'">
+                {{ expressionCopy.cd3 }}
+                <a href="https://www.ema.europa.eu/en/medicines/human/EPAR/blincyto" target="_blank" rel="noopener noreferrer">EMA ↗</a>
               </p>
-              <p class="ta-source-note">{{ copy.associationNote }}</p>
-            </template>
+              <p v-for="profile in target.baseline.filter(({ kind }) => kind === 'single_cell_rna' || kind === 'immune_rna')" :key="profile.kind">
+                <a :href="profile.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ copy.modalities[profile.kind] }}</a>
+                · <span v-for="(row, index) in profile.values" :key="row.name" :title="row.name">{{ index ? ' · ' : '' }}{{ expressionName(row.name, locale) }} {{ row.value }} {{ profile.unit }}</span>
+              </p>
+              <details v-if="target.baseline.some(({ kind }) => kind === 'tissue_rna' || kind === 'tissue_protein')" class="ta-source-note">
+                <summary>{{ expressionCopy.otherTissues }}</summary>
+                <p v-for="profile in target.baseline.filter(({ kind }) => kind === 'tissue_rna' || kind === 'tissue_protein')" :key="profile.kind">
+                  <a :href="profile.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ copy.modalities[profile.kind] }}</a>
+                  · <span v-for="(row, index) in profile.values" :key="row.name" :title="row.name">{{ index ? ' · ' : '' }}{{ expressionName(row.name, locale) }} {{ row.value }} {{ profile.unit }}</span>
+                </p>
+              </details>
+              <p v-if="!target.baseline.length" class="ta-source-note">{{ target.entityType === 'protein_complex' ? copy.complexExpression : copy.noExpression }}</p>
+            </section>
+            <section class="ta-expression-field">
+              <h5>{{ expressionCopy.disease }}</h5>
+              <p v-if="!target.biology?.diseaseExpression?.length" class="ta-source-note">{{ expressionCopy.noDirect }}</p>
+              <p v-for="record in target.biology?.diseaseExpression || []" :key="record.source.recordId">
+                {{ expressionCopy.regulatoryProtein }} · {{ record.description[locale] }}
+                <a :href="record.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ record.source.sourceName }} ↗</a>
+              </p>
+              <p v-for="profile in target.bulk" :key="profile.kind">
+                <a :href="profile.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ copy.modalities[profile.kind] }}</a>
+                · <span v-for="(row, index) in profile.values" :key="row.name" :title="row.name">{{ index ? ' · ' : '' }}{{ expressionName(row.name, locale) }} {{ row.value }} {{ profile.unit }}</span>
+              </p>
+              <p v-if="target.bulk.length" class="ta-source-note">{{ expressionCopy.bulkLimit }}</p>
+            </section>
+            <section class="ta-expression-field">
+              <h5>{{ copy.association }}</h5>
+              <p v-for="row in target.biology?.diseaseAssociations || []" :key="row.id">
+                <a :href="row.source.originalUrl" :title="row.name" target="_blank" rel="noopener noreferrer">{{ conditionName(row.name, locale) }} ↗</a>
+                <span class="ta-source-note"> · {{ row.id }}</span>
+              </p>
+              <p class="ta-source-note">{{ target.biology?.diseaseAssociations?.length ? copy.associationNote : expressionCopy.noAssociation }}</p>
+            </section>
           </div>
         </div>
       </section>
 
       <section class="ta-mechanism-group">
-        <h4>{{ copy.pathways }}</h4>
-        <div class="ta-target-grid">
-          <div v-for="target in targets" :key="target.id">
-            <strong v-if="targets.length > 1">{{ target.id }}</strong>
+        <h3>{{ copy.pathways }}</h3>
+        <div class="ta-target-grid" :style="gridStyle">
+          <div v-for="target in targets" :key="target.id" class="ta-target-info">
+            <h4>{{ targetLabel(target) }}</h4>
             <ul v-if="target.pathways.length">
               <li v-for="path in target.pathways.slice(0, 2)" :key="path.id">
                 <a :href="path.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ copy.pathwayNames[path.id] || path.name }} ↗</a>
@@ -310,22 +354,6 @@ const queryTime = computed(() =>
             </details>
           </div>
         </div>
-      </section>
-
-      <section class="ta-mechanism-group">
-        <h4>{{ copy.drugMechanism }}</h4>
-        <BilingualMechanism
-          v-if="sharedCd3Cd20 && !hasConflict"
-          :entry="combinationMechanism"
-        />
-        <BilingualMechanism
-          v-for="entry in mechanismEntries"
-          :key="entry.name"
-          :entry="entry"
-          :name="entry.name"
-        />
-        <p v-if="!mechanismEntries.length && (!sharedCd3Cd20 || hasConflict)">{{ conclusion }}</p>
-        <a href="#results-title">{{ copy.viewDrugs }} ↓</a>
       </section>
 
       <details class="ta-source-details">
@@ -392,7 +420,6 @@ const queryTime = computed(() =>
 .ta-live-mechanism {
   display: grid;
   gap: var(--ta-group-gap);
-  margin-top: var(--ta-group-gap);
   min-width: 0;
   font-size: var(--ta-body-size);
   line-height: var(--ta-body-line);
@@ -409,24 +436,41 @@ const queryTime = computed(() =>
 }
 .ta-target-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: var(--ta-field-gap) 24px;
-}
-.ta-target-grid > div:only-child {
-  grid-column: 1 / -1;
+  grid-template-columns: repeat(var(--ta-columns, 1), minmax(0, 1fr));
+  gap: var(--ta-field-gap);
 }
 .ta-target-info {
+  min-width: 0;
   display: grid;
+  align-content: start;
   gap: var(--ta-language-gap);
+  padding: var(--ta-card-padding);
+  border: 1px solid var(--app-rule-subtle);
+  border-radius: 8px;
 }
+.ta-target-type { font-weight: 600; }
+@media (min-width: 661px) {
+  .ta-function-card {
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: var(--ta-language-gap);
+  }
+}
+.ta-live-mechanism h3,
 .ta-live-mechanism h4,
 .ta-live-mechanism h5 {
   margin: 0;
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 650;
   line-height: var(--ta-heading-line);
 }
+.ta-live-mechanism h3 { font-size: var(--ta-subheading-size); }
+.ta-live-mechanism h4 { font-size: var(--ta-card-title-size); }
+.ta-live-mechanism h5 { font-size: var(--ta-body-size); }
+.ta-moa-group .ta-target-info { background: var(--app-accent-soft); }
+.ta-expression-field { display: grid; gap: 4px; }
+.ta-expression-field + .ta-expression-field { padding-top: var(--ta-field-gap); border-top: 1px solid var(--app-rule-subtle); }
+.ta-expression-field h5 { font-size: var(--ta-label-size); }
+.ta-target-grid { align-items: start; }
 .ta-live-mechanism p {
   margin: 0;
 }
@@ -444,6 +488,7 @@ const queryTime = computed(() =>
 .ta-source-note,
 .ta-source-details small {
   color: var(--app-muted);
+  font-size: var(--ta-meta-size);
 }
 .ta-source-details section + section,
 .ta-source-details section + details {

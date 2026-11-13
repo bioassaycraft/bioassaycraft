@@ -47,12 +47,20 @@ it("uses EMA original authorisation and exact active substance even for a cellul
     marketing_authorisation_date: "14/12/2020",
     european_commission_decision_date: "12/03/2025",
     medicine_url: "https://www.ema.europa.eu/en/medicines/human/EPAR/tecartus",
+    name_of_medicine: "Tecartus",
+    marketing_authorisation_developer_applicant_holder: "Example MAH&nbsp;",
+    therapeutic_indication: "<p>Example authorised indication.</p>",
   };
-  const result = await fetchEmaApprovals(["BREXUCABTAGENE AUTOLEUCEL", "brexucabtagene"], {
-    fetcher: async () => Response.json({ data: [row, { ...row, category: "Veterinary" }] }),
+  const result = await fetchEmaApprovals(["BREXUCABTAGENE AUTOLEUCEL", "brexucabtagene", "teclistamab"], {
+    fetcher: async () => Response.json({ data: [
+      row, { ...row, category: "Veterinary" },
+      { ...row, active_substance: "", international_non_proprietary_name_common_name: "teclistamab",
+        name_of_medicine: "Tecvayli", medicine_url: "https://www.ema.europa.eu/en/medicines/human/EPAR/tecvayli" },
+    ] }),
   });
-  expect(result["BREXUCABTAGENE AUTOLEUCEL"]).toMatchObject({ date: "2020-12-14", region: "EU" });
+  expect(result["BREXUCABTAGENE AUTOLEUCEL"]).toMatchObject({ date: "2020-12-14", region: "EU", holder: "Example MAH", brand: "Tecartus", indication: "Example authorised indication." });
   expect(result.brexucabtagene).toBeUndefined();
+  expect(result.teclistamab).toMatchObject({ brand: "Tecvayli" });
 });
 
 it("checks the CBER application identity and ignores supplements and invalid original dates", async () => {
@@ -71,6 +79,7 @@ it("checks the CBER application identity and ignores supplements and invalid ori
           { application_number: "BLA000001", submissions: [approved("ORIG", "20000101")] },
           {
             application_number: "BLA125646",
+            sponsor_name: " Example applicant ",
             submissions: [
               approved("SUPPL", "20010101"),
               approved("ORIG", "20170231"),
@@ -82,6 +91,6 @@ it("checks the CBER application identity and ignores supplements and invalid ori
     },
   });
   expect(documents).toEqual([
-    expect.objectContaining({ application: "BLA125646", approvedAt: "2017-08-30" }),
+    expect.objectContaining({ application: "BLA125646", approvedAt: "2017-08-30", applicationSponsor: "Example applicant" }),
   ]);
 });

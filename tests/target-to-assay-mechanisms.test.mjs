@@ -59,7 +59,7 @@ describe("live target-to-assay evidence", () => {
       "epcoritamab-bysp",
       "odronextamab",
     ]);
-    expect(result.partialFailures).toEqual(["ChEMBL", "Open Targets", "ClinicalTrials.gov"]);
+    expect(result.partialFailures).toEqual(["ChEMBL", "Open Targets"]);
     expect(result.drugMechanisms.find(({ drugId }) => drugId === "odronextamab")).toMatchObject({
       completeTargetSet: true,
       developmentStatus: {
@@ -157,7 +157,6 @@ describe("live target-to-assay evidence", () => {
       "UniProt",
       "Reactome",
       "Open Targets",
-      "ClinicalTrials.gov",
     ]);
     expect(allDown.resolvedTargets.map(({ resolutionStatus }) => resolutionStatus)).toEqual([
       "resolved",

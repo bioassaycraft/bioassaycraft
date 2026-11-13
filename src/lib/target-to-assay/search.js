@@ -10,6 +10,10 @@ export class SearchError extends Error {
 }
 
 const normalize = (value) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+const targetKey = (value) => {
+  const key = normalize(value);
+  return /^(?:pd-?1|pdcd1)$/.test(key) ? "pdcd1" : key;
+};
 export function resolveTargets(input, data = catalog) {
   const tokens = typeof input === "string" ? input.split(/[,，、;；\n×+]+/) : input;
   if (!Array.isArray(tokens) || tokens.some((v) => typeof v !== "string"))
@@ -21,7 +25,7 @@ export function resolveTargets(input, data = catalog) {
   const resolved = [];
   for (const value of values) {
     const matches = data.targets.filter((t) =>
-      [t.id, t.label, ...t.aliases].some((a) => normalize(a) === normalize(value)),
+      [t.id, t.label, ...t.aliases].some((a) => targetKey(a) === targetKey(value)),
     );
     if (!matches.length) throw new SearchError("unknown_target", { input: value });
     if (matches.length > 1)
@@ -78,14 +82,16 @@ export function searchDrugs(input, data = catalog) {
     ...(evidenceMode
       ? (() => {
           const assessed = prepared.flatMap(([drug, record]) => {
-            const match = classifyTargetMatch(record, combo.targetIds);
+            const match = classifyTargetMatch(record, combo.targetIds, { allowSingleDirect: matchMode === "verified_scope" });
             return match ? [{ drugId: drug.id, ...match }] : [];
           });
           return {
             matches: assessed
-              .filter(({ state }) => state === "verified")
-              .map(({ drugId }) => ({ drugId, matchType: "exact" })),
-            candidates: assessed.filter(({ state }) => state !== "verified"),
+              .filter(({ state }) => state === "verified" || state === "direct")
+              .map(({ drugId, state, reason }) => state === "verified"
+                ? { drugId, matchType: "exact" }
+                : { drugId, matchType: "direct", reason }),
+            candidates: assessed.filter(({ state }) => state !== "verified" && state !== "direct"),
           };
         })()
       : {

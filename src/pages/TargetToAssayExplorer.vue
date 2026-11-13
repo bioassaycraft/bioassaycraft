@@ -15,14 +15,12 @@ import { bilingualMechanism, reviewedMechanism } from "../lib/target-to-assay/bi
 import {
   approvalMilestones,
   evidenceFor,
-  fetchFdaDocuments,
-  sortReviewEvidence,
 } from "../lib/target-to-assay/evidence.js";
 import { reviewedFdaRecord, validApprovalDate } from "../lib/target-to-assay/approval-records.js";
-import { researchGroups, rankMatches, researchProfile } from "../lib/target-to-assay/research.js";
-import { fetchLiterature, literatureTerm } from "../lib/target-to-assay/literature.js";
-import { fetchDrugTrials } from "../lib/target-to-assay/trials.js";
-import { fetchChemblIndications } from "../lib/target-to-assay/chembl.js";
+import { rankMatches, researchProfile } from "../lib/target-to-assay/research.js";
+import { candidateView, explorerView, fdaDocumentDisplay, fdaReviewLimit, regulatorGroups, uniqueIndications, visibleReviewDocuments } from "../lib/target-to-assay/presentation.js";
+import { displayLiterature, literatureTerm } from "../lib/target-to-assay/literature.js";
+import { loadSupplement } from "../lib/target-to-assay/supplement-client.js";
 import {
   conditionName,
   organizationName,
@@ -37,6 +35,7 @@ function stageLabel(stage) {
   if (stage === "UNKNOWN") return c.value.mechanism.unknownStage;
   if (stage === "REPORTED_APPROVAL") return c.value.mechanism.phaseOnly;
   if (stage === "APPROVAL") return c.value.approvalStage;
+  if (stage === "EARLY_PHASE_1") return locale.value === "zh" ? "早期临床 1 期" : "Early Phase 1";
   const match = stage.match(/^PHASE_?([1-4])(?:_([1-4]))?$/);
   if (!match) return drugDisplayName(stage.replaceAll("_", " "));
   const phase = match.slice(1).filter(Boolean).join("/");
@@ -54,12 +53,11 @@ const documents = ref({});
 const emaRecords = ref({});
 const emaStatus = ref("idle");
 const documentState = ref({});
-const trialResults = ref({});
 const expandedDocuments = ref({});
 const drugPanel = ref(null);
 const visibleCount = ref(8);
 const visibleMatches = computed(() =>
-  rankMatches(active.value.matches, drugPresentation.value).slice(0, visibleCount.value),
+  showCandidates.value ? [] : rankMatches(active.value.matches, drugPresentation.value).slice(0, visibleCount.value),
 );
 watch([activeKey, submitted], () => {
   visibleCount.value = 8;
@@ -81,23 +79,11 @@ const result = computed(() =>
     data.value,
   ),
 );
-const baseline = computed(() =>
-  searchDrugs(
-    { targets: submitted.value, includeClinical: true, matchMode: "verified_scope" },
-    data.value,
-  ),
-);
-const resultGroups = computed(() => researchGroups(baseline.value));
-const fallback = computed(
-  () => resultGroups.value.length > 1 && !resultGroups.value[0].matches.length,
-);
-const active = computed(() => {
-  const group =
-    resultGroups.value.find((item) => item.key === activeKey.value) ||
-    resultGroups.value.find((item) => item.matches.length) ||
-    resultGroups.value[0];
-  return result.value.combinations.find((item) => item.key === group.key);
-});
+const view = computed(() => explorerView(result.value, activeKey.value, drugPresentation.value));
+const resultGroups = computed(() => view.value.groups);
+const fallback = computed(() => resultGroups.value.length > 1 && !resultGroups.value[0].matches.length);
+const active = computed(() => view.value.active);
+const showCandidates = computed(() => view.value.showCandidates);
 function targetNames(ids) {
   return ids
     .map((id) => {
@@ -111,18 +97,18 @@ function targetNames(ids) {
 }
 const discoveryChecks = computed(() => Object.values(mechanismResult.value?.sourceChecks || {}).flat());
 const discoveryTruncated = computed(() => discoveryChecks.value.some(({ truncated }) => truncated));
+const unresolvedScope = computed(() => mechanismResult.value?.resolvedTargets.some((target) =>
+  active.value.targetIds.includes(target.id) && target.resolutionStatus !== "resolved"));
 const discoveryFailed = computed(() => discoveryChecks.value.some(({ state }) => !["success_with_data", "success_empty", "unresolved_target", "not_queried"].includes(state)));
 const additionalCandidates = computed(() => {
-  if (!mechanismResult.value) return [];
-  const candidates = active.value.candidates || [];
-  const byId = new Map(candidates.map((item) => [item.drugId, item]));
+  const candidates = view.value.candidates;
   const labels = {
     partial: "partialMatch", unverified: "unverifiedMatch",
     other: "otherTargets", conflict: "conflictingMatch",
   };
-  return rankMatches(candidates, drugPresentation.value).map(({ drugId }) => {
+  return candidates.map((match) => {
+    const { drugId } = match;
     const drug = drugById(drugId);
-    const match = byId.get(drugId);
     return { drug, status: match.reason === "non_direct_relationship" ? "nonDirectMatch" : labels[match.state],
       url: sourceById(drug.sourceId)?.url };
   });
@@ -142,7 +128,7 @@ async function loadLiterature() {
   documentControllers.add(abort);
   const timeout = setTimeout(() => abort.abort(), 15000);
   try {
-    const response = await fetchLiterature(term, { signal: abort.signal });
+    const response = displayLiterature(await loadSupplement("pubmed-literature", { term }, abort.signal), term);
     literature.value[term] = { state: "loaded", ...response };
   } catch {
     literature.value[term] = { state: "error" };
@@ -173,16 +159,15 @@ const drugPresentation = computed(() => Object.fromEntries(data.value.drugs.map(
     .sort((a, b) => a.date.localeCompare(b.date) || a.region.localeCompare(b.region))[0];
   const special = ["WITHDRAWN", "SUSPENDED", "TERMINATED", "DISCONTINUED"].includes(drug.clinicalStage);
   const euStatus = regional.find((item) => item.region === "EU")?.status;
-  const stage = earliest || drug.approval.status === "approved" ? "APPROVAL" :
-    special ? drug.clinicalStage : ["Withdrawn", "Suspended"].includes(euStatus) ? euStatus.toUpperCase() :
+  const stage = special ? drug.clinicalStage : earliest || drug.approval.status === "approved" ? "APPROVAL" : ["Withdrawn", "Suspended"].includes(euStatus) ? euStatus.toUpperCase() :
       drug.clinicalStage === "APPROVAL" ? "REPORTED_APPROVAL" : drug.clinicalStage || "UNKNOWN";
   const format = drug.molecularFormat || researchProfile(drug)?.type.en || "";
-  const isZynlonta = documents.value[drug.id]?.some((doc) => doc.kind === "application" && doc.application === "BLA761196") ||
+  const isZynlonta = documents.value[drug.id]?.some((doc) => doc.kind === "overview" && doc.application === "BLA761196") ||
     emaRecords.value[drug.name]?.url === "https://www.ema.europa.eu/en/medicines/human/EPAR/zynlonta";
   const type = reviewedMechanism(drug.name)?.type || reviewed?.type || (isZynlonta ? "adc" : /car[- ]?t|cell therapy/i.test(format) ? "car_t" :
     /antibody.drug conjugate|\badc\b/i.test(format) ? "adc" :
     /trispecific/i.test(format) ? "trispecific" : /bispecific/i.test(format) ? "bispecific" :
-      /monoclonal/i.test(format) ? "monoclonal" : "other");
+      (/monoclonal/i.test(format) && !/bispecific|trispecific/i.test(format)) ? "monoclonal" : "other");
   return [drug.id, { name: drug.name, brand: drug.brand || reviewed?.brand, stage, date: earliest?.date, earliest, regional, type, reviewed, isZynlonta }];
 })));
 const approvalScope = computed(() => active.value.matches.map(({ drugId }) => drugById(drugId))
@@ -234,9 +219,11 @@ function drugMechanism(drug, details) {
   const application = details.reviewed?.application || drug.approval?.identifier?.replace(/\s+/g, "");
   const zh = details.isZynlonta ? card.zynlonta : details.type === "car_t" && details.reviewed
     ? card.cd19CarT : translations[application];
-  const row = mechanismResult.value?.drugMechanisms.find(({ drugId }) => drugId === drug.id);
+  const rows = mechanismResult.value?.drugMechanisms.filter((row) => row.drugId === drug.id &&
+    row.evidenceStatus === "direct_evidence" && active.value.targetIds.every((id) => row.targetIds.includes(id)));
+  const row = rows?.find((row) => row.completeTargetSet) || rows?.[0];
   const original = details.type === "car_t" && details.reviewed ? targetAssayCopy.en.drugCard.cd19CarT :
-    details.isZynlonta ? targetAssayCopy.en.drugCard.zynlonta : (row?.completeTargetSet ? row.mechanismDescription : drug.mechanisms?.[0] || row?.mechanismDescription);
+    details.isZynlonta ? targetAssayCopy.en.drugCard.zynlonta : (row?.mechanismDescription || drug.mechanisms?.[0]);
   return bilingualMechanism(drug.name, original, row?.sources[0], zh);
 }
 
@@ -257,52 +244,63 @@ function regionRows(drugId) {
     : row);
 }
 
-const visibleDocuments = (drug) => {
-  const fetched = documents.value[drug.id] || [];
-  const initialDates = new Map(
-    fetched
-      .filter((doc) => doc.kind === "application")
-      .map((doc) => [doc.application, doc.approvedAt]),
-  );
-  const curated = evidenceFor(drug, data.value.sources).map((doc) =>
-    doc.application
-      ? { ...doc, approvedAt: initialDates.get(doc.application) || doc.approvedAt }
-      : doc,
-  );
-  return [...curated, ...fetched];
-};
-const reviewLists = computed(() =>
-  Object.fromEntries(
-    visibleMatches.value.map(({ drugId }) => [
-      drugId,
-      sortReviewEvidence([
-        ...new Map(
-          visibleDocuments(drugById(drugId))
-            .filter(
-              (doc) =>
-                ["FDA", "EMA", "CDE", "NMPA"].includes(doc.agency) && doc.kind !== "activity",
-            )
-            .map((doc) => [doc.url, doc]),
-        ).values(),
-      ]),
-    ]),
-  ),
-);
-
-const chemblKey = computed(() => visibleMatches.value.map(({ drugId }) => drugId)
-  .filter((id) => /^CHEMBL\d+$/.test(id)).join(","));
+const visibleDocuments = (drug) => [
+  ...evidenceFor(drug, data.value.sources),
+  ...(documents.value[drug.id] || []),
+];
+const reviewLists = computed(() => Object.fromEntries(visibleMatches.value.map(({ drugId }) => {
+  const drug = drugById(drugId);
+  const docs = visibleDocuments(drug).map((doc) => doc.kind === "activity"
+    ? { ...doc, kind: "review", url: doc.url.split("#")[0] } : doc);
+  const epar = emaRecords.value[drug.name]?.url || researchProfile(drug)?.url;
+  if (epar) docs.push({ agency: "EMA", kind: "overview", title: "EPAR – Medicine Overview", url: epar });
+  else {
+    const history = docs.find((doc) => doc.agency === "EMA" && doc.kind === "history");
+    if (history) docs.push({ agency: "EMA", kind: "overview", title: "EPAR – Medicine Overview", url: history.url.split("#")[0] });
+  }
+  return [drugId, regulatorGroups(docs)];
+})));
+function otherSources(drug, groups) {
+  const displayed = new Set(groups.flatMap(({ docs }) => docs.map(({ url }) => url)));
+  const sources = [drug.sourceId, ...(drug.sourceIds || [])].map(sourceById).filter(Boolean)
+    .filter(({ url }) => !/^https:\/\/(?:www\.)?(?:accessdata\.fda\.gov|fda\.gov|ema\.europa\.eu)\//i.test(url))
+    .map(({ title, url }) => ({ title: title.split(" · ")[0], url }));
+  for (const id of chemblIds(drug)) sources.push({ title: "ChEMBL", url: `https://www.ebi.ac.uk/chembl/explore/compound/${id}` });
+  const nci = nciDrugLink(drug.name);
+  if (nci) sources.push({ title: c.value.mechanism.nci, url: nci });
+  const identity = drug.identityEvidence;
+  const mechanism = reviewedMechanism(drug.name)?.mechanismSource;
+  if (identity) sources.push({ title: identity.sourceName || identity.recordId, url: identity.originalUrl });
+  if (mechanism) sources.push({ title: mechanism.sourceName, url: mechanism.originalUrl });
+  return [...new Map(sources.filter(({ url }) => url && !displayed.has(url)).map((source) => [source.url, source])).values()];
+}
+const fdaReviewCount = (id) => reviewLists.value[id]?.find(({ agency }) => agency === "FDA")
+  ?.docs.filter((doc) => doc.kind === "review").length || 0;
+const chemblIds = (drug) => [drug.id, drug.externalIds?.chembl].filter((id) => /^CHEMBL\d+$/.test(id));
+const chemblKey = computed(() => [...new Set(visibleMatches.value.flatMap(({ drugId }) =>
+  chemblIds(drugById(drugId))))].sort().join(","));
 const chemblResults = ref({});
 const drugIndications = (drugId) =>
-  (chemblResults.value[chemblKey.value]?.rows || []).filter((row) => row.id === drugId);
+  uniqueIndications((chemblResults.value[chemblKey.value]?.rows || [])
+    .filter((row) => chemblIds(drugById(drugId)).includes(row.id)));
+const expandedIndications = ref({});
 watch(chemblKey, async (key) => {
-  if (!key || chemblResults.value[key]) return;
+  if (!key || chemblResults.value[key] || typeof window === "undefined") return;
   chemblResults.value[key] = { state: "loading" };
   const abort = new AbortController();
   documentControllers.add(abort);
   const timer = setTimeout(() => abort.abort(), 15000);
   try {
-    const rows = await fetchChemblIndications(key.split(","), { signal: abort.signal });
-    chemblResults.value[key] = { state: "loaded", rows };
+    const ids = key.split(",");
+    const rows = [];
+    let truncated = false;
+    for (let i = 0; i < ids.length; i += 12) {
+      if (abort.signal.aborted) break;
+      const result = await loadSupplement("chembl-indications", { ids: ids.slice(i, i + 12) }, abort.signal);
+      rows.push(...result.rows);
+      truncated ||= result.truncated;
+    }
+    chemblResults.value[key] = { state: "loaded", rows, truncated };
   } catch {
     chemblResults.value[key] = { state: "error" };
   } finally {
@@ -348,7 +346,7 @@ async function submit() {
     data.value = next.catalog;
     submitted.value = next.resolvedTargets.map((t) => t.id);
     mechanismResult.value = next;
-    activeKey.value = next.resolvedTargets.map(({ id }) => id).join("|");
+    activeKey.value = resultGroups.value[0].key;
     await nextTick();
     if (controller === request) animateElement(drugPanel.value, getPanelEnterKeyframes());
   } catch (e) {
@@ -367,6 +365,64 @@ function confirmTarget(candidate) {
   resolutions.value = { ...resolutions.value, [error.value.input]: candidate.id };
   submit();
 }
+const supplementIdentity = (drug) => ({
+  name: drug.name,
+  brand: drug.brand,
+  aliases: (drug.aliases || []).filter((value) =>
+    /^[\p{L}\p{N}][\p{L}\p{N} .()/'’+,-]{0,139}$/u.test(value)).slice(0, 5),
+});
+const fdaCoverage = ref({});
+const coverageLabel = computed(() => locale.value === "zh" ? "来源覆盖不完整" : "Incomplete source coverage");
+const developmentCopy = computed(() => locale.value === "zh" ? {
+  heading: "研发概况", developer: "开发公司", holder: "欧盟上市许可持有人",
+  applicationSponsor: "FDA 申请方", approvedIndication: "获批适应症",
+  status: "研发状态", official: "官方来源", complete: "查看完整适应症", more: "查看更多适应症", less: "收起适应症",
+  reported: "ChEMBL 收录的适应症", original: "官方原文",
+  indicationCoverage: "ChEMBL 适应症仅显示本次查询取得的记录。",
+} : {
+  heading: "Development overview", developer: "Developer", holder: "EU marketing authorisation holder",
+  applicationSponsor: "FDA application sponsor", approvedIndication: "Approved indication",
+  status: "Development status", official: "Official sources", complete: "View full indication", more: "Show more indications", less: "Show fewer indications",
+  reported: "Indications recorded in ChEMBL", original: "Official wording",
+  indicationCoverage: "ChEMBL indications are limited to records retrieved in this search.",
+});
+function developmentProfile(drug) {
+  const fda = reviewedFdaRecord(drug);
+  const epar = emaRecords.value[drug.name];
+  const verified = researchProfile(drug);
+  const reviewed = !epar || epar.url === verified?.url ? verified : null;
+  const ema = epar?.status === "Authorised" ? epar : reviewed;
+  const applications = (documents.value[drug.id] || []).filter(({ applicationSponsor }) => applicationSponsor);
+  const application = applications.length === 1 ? applications[0] : null;
+  const parties = [
+    (ema?.holder || (ema && reviewed?.holder)) && {
+      role: "holder", name: ema.holder || reviewed.holder, url: ema.url, source: "EMA", brand: ema.brand || reviewed?.brand,
+    },
+    application && { role: "applicationSponsor", name: application.applicationSponsor, url: application.url, source: application.application },
+    fda?.developer && { role: "developer", name: fda.developer, url: fda.indicationUrl || fda.url, source: "FDA" },
+  ].filter(Boolean);
+  const original = typeof ema?.indication === "string" ? ema.indication : "";
+  const summary = ema && (reviewed?.indication?.[locale.value] || ema.indication?.[locale.value]);
+  const indication = (summary || original) ? { summary, original, url: ema.url, source: "EMA", brand: ema.brand || reviewed?.brand } :
+    fda?.approvedIndication ? { summary: fda.approvedIndication[locale.value], url: fda.indicationUrl, source: "FDA", brand: fda.brand } : null;
+  const fdaOverview = visibleDocuments(drug).find(({ agency, kind, application }) =>
+    agency === "FDA" && kind === "overview" && /^(BLA|NDA|ANDA)\d{6}$/.test(application || ""));
+  const sources = [...new Map([
+    ...(ema?.url ? [{ url: ema.url, source: "EMA", brand: ema.brand || reviewed?.brand }] : []),
+    ...(fdaOverview ? [{ url: fdaOverview.url, source: "FDA", brand: fdaOverview.application.replace(/^(BLA|NDA|ANDA)(\d+)/, "$1 $2") }] : []),
+    ...parties.filter(({ role }) => role !== "applicationSponsor"),
+    indication,
+  ].filter(Boolean).map((item) => [item.url, item])).values()];
+  return { parties, indication, sources };
+}
+const developmentProfiles = computed(() => Object.fromEntries(visibleMatches.value.map(({ drugId }) =>
+  [drugId, developmentProfile(drugById(drugId))],
+)));
+const sourceError = (error) => locale.value === "zh"
+  ? { rate_limited: "来源请求受限，请稍后重试", timeout: "来源查询超时，请重试" }[error]
+  : { rate_limited: "Source rate limited; try again shortly", timeout: "Source timed out; please retry" }[error];
+const fdaErrors = ref({});
+
 async function loadDocuments(drug) {
   if (["loading", "loaded", "empty"].includes(documentState.value[drug.id])) return;
   documentState.value[drug.id] = "loading";
@@ -374,26 +430,13 @@ async function loadDocuments(drug) {
   documentControllers.add(abort);
   const timer = setTimeout(() => abort.abort(), 20000);
   try {
-    documents.value[drug.id] = await fetchFdaDocuments(drug, { signal: abort.signal });
+    const result = await loadSupplement("fda-documents", supplementIdentity(drug), abort.signal);
+    documents.value[drug.id] = result.rows;
+    fdaCoverage.value[drug.id] = result.truncated || result.state === "partial";
     documentState.value[drug.id] = documents.value[drug.id].length ? "loaded" : "empty";
-  } catch {
+  } catch (error) {
+    fdaErrors.value[drug.id] = error.message;
     documentState.value[drug.id] = "error";
-  } finally {
-    clearTimeout(timer);
-    documentControllers.delete(abort);
-  }
-}
-async function loadTrials(drug) {
-  if (trialResults.value[drug.id]?.state === "loading") return;
-  trialResults.value[drug.id] = { state: "loading" };
-  const abort = new AbortController();
-  documentControllers.add(abort);
-  const timer = setTimeout(() => abort.abort(), 15000);
-  try {
-    const result = await fetchDrugTrials(drug, { signal: abort.signal });
-    trialResults.value[drug.id] = { state: "loaded", ...result };
-  } catch {
-    trialResults.value[drug.id] = { state: "error" };
   } finally {
     clearTimeout(timer);
     documentControllers.delete(abort);
@@ -468,11 +511,8 @@ async function loadTrials(drug) {
       <section class="ta-panel ta-overview" :aria-busy="loading">
         <div class="ta-section-heading ta-mechanism-heading">
           <h2>{{ c.mechanismTypes }}</h2>
-          <button type="button" class="ta-primary" disabled>
-            <span aria-hidden="true">✦</span> {{ c.mechanism.ai }}
-          </button>
         </div>
-        <MechanismEvidence :result="mechanismResult" :locale="locale" />
+        <MechanismEvidence :result="mechanismResult" :locale="locale" :stage-label="stageLabel" :drug-presentation="drugPresentation" :matches="resultGroups[0].matches" />
       </section>
       <section class="ta-results ta-panel" aria-labelledby="results-title" :aria-busy="loading">
         <div class="ta-section-heading">
@@ -504,280 +544,244 @@ async function loadTrials(drug) {
               v-for="combo in resultGroups"
               :key="combo.key"
               type="button"
-              :aria-pressed="active.key === combo.key"
+              :aria-pressed="!showCandidates && active.key === combo.key"
               @click="chooseCombination(combo.key)"
             >
               <span>{{ targetNames(combo.targetIds) }}</span><span class="ta-count">{{
                 result.combinations.find((item) => item.key === combo.key).matches.length
               }}</span>
             </button>
+            <button type="button" :aria-pressed="showCandidates" @click="chooseCombination(candidateView)">
+              <span>{{ c.mechanism.candidates }}</span><span class="ta-count">({{ additionalCandidates.length }})</span>
+            </button>
           </nav>
           <div ref="drugPanel" class="ta-drugs">
-            <div class="ta-section-heading">
-              <h3>{{ targetNames(active.targetIds) }}</h3>
-              <span>{{ active.matches.length }} {{ c.matches }}</span>
-            </div>
-            <div v-if="!active.matches.length" class="ta-empty">
-              <p>{{ c.empty }}</p>
-              <p>{{ c.emptyNote }}</p>
-            </div>
-            <article v-for="match in visibleMatches" :key="match.drugId" class="ta-drug">
-              <div class="ta-drug-choice">
-                <h4>
-                  {{ drugHeadingName(drugById(match.drugId).name, locale) }}
-                  <span v-if="drugPresentation[match.drugId].brand" class="ta-brand">{{
-                    drugDisplayName(drugPresentation[match.drugId].brand)
-                  }}</span>
-                </h4>
-                <div class="ta-drug-labels">
-                  <span class="ta-tag">{{ c.drugCard.types[drugPresentation[match.drugId].type] }}</span>
-                  <span class="ta-tag">{{ drugStatusLabel(match.drugId) }}</span>
-                </div>
+            <section v-if="showCandidates" class="ta-candidate-list">
+              <div class="ta-section-heading">
+                <h3>{{ c.mechanism.candidates }}</h3>
+                <span>{{ targetNames(active.targetIds) }}</span>
               </div>
-              <p class="ta-drug-targets">
-                {{ targetNames(drugById(match.drugId).targetIds) }}
-                <template v-if="match.matchType !== 'reported'"> · {{ c.exactBadge }}</template>
-                <template v-if="drugPresentation[match.drugId].earliest">
-                  · {{ c.drugCard.firstApproval }}
-                  <a :href="drugPresentation[match.drugId].earliest.url" target="_blank" rel="noopener noreferrer">
-                    {{ drugPresentation[match.drugId].date }} · {{ c.approvalRegions[drugPresentation[match.drugId].earliest.region] }} ↗
-                  </a>
-                </template>
-              </p>
-              <section class="ta-drug-moa">
-                <h5>{{ c.drugCard.moa }}</h5>
-                <BilingualMechanism
-                  :entry="drugMechanism(drugById(match.drugId), drugPresentation[match.drugId])"
-                  :empty-text="c.drugCard.limited"
-                />
-              </section>
-              <section class="ta-regional">
-                <h5>{{ c.regionalApprovals }}</h5>
-                <dl v-if="regionRows(match.drugId).some((item) => item.date || item.approvedWithoutDate || item.status)" class="ta-approvals">
-                  <div v-for="item in regionRows(match.drugId)" :key="item.region">
-                    <dt>{{ c.approvalRegions[item.region] }}<small v-if="item.certificate && item.date"> · {{ c.certificateDate }}</small></dt>
-                    <dd>
-                      <a v-if="item.date && item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{ item.date }} ↗</a>
-                      <a v-else-if="item.approvedWithoutDate" :href="item.url" target="_blank" rel="noopener noreferrer">{{ c.drugCard.approvedWithoutDate }} ↗</a>
-                      <span v-else>{{ item.region === 'US' && documentState[match.drugId] === 'error' || item.region === 'EU' && emaStatus === 'error' ? c.drugCard.queryFailed : c.approvalUnknown }}</span>
-                      <span v-if="item.status && item.status !== 'Authorised'"> · {{ c.drugCard.stages[item.status.toUpperCase()] }}</span>
-                    </dd>
-                  </div>
-                </dl>
-                <p v-else>{{ documentState[match.drugId] === 'error' || emaStatus === 'error' ? c.drugCard.queryFailed : c.drugCard.regionsUnverified }}</p>
-              </section>
-              <div
-                v-for="doc in visibleDocuments(drugById(match.drugId)).filter(
-                  (item) => item.kind === 'activity',
-                )"
-                :key="doc.url"
-                class="ta-evidence"
-              >
-                <h4>{{ c.activity }}</h4>
-                <p>{{ locale === "zh" ? doc.summaryZh : doc.summary }}</p>
-                <a :href="doc.url" target="_blank" rel="noopener noreferrer">{{ locale === "zh" ? doc.titleZh : doc.title }} ↗</a>
-              </div>
-
-              <details
-                class="ta-evidence"
-                @toggle="$event.currentTarget.open && loadDocuments(drugById(match.drugId))"
-              >
-                <summary>{{ c.evidence }}</summary>
-                <p v-if="nciDrugLink(drugById(match.drugId).name)">
-                  <a :href="nciDrugLink(drugById(match.drugId).name)" target="_blank" rel="noopener noreferrer">{{ c.mechanism.nci }} · {{ drugDisplayName(drugById(match.drugId).name) }} ↗</a>
-                </p>
-                <p v-if="drugById(match.drugId).identityEvidence">
-                  <a :href="drugById(match.drugId).identityEvidence.originalUrl" target="_blank" rel="noopener noreferrer">{{ drugById(match.drugId).identityEvidence.recordId }} ↗</a>
-                </p>
-                <p v-if="reviewedMechanism(drugById(match.drugId).name)">
-                  <a :href="reviewedMechanism(drugById(match.drugId).name).mechanismSource.originalUrl" target="_blank" rel="noopener noreferrer">
-                    {{ reviewedMechanism(drugById(match.drugId).name).mechanismSource.sourceName }} · {{ c.drugCard.moa }} ↗
-                  </a>
-                </p>
-                <p v-if="researchProfile(drugById(match.drugId))">
-                  {{ researchProfile(drugById(match.drugId)).indication[locale] }} ·
-                  <template v-if="researchProfile(drugById(match.drugId)).sponsor">
-                    {{ organizationName(researchProfile(drugById(match.drugId)).sponsor, locale) }} ·
-                  </template>
-                  <a
-                    :href="researchProfile(drugById(match.drugId)).url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >{{ c.profileSource }} ↗</a>
-                </p>
-                <p v-if="drugIndications(match.drugId).length" class="ta-chembl">
-                  {{ c.chemblIndications }}
-                  <a v-for="row in drugIndications(match.drugId)" :key="row.name" :href="row.url" target="_blank" rel="noopener noreferrer">
-                    {{ conditionName(row.name, locale) }} ↗
-                  </a>
-                </p>
-                <p
-                  v-if="
-                    !reviewLists[match.drugId].length &&
-                      ['loaded', 'empty'].includes(documentState[match.drugId])
-                  "
-                >
-                  {{ c.noDirectEvidence }}
-                </p>
-                <div
-                  v-for="doc in expandedDocuments[match.drugId]
-                    ? reviewLists[match.drugId]
-                    : reviewLists[match.drugId].slice(0, 6)"
-                  :key="doc.url"
-                  class="ta-evidence-group"
-                >
-                  <h5>{{ doc.agency }}</h5>
-                  <div class="ta-document">
-                    <a :href="doc.url" target="_blank" rel="noopener noreferrer">{{ (locale === "zh" && doc.titleZh) || doc.title }} ↗</a>
-                    <p v-if="doc.approvedAt">{{ c.approvalDate }} · {{ doc.approvedAt }}</p>
-                    <p v-if="doc.locator">{{ doc.locator }}</p>
-                  </div>
-                </div>
-                <button
-                  v-if="reviewLists[match.drugId].length > 6"
-                  type="button"
-                  class="ta-text-button"
-                  @click="toggleDocuments(match.drugId, $event)"
-                >
-                  {{ expandedDocuments[match.drugId] ? c.fewerDocuments : c.moreDocuments }} ({{
-                    reviewLists[match.drugId].length
-                  }})
-                </button>
-                <button
-                  v-if="!documentState[match.drugId] || documentState[match.drugId] === 'error'"
-                  type="button"
-                  class="ta-text-button"
-                  @click="loadDocuments(drugById(match.drugId))"
-                >
-                  {{ c.loadFda }} ↗
-                </button>
-                <p v-if="documentState[match.drugId] === 'loading'" role="status">
-                  {{ c.fdaLoading }}
-                </p>
-                <p v-if="documentState[match.drugId] === 'error'" role="alert">
-                  {{ c.fdaFailed }}
-                </p>
-                <p
-                  v-if="
-                    documentState[match.drugId] === 'loaded' &&
-                      reviewLists[match.drugId]
-                        .filter((doc) => doc.agency === 'FDA')
-                        .every((doc) => doc.kind === 'application')
-                  "
-                >
-                  {{ c.fdaApplicationOnly }}
-                </p>
-                <p v-if="documentState[match.drugId] === 'empty'" role="status">
-                  {{ c.fdaEmpty }}
-                </p>
-                <p v-if="drugById(match.drugId).verification === 'imported'" class="ta-origin">
-                  <a
-                    v-if="sourceById(drugById(match.drugId).sourceId)?.title.startsWith('Open Targets')"
-                    :href="sourceById(drugById(match.drugId).sourceId).url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >{{ c.targetEvidence }} · Open Targets ↗</a>
-                  <a
-                    v-if="/^CHEMBL\d+$/.test(match.drugId)"
-                    :href="`https://www.ebi.ac.uk/chembl/explore/compound/${match.drugId}`"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >ChEMBL ↗</a>
-                </p>
-              </details>
-              <details class="ta-evidence ta-trial-details">
-                <summary>{{ c.trialTitle }} · ClinicalTrials.gov</summary>
-                <p v-if="drugById(match.drugId).clinicalEvidence?.length">
-                  <a v-for="study in drugById(match.drugId).clinicalEvidence.slice(0, 5)" :key="study.id" :href="study.url" target="_blank" rel="noopener noreferrer">{{ study.id }} ↗ </a>
-                </p>
-                <div class="ta-trials" aria-live="polite">
-                  <button
-                    v-if="trialResults[match.drugId]?.state !== 'loaded'"
-                    type="button"
-                    class="ta-text-button"
-                    :disabled="trialResults[match.drugId]?.state === 'loading'"
-                    @click="loadTrials(drugById(match.drugId))"
-                  >
-                    {{
-                      trialResults[match.drugId]?.state === "loading" ? c.searching : c.trialSearch
-                    }}
-                  </button>
-                  <p v-if="trialResults[match.drugId]?.state === 'error'">{{ c.trialError }}</p>
-                  <template v-if="trialResults[match.drugId]?.state === 'loaded'">
-                    <p>
-                      {{ c.trialCount }} {{ trialResults[match.drugId].count }} ·
-                      <a
-                        :href="trialResults[match.drugId].url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >{{ c.trialAll }} ↗</a>
-                    </p>
-                    <p v-if="!trialResults[match.drugId].records.length">{{ c.mechanism.noVerifiedTrial }}</p>
-                    <div
-                      v-for="trial in trialResults[match.drugId].records"
-                      :key="trial.id"
-                      class="ta-trial"
-                    >
-                      <a
-                        :href="`https://clinicaltrials.gov/study/${trial.id}`"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >{{ trial.title }} ↗</a>
-                      <p>
-                        {{
-                          [
-                            trial.id,
-                            trial.ongoingInterventional && c.mechanism.ongoingTrial,
-                            ...trial.phases.map(stageLabel),
-                            trial.status && drugDisplayName(trial.status.replaceAll("_", " ")),
-                            trial.sponsor && organizationName(trial.sponsor, locale),
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")
-                        }}
-                      </p>
-                      <p v-if="trial.conditions.length">
-                        {{ c.trialConditions }} ·
-                        {{
-                          trial.conditions.map((name) => conditionName(name, locale)).join(" · ")
-                        }}
-                      </p>
-                      <p v-if="trial.countries.length">
-                        {{ c.trialCountries }} · {{ trial.countries.join(", ") }}
-                      </p>
-                    </div>
-                  </template>
-                </div>
-              </details>
-            </article>
-            <button
-              v-if="visibleCount < active.matches.length"
-              type="button"
-              class="ta-more"
-              @click="visibleCount += 8"
-            >
-              {{ c.more }} ({{ active.matches.length - visibleCount }}) ↓
-            </button>
-            <details v-if="additionalCandidates.length" :key="active.key" class="ta-evidence ta-candidate-list">
-              <summary>{{ c.mechanism.candidates }} ({{ additionalCandidates.length }})</summary>
               <CandidateDrugTable
-                :key="mechanismResult.retrievedAt"
+                v-if="additionalCandidates.length"
+                :key="mechanismResult?.retrievedAt || active.key"
                 :candidates="additionalCandidates"
-                :mechanisms="mechanismResult.drugMechanisms"
+                :mechanisms="mechanismResult?.drugMechanisms || []"
                 :copy="c.mechanism"
                 :more="c.more"
               />
-            </details>
-            <details v-if="mechanismResult?.trialCandidates?.length" class="ta-evidence ta-candidate-list">
-              <summary>{{ c.mechanism.trialCandidates }} ({{ mechanismResult.trialCandidates.length }})</summary>
-              <p>{{ c.mechanism.trialCandidateNote }}</p>
-              <ul>
-                <li v-for="candidate in mechanismResult.trialCandidates" :key="candidate.name">
-                  {{ candidate.name }} ·
-                  <a v-for="study in candidate.studies.slice(0, 3)" :key="study.id" :href="study.url" target="_blank" rel="noopener noreferrer">{{ study.id }} ↗ </a>
-                </li>
-              </ul>
-            </details>
+              <p v-else class="ta-empty">{{ locale === "zh" ? "当前结果没有补充候选。" : "No additional candidates in the current results." }}</p>
+            </section>
+            <template v-else>
+              <div class="ta-section-heading">
+                <h3>{{ targetNames(active.targetIds) }}</h3>
+                <span>{{ active.matches.length }} {{ c.matches }}</span>
+              </div>
+              <div v-if="!active.matches.length" class="ta-empty">
+                <p v-if="unresolvedScope || discoveryFailed || discoveryTruncated">{{ coverageLabel }}</p>
+                <p v-else>{{ c.empty }}</p>
+                <p>{{ c.emptyNote }}</p>
+              </div>
+              <article v-for="match in visibleMatches" :key="match.drugId" class="ta-drug">
+                <div class="ta-drug-choice">
+                  <h4>
+                    {{ drugHeadingName(drugById(match.drugId).name, locale) }}
+                    <span v-if="drugPresentation[match.drugId].brand" class="ta-brand">{{
+                      drugDisplayName(drugPresentation[match.drugId].brand)
+                    }}</span>
+                  </h4>
+                  <div class="ta-drug-labels">
+                    <span class="ta-tag">{{ c.drugCard.types[drugPresentation[match.drugId].type] }}</span>
+                    <span class="ta-tag">{{ drugStatusLabel(match.drugId) }}</span>
+                  </div>
+                </div>
+                <p class="ta-drug-targets">
+                  <span>{{ targetNames(drugById(match.drugId).targetIds) }}</span>
+                  <span v-if="match.matchType !== 'reported'" class="ta-status-item">
+                    <span aria-hidden="true">·</span>{{ match.matchType === "direct"
+                      ? (match.reason === "additional_direct_targets" ? c.directAdditionalTargets : c.directScopePending)
+                      : c.exactBadge }}
+                  </span>
+                  <span v-if="drugPresentation[match.drugId].earliest" class="ta-status-item">
+                    <span aria-hidden="true">·</span>{{ c.drugCard.firstApproval }}
+                  </span>
+                  <a
+                    v-if="drugPresentation[match.drugId].earliest" class="ta-approval-link"
+                    :href="drugPresentation[match.drugId].earliest.url" target="_blank" rel="noopener noreferrer"
+                  >
+                    {{ drugPresentation[match.drugId].date }} · {{ c.approvalRegions[drugPresentation[match.drugId].earliest.region] }} ↗
+                  </a>
+                </p>
+                <section class="ta-drug-moa">
+                  <h5>{{ c.drugCard.moa }}</h5>
+                  <BilingualMechanism
+                    :entry="drugMechanism(drugById(match.drugId), drugPresentation[match.drugId])"
+                    :empty-text="c.drugCard.limited"
+                  />
+                </section>
+                <section class="ta-regional">
+                  <h5>{{ c.regionalApprovals }}</h5>
+                  <dl v-if="regionRows(match.drugId).some((item) => item.date || item.approvedWithoutDate || item.status)" class="ta-approvals">
+                    <div v-for="item in regionRows(match.drugId)" :key="item.region">
+                      <dt>{{ c.approvalRegions[item.region] }}<small v-if="item.certificate && item.date"> · {{ c.certificateDate }}</small></dt>
+                      <dd>
+                        <a v-if="item.date && item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{ item.date }} ↗</a>
+                        <a v-else-if="item.approvedWithoutDate" :href="item.url" target="_blank" rel="noopener noreferrer">{{ c.drugCard.approvedWithoutDate }} ↗</a>
+                        <span v-else>{{ item.region === 'US' && documentState[match.drugId] === 'error' || item.region === 'EU' && emaStatus === 'error' ? c.drugCard.queryFailed : c.approvalUnknown }}</span>
+                        <span v-if="item.status && item.status !== 'Authorised'"> · {{ c.drugCard.stages[item.status.toUpperCase()] }}</span>
+                      </dd>
+                    </div>
+                  </dl>
+                  <p v-else>{{ documentState[match.drugId] === 'error' || emaStatus === 'error' ? c.drugCard.queryFailed : c.drugCard.regionsUnverified }}</p>
+                </section>
+                <div
+                  v-for="doc in visibleDocuments(drugById(match.drugId)).filter(
+                    (item) => item.kind === 'activity',
+                  )"
+                  :key="doc.url"
+                  class="ta-evidence ta-activity"
+                >
+                  <h4>{{ c.activity }}</h4>
+                  <p>{{ locale === "zh" ? doc.summaryZh : doc.summary }}</p>
+                  <a :href="doc.url" target="_blank" rel="noopener noreferrer">{{ doc.title }} ↗</a>
+                </div>
+
+                <details
+                  class="ta-evidence"
+                  @toggle="$event.currentTarget.open && loadDocuments(drugById(match.drugId))"
+                >
+                  <summary>{{ c.evidence }}</summary>
+                  <div v-for="group in reviewLists[match.drugId]" :key="group.agency" class="ta-evidence-group">
+                    <h5>{{ group.agency }}</h5>
+                    <ul class="ta-document-list" :class="{ 'ta-fda-documents': group.agency === 'FDA' }">
+                      <li
+                        v-for="doc in visibleReviewDocuments(group, expandedDocuments[match.drugId])"
+                        :key="doc.url"
+                        :class="{ 'ta-document-overview': group.agency === 'FDA' && doc.kind === 'overview',
+                                  'ta-document-package': group.agency === 'FDA' && doc.kind === 'review_package' }"
+                        class="ta-document"
+                      >
+                        <a :href="doc.url" target="_blank" rel="noopener noreferrer">
+                          {{ (group.agency === "FDA" ? fdaDocumentDisplay(doc).title : (locale === "zh" && doc.titleZh) || doc.title) }} ↗
+                        </a>
+                        <template v-if="group.agency === 'FDA'">
+                          <small v-if="fdaDocumentDisplay(doc).metadata">{{ fdaDocumentDisplay(doc).metadata }}</small>
+                          <small v-if="fdaDocumentDisplay(doc).fileId">{{ fdaDocumentDisplay(doc).fileId }}</small>
+                          <small v-if="fdaDocumentDisplay(doc).supplementApprovedAt">
+                            {{ locale === "zh" ? "补充申请获批" : "Supplement approved" }} · {{ fdaDocumentDisplay(doc).supplementApprovedAt }}
+                          </small>
+                        </template>
+                      </li>
+                    </ul>
+                    <button
+                      v-if="group.agency === 'FDA' && fdaReviewCount(match.drugId) > fdaReviewLimit"
+                      type="button" class="ta-text-button"
+                      :aria-expanded="Boolean(expandedDocuments[match.drugId])"
+                      @click="toggleDocuments(match.drugId, $event)"
+                    >
+                      {{ expandedDocuments[match.drugId] ? c.fewerDocuments : c.moreDocuments }}
+                      ({{ fdaReviewCount(match.drugId) - fdaReviewLimit }})
+                    </button>
+                  </div>
+                  <button
+                    v-if="(!documentState[match.drugId] || documentState[match.drugId] === 'error') && !documents[match.drugId]?.some(({ kind }) => kind === 'review')"
+                    type="button"
+                    class="ta-text-button"
+                    @click="loadDocuments(drugById(match.drugId))"
+                  >
+                    {{ c.loadFda }} ↗
+                  </button>
+                  <p v-if="fdaCoverage[match.drugId]">{{ coverageLabel }}</p>
+                  <p v-if="documentState[match.drugId] === 'loading'" role="status">
+                    {{ c.fdaLoading }}
+                  </p>
+                  <p v-if="documentState[match.drugId] === 'error'" role="alert">
+                    {{ sourceError(fdaErrors[match.drugId]) || c.fdaFailed }}
+                  </p>
+                  <p
+                    v-if="
+                      documentState[match.drugId] === 'loaded' && !fdaCoverage[match.drugId] && !fdaReviewCount(match.drugId)
+                    "
+                  >
+                    {{ c.fdaApplicationOnly }}
+                  </p>
+                  <p v-if="documentState[match.drugId] === 'empty'" role="status">
+                    {{ c.fdaEmpty }}
+                  </p>
+                  <div
+                    v-if="otherSources(drugById(match.drugId), reviewLists[match.drugId]).length"
+                    class="ta-evidence-group"
+                  >
+                    <h5>{{ locale === "zh" ? "其他数据来源" : "Other data sources" }}</h5>
+                    <div class="ta-source-links">
+                      <a
+                        v-for="source in otherSources(drugById(match.drugId), reviewLists[match.drugId])"
+                        :key="source.url"
+                        :href="source.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >{{ source.title }} ↗</a>
+                    </div>
+                  </div>
+                </details>
+                <section class="ta-evidence ta-development">
+                  <h4>{{ developmentCopy.heading }}</h4>
+                  <dl class="ta-development-fields">
+                    <div>
+                      <dt>{{ developmentCopy.status }}</dt>
+                      <dd>{{ drugStatusLabel(match.drugId) }}</dd>
+                    </div>
+                    <div v-for="party in developmentProfiles[match.drugId].parties" :key="party.role">
+                      <dt>{{ developmentCopy[party.role] }}</dt>
+                      <dd>{{ organizationName(party.name, locale) }}</dd>
+                    </div>
+                    <div v-if="developmentProfiles[match.drugId].indication">
+                      <dt>{{ developmentCopy.approvedIndication }}</dt>
+                      <dd v-for="item in [developmentProfiles[match.drugId].indication]" :key="item.url">
+                        <p v-if="item.summary">{{ item.summary }}</p>
+                        <details v-if="item.original" class="ta-indication-original">
+                          <summary>{{ developmentCopy.complete }} · {{ developmentCopy.original }}</summary>
+                          <p lang="en">{{ item.original }}</p>
+                        </details>
+                        <a v-else :href="item.url" target="_blank" rel="noopener noreferrer">{{ developmentCopy.complete }} ↗</a>
+                      </dd>
+                    </div>
+                    <div v-if="drugIndications(match.drugId).length || (chemblResults[chemblKey]?.state === 'error' && chemblIds(drugById(match.drugId)).length)" class="ta-indications">
+                      <dt>{{ developmentCopy.reported }}</dt>
+                      <dd>
+                        <ul>
+                          <li v-for="row in drugIndications(match.drugId).slice(0, expandedIndications[match.drugId] ? undefined : 3)" :key="row.name">
+                            <a :href="row.url" :title="row.name" target="_blank" rel="noopener noreferrer">{{ conditionName(row.name, locale) }} ↗</a>
+                          </li>
+                        </ul>
+                        <button
+                          v-if="drugIndications(match.drugId).length > 3" type="button" class="ta-text-button"
+                          :aria-expanded="Boolean(expandedIndications[match.drugId])"
+                          @click="expandedIndications[match.drugId] = !expandedIndications[match.drugId]"
+                        >
+                          {{ expandedIndications[match.drugId] ? developmentCopy.less : developmentCopy.more }} ({{ drugIndications(match.drugId).length - 3 }})
+                        </button>
+                        <p v-if="chemblResults[chemblKey]?.state === 'error'" class="ta-source-note">{{ c.chemblUnavailable }}</p>
+                        <p v-else-if="chemblResults[chemblKey]?.truncated" class="ta-source-note">{{ developmentCopy.indicationCoverage }}</p>
+                      </dd>
+                    </div>
+                    <div v-if="developmentProfiles[match.drugId].sources.length">
+                      <dt>{{ developmentCopy.official }}</dt>
+                      <dd class="ta-official-links">
+                        <a v-for="item in developmentProfiles[match.drugId].sources" :key="item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{ [item.source, item.brand].filter(Boolean).join(' · ') }} ↗</a>
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+              </article>
+              <button
+                v-if="visibleCount < active.matches.length"
+                type="button"
+                class="ta-more"
+                @click="visibleCount += 8"
+              >
+                {{ c.more }} ({{ active.matches.length - visibleCount }}) ↓
+              </button>
+            </template>
           </div>
         </div>
       </section>
@@ -803,6 +807,7 @@ async function loadTrials(drug) {
           </div>
           <p v-if="currentLiterature?.state === 'error'" role="alert">{{ c.literatureError }}</p>
           <template v-if="currentLiterature?.state === 'loaded'">
+            <p v-if="currentLiterature.truncated">{{ coverageLabel }}</p>
             <p v-if="!currentLiterature.papers.length">{{ c.literatureEmpty }}</p>
             <div v-else class="ta-paper-list">
               <article v-for="paper in currentLiterature.papers" :key="paper.id" class="ta-paper">
@@ -841,13 +846,6 @@ async function loadTrials(drug) {
           </template>
         </div>
       </section>
-      <section class="ta-assay-footer" aria-labelledby="assay-options-title">
-        <h2 id="assay-options-title">{{ c.assayOptions }}</h2>
-        <div class="ta-assay-options">
-          <button type="button" disabled>{{ c.bindingActivity }}</button>
-          <button type="button" disabled>{{ c.cellActivity }}</button>
-        </div>
-      </section>
       <SiteFooter />
     </main>
   </div>
@@ -869,19 +867,31 @@ async function loadTrials(drug) {
   min-height: 100svh;
 }
 .ta-container {
-  --ta-body-size: 0.72rem;
+  --ta-body-size: 0.9rem;
+  --ta-section-size: 1.15rem;
+  --ta-card-title-size: 1.0625rem;
+  --ta-label-size: 0.83rem;
+  --ta-card-padding: 12px;
+  --ta-meta-size: 0.8rem;
+  --ta-subheading-size: 0.98rem;
   --ta-body-line: 1.55;
   --ta-heading-line: 1.35;
   --ta-action-width: 9.625rem;
-  --ta-language-gap: 5px;
+  --ta-language-gap: 8px;
   --ta-field-gap: 8px;
-  --ta-group-gap: 14px;
+  --ta-row-gap: 12px;
+  --ta-group-gap: 16px;
+  --ta-panel-gap: 24px;
+  display: grid;
+  gap: var(--ta-panel-gap);
   width: min(var(--bc-content-max, 1120px), calc(100% - var(--bc-container-inline, 48px)));
   margin: 0 auto;
   padding-top: 72px;
 }
 .ta-intro {
-  padding: 12px 0 32px;
+  display: grid;
+  gap: var(--ta-row-gap);
+  padding-block-start: 12px;
 }
 .ta-back {
   font-size: 0.74rem;
@@ -893,12 +903,12 @@ async function loadTrials(drug) {
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.2;
-  margin: 0 0 18px;
+  margin: 0;
 }
 p {
   color: var(--app-muted);
   line-height: var(--ta-body-line);
-  font-size: 0.82rem;
+  font-size: var(--ta-body-size);
 }
 a {
   color: var(--app-accent);
@@ -907,17 +917,19 @@ a {
 }
 h2,
 h3 {
-  font-size: 0.95rem;
+  font-size: var(--ta-subheading-size);
   font-weight: 600;
   margin: 0;
 }
+h2 { font-size: var(--ta-section-size); }
 h4 {
-  font-size: 0.75rem;
+  font-size: var(--ta-subheading-size);
   font-weight: 600;
   margin: 0;
 }
 h5 {
-  font: 600 0.68rem var(--font-mono, monospace);
+  font-size: var(--ta-label-size);
+  font-weight: 600;
   margin: 3px 0 0;
   color: var(--app-muted);
 }
@@ -932,8 +944,10 @@ h5 {
   background: var(--app-surface);
   box-shadow: var(--app-card-shadow);
 }
-form {
-  margin-top: 24px;
+.ta-input form {
+  display: grid;
+  gap: var(--ta-field-gap);
+  margin: 0;
 }
 label {
   font-size: 0.75rem;
@@ -942,8 +956,7 @@ label {
 }
 .ta-input-row {
   display: flex;
-  gap: 10px;
-  margin-top: 8px;
+  gap: var(--ta-row-gap);
 }
 textarea,
 select,
@@ -1002,9 +1015,7 @@ a:focus-visible {
   margin-left: 12px;
 }
 @media (min-width: 768px) {
-  .ta-input-row > .ta-primary,
-  .ta-mechanism-heading > .ta-primary {
-    box-sizing: border-box;
+  .ta-input-row > .ta-primary {
     flex: 0 0 var(--ta-action-width);
     inline-size: var(--ta-action-width);
   }
@@ -1016,7 +1027,7 @@ a:focus-visible {
   text-align: left;
 }
 .ta-input-hint {
-  margin: 8px 0 0;
+  margin: 0;
 }
 .ta-error {
   border-left: 2px solid var(--app-accent);
@@ -1046,7 +1057,7 @@ a:focus-visible {
   padding: 3px 7px;
   background: var(--app-section);
   border-radius: 4px;
-  font-size: 0.65rem;
+  font-size: var(--ta-meta-size);
   color: var(--app-muted);
   overflow-wrap: anywhere;
 }
@@ -1100,7 +1111,8 @@ a:focus-visible {
   background: var(--app-accent-soft);
 }
 .ta-count {
-  font: 0.7rem var(--font-mono, monospace);
+  font-size: var(--ta-meta-size);
+  font-variant-numeric: tabular-nums;
   color: var(--app-muted);
 }
 .ta-drugs {
@@ -1115,7 +1127,9 @@ a:focus-visible {
   overflow-wrap: anywhere;
 }
 .ta-drug {
-  padding: 22px 0;
+  display: grid;
+  gap: var(--ta-group-gap);
+  padding-block: calc(var(--ta-panel-gap) / 2);
   border-bottom: 1px solid var(--app-rule-subtle);
 }
 .ta-drug:last-child {
@@ -1125,25 +1139,22 @@ a:focus-visible {
 .ta-drug p {
   font-size: var(--ta-body-size);
   line-height: var(--ta-body-line);
-  margin: var(--ta-field-gap) 0;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 .ta-drug-labels { display: flex; flex-wrap: wrap; gap: 6px; }
 .ta-drug-moa, .ta-regional {
-  margin-top: var(--ta-group-gap);
   display: grid;
   gap: var(--ta-field-gap);
   font-size: var(--ta-body-size);
   line-height: var(--ta-body-line);
 }
-.ta-drug-moa h5, .ta-regional h5 { margin: 0; font-size: .82rem; font-weight: 600; }
+.ta-drug-moa h5, .ta-regional h5 { margin: 0; font-size: var(--ta-label-size); font-weight: 600; }
 .ta-regional p { margin: 0; }
 .ta-drug-choice {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 44px;
-  cursor: pointer;
+  align-items: baseline;
+  gap: 8px 12px;
   flex-wrap: wrap;
 }
 .ta-drug-choice strong {
@@ -1152,31 +1163,31 @@ a:focus-visible {
   color: var(--app-text);
   overflow-wrap: anywhere;
 }
-.ta-drug-choice > .ta-tag {
-  margin-left: auto;
-}
 .ta-brand {
   display: block;
   color: var(--app-muted);
-  font-size: 0.65rem;
-  letter-spacing: 0.02em;
+  font-size: var(--ta-meta-size);
   margin-top: 3px;
 }
 .ta-drug-targets {
   color: var(--app-accent);
-  font-family: var(--font-mono, monospace);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--ta-field-gap);
+  letter-spacing: normal;
 }
+.ta-status-item { display: inline-flex; align-items: baseline; gap: var(--ta-field-gap); }
+.ta-approval-link { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ta-evidence {
-  margin-top: var(--ta-group-gap);
-  padding: 14px;
+  padding: var(--ta-card-padding);
   border-radius: 10px;
   background: var(--app-section);
 }
-.ta-literature {
-  margin-top: 24px;
-}
+.ta-activity { display: grid; gap: var(--ta-field-gap); }
+.ta-literature { display: grid; gap: var(--ta-group-gap); }
 .ta-literature-intro {
-  margin: 8px 0 16px;
+  margin: 0;
 }
 .ta-literature-content,
 .ta-paper-list {
@@ -1201,7 +1212,7 @@ a:focus-visible {
   margin: 0;
 }
 .ta-paper-meta {
-  font-size: 0.74rem;
+  font-size: var(--ta-meta-size);
 }
 .ta-paper-excerpt {
   display: grid;
@@ -1230,17 +1241,6 @@ a:focus-visible {
 .ta-literature-link:hover {
   background: var(--app-accent-soft);
 }
-.ta-intro {
-  display: grid;
-  gap: 12px;
-  padding-bottom: 14px;
-}
-.ta-input form {
-  margin: 0;
-}
-.ta-input-row {
-  margin-top: 0;
-}
 #results-title { scroll-margin-top: 88px; }
 .ta-mechanism-heading {
   flex-wrap: wrap;
@@ -1249,59 +1249,42 @@ a:focus-visible {
 .ta-mechanism-heading > * {
   min-width: 0;
 }
-.ta-overview {
-  margin: 12px 0 22px;
-}
+.ta-overview { display: grid; gap: var(--ta-group-gap); }
 .ta-approvals {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 100px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--ta-field-gap) 16px;
   margin: 0;
   overflow-wrap: anywhere;
 }
 .ta-approvals dt {
   color: var(--app-muted);
-  font-size: 0.72rem;
+  font-size: var(--ta-label-size);
 }
 .ta-approvals dd {
   margin: 4px 0 0;
-  font-size: 0.8rem;
+  font-size: var(--ta-body-size);
 }
-.ta-drug p.ta-drug-mechanism {
-  display: inline-block;
-  margin-inline-end: 6px;
-}
-.ta-assay-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
+.ta-results { display: grid; gap: var(--ta-group-gap); }
 .ta-source-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ta-field-gap) var(--ta-group-gap);
-  margin: var(--ta-group-gap) 0;
   line-height: var(--ta-body-line);
   color: var(--app-muted);
-  font-size: 0.75rem;
-}
-.ta-source-bar:has(+ .ta-coverage) {
-  margin-bottom: var(--ta-field-gap);
+  font-size: var(--ta-meta-size);
 }
 .ta-source-bar a {
   max-inline-size: 100%;
 }
-.ta-coverage {
-  margin: 0 0 var(--ta-group-gap);
-}
+.ta-coverage { margin: 0; }
 .ta-coverage a {
   display: inline-block;
   max-inline-size: 100%;
 }
 .ta-results > [role="status"] {
-  margin: 0 0 var(--ta-group-gap);
+  margin: 0;
 }
 details.ta-evidence {
   border: 1px solid var(--app-rule-subtle);
@@ -1309,9 +1292,9 @@ details.ta-evidence {
 }
 .ta-evidence summary {
   cursor: pointer;
-  font-size: 0.83rem;
+  font-size: var(--ta-subheading-size);
   font-weight: 600;
-  line-height: var(--ta-body-line);
+  line-height: var(--ta-heading-line);
 }
 .ta-evidence summary:focus-visible {
   outline: 2px solid var(--app-accent);
@@ -1321,55 +1304,92 @@ details.ta-evidence {
   cursor: pointer;
   line-height: var(--ta-body-line);
 }
-.ta-evidence[open] > :nth-child(2) { margin-top: 0; }
-.ta-evidence[open] > :last-child { margin-bottom: 0; }
-.ta-container :deep(details[open] > summary) { margin-bottom: var(--ta-field-gap); }
-.ta-chembl {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-}
+.ta-evidence[open] { display: grid; gap: var(--ta-row-gap); }
+.ta-evidence[open] > summary { display: list-item; }
+.ta-indication-original[open] > summary { margin-block-end: var(--ta-field-gap); }
 .ta-drug-choice h4 {
-  font-size: 1rem;
-}
-.ta-trial {
-  padding: 12px 0;
-  border-top: 1px solid var(--app-rule-subtle);
-  font-size: 0.78rem;
-}
-.ta-origin a + a {
-  margin-inline-start: 12px;
+  font-size: var(--ta-card-title-size);
 }
 .ta-evidence-group {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: var(--ta-field-gap);
   padding-top: var(--ta-field-gap);
-  margin-top: var(--ta-field-gap);
   border-top: 1px solid var(--app-rule-subtle);
 }
+.ta-evidence-group h5 {
+  margin: 0 0 4px;
+  color: var(--app-text);
+}
+.ta-document-list,
+.ta-indications ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ta-document { padding: 4px 8px; min-width: 0; overflow-wrap: anywhere; }
 .ta-document a {
-  display: block;
-  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+  font-size: var(--ta-body-size);
   line-height: var(--ta-body-line);
 }
-.ta-doc-status {
+.ta-document small {
+  display: block;
+  color: var(--app-muted);
+  font-size: var(--ta-meta-size);
+}
+.ta-document-overview {
+  background: var(--app-accent-soft);
+  border-radius: 6px;
+  margin: 5px 0;
+}
+.ta-document-overview { padding: 8px 10px; }
+.ta-document-overview a {
+  font-weight: 600;
+}
+.ta-fda-documents {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+.ta-document-overview, .ta-document-package { grid-column: 1 / -1; }
+.ta-document:not(.ta-document-overview) { border-bottom: 1px solid var(--app-rule-subtle); }
+.ta-document-package a { font-weight: 600; }
+.ta-evidence-group h5, .ta-development h4 { font-size: var(--ta-subheading-size); }
+.ta-development {
+  display: grid;
+  gap: var(--ta-row-gap);
+  font-size: var(--ta-body-size);
+  line-height: 1.5;
+}
+.ta-development-fields { display: grid; gap: var(--ta-row-gap); max-inline-size: 46rem; margin: 0; }
+.ta-development-fields > div { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); gap: 4px 16px; align-items: baseline; }
+.ta-development-fields dt { color: var(--app-muted); font-size: var(--ta-label-size); }
+.ta-development-fields dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.ta-development-fields dd p { margin: 0; font-size: inherit; line-height: inherit; }
+.ta-indication-original { margin-block-start: 4px; }
+.ta-development-fields .ta-indication-original summary { font-size: var(--ta-meta-size); font-weight: 400; color: var(--app-accent); }
+.ta-development-fields .ta-indication-original p { max-inline-size: 65ch; }
+.ta-development-fields .ta-source-note { font-size: var(--ta-meta-size); color: var(--app-muted); }
+.ta-official-links { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+.ta-official-links a {
   display: inline-block;
-  font-size: 0.61rem;
-  color: var(--app-faint);
-  margin-top: 3px;
+  white-space: nowrap;
+  padding-block: 2px;
+  font-size: var(--ta-meta-size);
+  line-height: 1.5;
 }
-.ta-document p,
-.ta-source-note {
-  font-size: 0.66rem !important;
-  margin: var(--ta-language-gap) 0 0 !important;
+@media (max-width: 767px) {
+  .ta-development-fields > div { grid-template-columns: minmax(0, 1fr); }
 }
-.ta-documents .ta-text-button {
-  font-size: 0.68rem;
+.ta-source-links,
+.ta-indications ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
-.ta-origin {
-  border-top: 1px solid var(--app-rule-subtle);
-  padding-top: 12px;
+.ta-source-links a,
+.ta-indications li a {
+  display: inline-block;
+  padding-block: 4px;
+  overflow-wrap: anywhere;
 }
 .ta-empty {
   padding: 48px 0 64px;
@@ -1382,12 +1402,6 @@ details.ta-evidence {
 .ta-more {
   width: 100%;
   margin-top: 18px;
-}
-.ta-assay-footer {
-  margin: 32px 4px;
-}
-.ta-assay-footer h2 {
-  font-size: 0.75rem;
 }
 .mobile-tool-header {
   display: none;
@@ -1405,14 +1419,13 @@ details.ta-evidence {
     margin-inline: auto;
   }
   .ta-container {
+    --ta-panel-gap: 20px;
     padding-top: 20px;
-  }
-  .ta-intro {
-    padding-bottom: 22px;
   }
   .ta-intro h1 {
     font-size: 1.75rem;
   }
+  .ta-fda-documents { grid-template-columns: minmax(0, 1fr); }
   .ta-panel {
     padding: 18px 14px;
   }
@@ -1440,22 +1453,10 @@ details.ta-evidence {
     border-left: none;
     border-top: 1px solid var(--app-rule-subtle);
   }
-  .ta-drug-choice > .ta-tag {
-    margin-left: 30px;
-  }
-  .ta-evidence {
-    padding: 12px;
-  }
-  .ta-evidence-group {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
 }
 .ta-coverage, .ta-candidate-list {
   font-size: var(--ta-body-size);
   line-height: var(--ta-body-line);
   overflow-wrap: anywhere;
 }
-.ta-candidate-list ul { margin-block: var(--ta-field-gap) 0; padding-inline-start: 20px; }
-.ta-candidate-list li + li { margin-top: var(--ta-language-gap); }
 </style>

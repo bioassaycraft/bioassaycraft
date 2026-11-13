@@ -7,7 +7,6 @@ import {
   resolveHgnc,
   reviewedDiseaseExpression,
 } from "./target-discovery.js";
-import { discoverTrialInterventions, reconcileTrialInterventions } from "./trials.js";
 import { reviewedMechanism } from "./bilingual-mechanism.js";
 import { curatedTargetEvidence, mergeEvidence, parseTargetInput, searchOnline } from "./online.js";
 import { SearchError } from "./search.js";
@@ -335,12 +334,13 @@ export async function queryMechanisms(
         if (target) return target;
       }
       const lookup = (selection || value).replace(/[‐‑–]/g, "-");
+      const providerLookup = !selection && /^pd-?1$/i.test(lookup) ? canonicalAlias(lookup) : lookup;
       const hgncId = /^HGNC:\d+$/i.test(lookup);
       const preferHgnc =
         hgncId || (!selection && /[ -]/.test(lookup) && canonicalAlias(lookup) === lookup);
       const lookupGene = async () => {
         try {
-          const gene = await resolveHgnc(lookup, fetcher, signal, retrievedAt);
+          const gene = await resolveHgnc(providerLookup, fetcher, signal, retrievedAt);
           checks.HGNC = { state: gene ? "success_with_data" : "unresolved_target" };
           return gene;
         } catch (error) {
@@ -354,7 +354,7 @@ export async function queryMechanisms(
       let provisionalProtein;
       if (!gene && !hgncId) {
         try {
-          const target = await resolveProtein(lookup, selection, fetcher, signal, retrievedAt);
+          const target = await resolveProtein(providerLookup, selection, fetcher, signal, retrievedAt);
           checks.UniProt = { state: target ? "success_with_data" : "unresolved_target" };
           if (target) {
             target.identity.inputName = value;
@@ -470,7 +470,7 @@ export async function queryMechanisms(
   const eligibleBiology = targets.filter(
     ({ identity, biology }) => biology && identity.primaryEnsemblId,
   );
-  const [pathways, chembl, online, expressions, associations, trials] = await Promise.all([
+  const [pathways, chembl, online, expressions, associations] = await Promise.all([
     Promise.allSettled(
       targets
         .filter(({ biology }) => biology)
@@ -508,10 +508,6 @@ export async function queryMechanisms(
         fetchDiseaseAssociations(identity, fetcher, signal, retrievedAt),
       ),
     ),
-    discoverTrialInterventions(identities, { fetcher, signal }).catch((error) => ({
-      rows: [],
-      ...providerIssue(error),
-    })),
   ]);
 
   online.catalog.targetEvidenceMatching = true;
@@ -532,6 +528,7 @@ export async function queryMechanisms(
       ) ||
       (sameName.length === 1 ? sameName[0] : null);
     if (prior) {
+      prior.molecularFormat ||= molecule.molecule_type;
       prior.proposedTargetIds = [
         ...new Set([...(prior.proposedTargetIds || []), ...molecule.proposedTargetIds]),
       ];
@@ -703,25 +700,7 @@ export async function queryMechanisms(
     }
   };
   normalizeDrugs();
-  const scopedDrugs = online.catalog.drugs.filter(
-    (drug) =>
-      drug.targetIds.some((id) => identities.some((target) => target.id === id)) ||
-      drug.proposedTargetIds?.some((id) => identities.some((target) => target.id === id)),
-  );
-  const trialNames = [...scopedDrugs]
-    .sort(
-      (a, b) =>
-        Number(b.targetIds.some((id) => identities.some((target) => target.id === id))) -
-          Number(a.targetIds.some((id) => identities.some((target) => target.id === id))) ||
-        a.name.localeCompare(b.name, "en"),
-    )
-    .flatMap((drug) => [drug.name, ...(drug.aliases || []).slice(0, 1)]);
-  const [namedTrials, fdaReview, chemblReview] = await Promise.all([
-    discoverTrialInterventions([], {
-    fetcher,
-    signal,
-    drugNames: trialNames,
-  }).catch((error) => ({ rows: [], ...providerIssue(error) })),
+  const [fdaReview, chemblReview] = await Promise.all([
     reviewFdaLabels(online.catalog.drugs, resolvedTargets, {
       fetcher, signal: AbortSignal.any([signal, AbortSignal.timeout(4500)]),
     }),
@@ -730,36 +709,37 @@ export async function queryMechanisms(
       ...providerIssue(error), queryType: "drug_mechanisms",
     })),
   ]);
-  reconcileTrialInterventions(online.catalog.drugs, namedTrials.rows);
-  const trialCandidates = reconcileTrialInterventions(online.catalog.drugs, trials.rows);
   for (const drug of online.catalog.drugs) {
-    const records = [...(fdaReview.verified.get(drug.id) || [])];
-    for (const study of drug.clinicalEvidence || []) {
-      if (!study.interventionDescription) continue;
-      records.push(...study.interventionDescription.split(/(?<=\.)\s+/).map((text) => ({
-        role: "direct", sourceType: "clinical_trial", text, allowBindingAssertion: true,
-        references: [{ source: "ClinicalTrials.gov", ids: [study.id], urls: [study.url] }],
-      })));
-    }
+    const records = fdaReview.verified.get(drug.id) || [];
     if (records.length) drug.targetEvidence = mergeEvidence(curatedTargetEvidence(drug), records);
   }
   normalizeDrugs();
+  const mechanismKey = (id, ids, text) => JSON.stringify([id, [...ids].sort(), text]);
+  const existingDirect = new Set(mechanisms.filter(({ evidenceStatus }) => evidenceStatus === "direct_evidence")
+    .map(({ drugId, targetIds, mechanismDescription }) => mechanismKey(drugId, targetIds, mechanismDescription)));
   for (const drug of online.catalog.drugs) {
     const prepared = prepareTargetMatch(drug, resolvedTargets);
-    for (const row of prepared.evidence.filter(({ assertedTargetIds }) => assertedTargetIds)) {
+    for (const row of prepared.evidence.filter(({ role, text }) => role === "direct" && text)) {
+      const ids = row.assertedTargetIds || row.normalizedTargetIds;
+      if (!ids.length) continue;
       const reference = row.references?.find(({ urls }) =>
         Array.isArray(urls) && urls.some((url) => typeof url === "string" && /^https:\/\//i.test(url)));
       const originalUrl = reference?.urls.find((url) => typeof url === "string" && /^https:\/\//i.test(url))
-        || row.originalUrl;
+        || row.originalUrl || sourceById.get(row.sourceId || drug.sourceId)?.url;
       if (!originalUrl) continue;
-      const classification = classifyTargetMatch(prepared, row.assertedTargetIds);
+      const classification = classifyTargetMatch(prepared, ids);
+      const key = mechanismKey(drug.id, ids, row.text);
+      if (!row.complete && classification?.state !== "conflict" && existingDirect.has(key)) continue;
+      existingDirect.add(key);
       mechanisms.unshift({
         drugId: drug.id,
         drugName: drug.name,
-        targetIds: row.assertedTargetIds,
+        targetIds: ids,
+        actionType: row.actionType,
+        molecularFormat: drug.molecularFormat,
         mechanismDescription: row.text,
         evidenceStatus: classification?.state === "conflict" ? "conflicting_evidence" : "direct_evidence",
-        completeTargetSet: classification?.state === "verified",
+        completeTargetSet: row.complete && classification?.state === "verified",
         sources: [evidence(reference?.source || row.sourceType, reference?.ids?.[0] || String(row.recordId ?? drug.id),
           originalUrl, retrievedAt, { evidenceDescription: row.text })],
       });
@@ -794,30 +774,13 @@ export async function queryMechanisms(
     FDA: aggregateChecks(fdaReview.checks.filter(({ state }) => state !== "not_queried")),
     EMA: "not_queried",
     NMPA: "not_queried",
-    "ClinicalTrials.gov": sourceState(
-      [trials, namedTrials]
-        .filter(({ state }) => state !== "not_queried")
-        .map(({ state }) =>
-          state === "success_with_data" ? "ok" : state === "success_empty" ? "empty" : "failed",
-        ),
-    ),
+    "ClinicalTrials.gov": "not_queried",
     PubMed: "not_queried",
   };
   const sourceChecks = {
     ...Object.fromEntries(["UniProt", "HGNC"].map((name) => [name, identitySourceChecks(name)])),
     "Human Protein Atlas": biologyChecks(expressions),
     "Open Targets (disease associations)": biologyChecks(associations),
-    "ClinicalTrials.gov": [trials, namedTrials]
-      .filter(({ state }) => state !== "not_queried")
-      .map(({ state, status, total, returned, truncated }, index) => ({
-        queryType:
-          index === 0 && trials.state !== "not_queried" ? "target_keywords" : "intervention_names",
-        state,
-        status,
-        count: total,
-        returned,
-        truncated,
-      })),
     Reactome: targets
       .filter(({ biology }) => biology)
       .map(({ identity }, index) => ({
@@ -846,7 +809,7 @@ export async function queryMechanisms(
   return {
     query: values,
     resolvedTargets: identities,
-    trialCandidates,
+    trialCandidates: [],
     targetBiology: targets.flatMap(({ biology }) => (biology ? [biology] : [])),
     relatedDrugs: online.catalog.drugs.filter((drug) =>
       drug.targetIds.some((id) => identities.some((target) => target.id === id)),

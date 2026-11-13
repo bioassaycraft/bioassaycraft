@@ -128,3 +128,89 @@ export function reconcileTrialInterventions(drugs, interventions) {
     return false;
   });
 }
+
+const phaseStages = new Map([
+  ["EARLY_PHASE1", "EARLY_PHASE_1"], ["PHASE1", "PHASE_1"], ["PHASE1/PHASE2", "PHASE_1_2"],
+  ["PHASE2", "PHASE_2"], ["PHASE2/PHASE3", "PHASE_2_3"], ["PHASE3", "PHASE_3"],
+]);
+const phaseOrder = [...phaseStages.keys()];
+const indicationAliases = new Map([
+  ["es sclc", "extensive stage small cell lung cancer"],
+  ["extensive stage small cell lung carcinoma", "extensive stage small cell lung cancer"],
+  ["sclc", "small cell lung cancer"],
+  ["small cell lung carcinoma", "small cell lung cancer"],
+  ["nsclc", "non small cell lung cancer"],
+  ["non small cell lung carcinoma", "non small cell lung cancer"],
+  ["dlbcl", "diffuse large b cell lymphoma"],
+]);
+function indicationKey(label) {
+  const value = label.toLowerCase().replace(/\s*\([a-z -]{2,10}\)\s*$/i, "")
+    .replace(/tumour/g, "tumor").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  return indicationAliases.get(value) || value;
+}
+const broadCondition = /^(cancer|neoplasms?|solid tumou?rs?|advanced solid tumou?rs?|malignanc(y|ies)|healthy (volunteers|subjects))$/i;
+
+export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch } = {}) {
+  const terms = [...new Set([drug.name, drug.brand, ...(drug.aliases || [])]
+    .filter(Boolean).map(ingredientKey))].slice(0, 6);
+  const query = terms.map((term) => `"${term}"`).join(" OR ");
+  const params = new URLSearchParams({
+    "query.intr": query, pageSize: "25",
+    fields: "NCTId,Condition,Phase,LeadSponsorName,StudyType,InterventionName,InterventionOtherName,InterventionType",
+  });
+  const studies = new Map();
+  let next;
+  for (let page = 0; page < 3; page++) {
+    if (next) params.set("pageToken", next);
+    const response = await fetcher(`https://clinicaltrials.gov/api/v2/studies?${params}`, { signal, redirect: "manual" });
+    if (!response.ok) throw new Error("upstream_" + response.status);
+    const payload = await response.json();
+    if (!Array.isArray(payload.studies)) throw new Error("unexpected_trials_response");
+    for (const { protocolSection: study } of payload.studies) {
+      const id = study?.identificationModule?.nctId;
+      if (!/^NCT\d{8}$/.test(id || "") || study.designModule?.studyType !== "INTERVENTIONAL") continue;
+      const interventions = (study.armsInterventionsModule?.interventions || [])
+        .filter((entry) => ["DRUG", "BIOLOGICAL"].includes(entry.type) && !/^placebo$/i.test(entry.name));
+      const matches = interventions.filter((entry) => [entry.name, ...(entry.otherNames || [])]
+        .some((name) => typeof name === "string" && terms.includes(ingredientKey(name))));
+      if (!matches.length) continue;
+      studies.set(id, { study, attributable: matches.length === interventions.length });
+    }
+    if (next && next === payload.nextPageToken) break;
+    next = payload.nextPageToken;
+    if (!next) break;
+  }
+  const conditions = new Map();
+  const sponsors = new Map();
+  let highest = -1;
+  const count = (map, values, keyFor) => {
+    const seen = new Set();
+    for (const raw of values) {
+      const label = raw.trim().replace(/\s+/g, " ");
+      const key = keyFor(label);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      map.set(key, { label: map.get(key)?.label || label, count: (map.get(key)?.count || 0) + 1 });
+    }
+  };
+  for (const { study, attributable } of studies.values()) {
+    const phases = (study.designModule.phases || []).filter((phase) => phase !== "NA");
+    const phase = phases.length === 1 ? phases[0] : [...phases].sort().join("/");
+    if (attributable) highest = Math.max(highest, phaseOrder.indexOf(phase));
+    const sponsor = study.sponsorCollaboratorsModule?.leadSponsor?.name;
+    if (sponsor) count(sponsors, [sponsor], (value) => value.toLowerCase());
+    if (attributable) count(conditions, (study.conditionsModule?.conditions || [])
+      .filter((condition) => !broadCondition.test(condition.trim())), indicationKey);
+  }
+  const ranked = (map) => [...map.values()].sort((a, b) =>
+    b.count - a.count || a.label.localeCompare(b.label, "en")).map(({ label }) => label);
+  return {
+    highestTrialPhase: phaseStages.get(phaseOrder[highest]) || null,
+    sponsors: ranked(sponsors).slice(0, 3),
+    researchIndications: ranked(conditions).slice(0, 3),
+    recordIds: [...studies.keys()],
+    truncated: Boolean(next),
+    retrievedAt: new Date().toISOString(),
+    url: `https://clinicaltrials.gov/search?intr=${encodeURIComponent(query)}`,
+  };
+}

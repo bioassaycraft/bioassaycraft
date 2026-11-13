@@ -96,7 +96,7 @@ export function parsePubmedArticles(xml, aliases = []) {
     .sort((a, b) => b.methodScore - a.methodScore);
 }
 
-export async function fetchLiterature(term, { fetcher = fetch, signal } = {}) {
+export async function fetchLiteratureSource(term, { fetcher = fetch, signal } = {}) {
   const search = new URLSearchParams({
     db: "pubmed",
     term: `(${term}) AND (${methodTerm}) AND hasabstract[text]`,
@@ -104,18 +104,23 @@ export async function fetchLiterature(term, { fetcher = fetch, signal } = {}) {
     retmax: "24",
     sort: "relevance",
   });
-  const response = await fetcher(`${endpoint}esearch.fcgi?${search}`, { signal });
-  if (!response.ok) throw new Error("literature_unavailable");
+  const response = await fetcher(`${endpoint}esearch.fcgi?${search}`, { signal, redirect: "manual" });
+  if (!response.ok) throw new Error("upstream_" + response.status);
   const result = (await response.json()).esearchresult;
   if (!Array.isArray(result?.idlist)) throw new Error("literature_unavailable");
   const ids = result.idlist.filter((id) => /^\d+$/.test(id));
   const url = `https://pubmed.ncbi.nlm.nih.gov/?${new URLSearchParams({ term: search.get("term") })}`;
-  if (!ids.length) return { papers: [], url };
+  const meta = { url, recordIds: ids, retrievedAt: new Date().toISOString(), truncated: Number(result.count) > ids.length };
+  if (!ids.length) return { ...meta, xml: "" };
   const params = new URLSearchParams({ db: "pubmed", id: ids.join(","), retmode: "xml" });
-  const detail = await fetcher(`${endpoint}efetch.fcgi?${params}`, { signal });
-  if (!detail.ok) throw new Error("literature_unavailable");
+  const detail = await fetcher(`${endpoint}efetch.fcgi?${params}`, { signal, redirect: "manual" });
+  if (!detail.ok) throw new Error("upstream_" + detail.status);
+  return { ...meta, xml: await detail.text() };
+}
+
+export function displayLiterature(source, term) {
   const aliases = [...term.matchAll(/"([^"]+)"\[Title\/Abstract\]/g)].map((match) =>
     match[1].toLowerCase(),
   );
-  return { papers: parsePubmedArticles(await detail.text(), aliases).slice(0, 6), url };
+  return { ...source, papers: source.xml ? parsePubmedArticles(source.xml, aliases).slice(0, 6) : [] };
 }

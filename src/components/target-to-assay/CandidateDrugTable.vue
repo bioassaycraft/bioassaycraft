@@ -127,7 +127,7 @@ const rows = computed(() => props.candidates.slice(0, limit.value).map(({ drug, 
 .ta-candidate-table small {
   display: block;
   color: var(--app-muted);
-  font-size: 0.68rem;
+  font-size: var(--ta-meta-size);
 }
 .ta-candidate-mechanisms,
 .ta-candidate-bindings {

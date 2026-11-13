@@ -4,6 +4,8 @@ const aliases = new Map([
   ["cd20", "MS4A1"],
   ["bcma", "TNFRSF17"],
   ["tl1a", "TNFSF15"],
+  ["pd-1", "PDCD1"],
+  ["pd1", "PDCD1"],
   ["pd-l1", "CD274"],
   ["4-1bb", "TNFRSF9"],
 ]);

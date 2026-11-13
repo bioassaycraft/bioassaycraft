@@ -157,6 +157,16 @@ export async function fetchDiseaseAssociations(identity, fetcher, signal, retrie
 
 // A regulatory record can document disease expression independently of atlas RNA data.
 export function reviewedDiseaseExpression(identity) {
+  if (identity.uniprotIds.includes("P15391")) return [{
+    kind: "regulatory_disease_expression",
+    description: {
+      en: "B-cell precursor acute lymphoblastic leukemia · EMA describes CD19 protein on leukemic B-lineage cells; the assessment report also documents binding in malignant B-cell lines.",
+      zh: "B 细胞前体急性淋巴细胞白血病 · EMA 记载白血病 B 系细胞可表达 CD19 蛋白，审评报告另有恶性 B 细胞系结合证据。",
+    },
+    source: evidence("EMA", "Blincyto · EPAR",
+      "https://www.ema.europa.eu/en/medicines/human/EPAR/blincyto",
+      null, { sourceType: "regulatory_record" }),
+  }];
   if (!identity.uniprotIds.includes("P11836")) return [];
   return [
     {

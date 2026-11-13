@@ -121,7 +121,7 @@ describe("online target discovery", () => {
 describe("regulatory documents and reports", () => {
   it("provides product-specific links and omits generic regulator portals", () => {
     const docs = evidenceFor(catalog.drugs[0], catalog.sources);
-    expect(docs.find((d) => d.agency === "FDA" && d.kind === "review").url).toContain(
+    expect(docs.find((d) => d.agency === "FDA" && d.kind === "review_package").url).toContain(
       "Orig1s000TOC.html",
     );
     expect(docs.find((d) => d.agency === "EMA" && d.kind === "review").url).toContain(
@@ -135,7 +135,7 @@ describe("regulatory documents and reports", () => {
   });
   it("retrieves review files, deduplicates and rejects unofficial links", async () => {
     const docs = await fetchFdaDocuments(catalog.drugs[0], {
-      fetcher: async () =>
+      fetcher: async (_, options) => options.method === "HEAD" ? pdf() :
         Response.json({
           results: [
             {
@@ -147,7 +147,7 @@ describe("regulatory documents and reports", () => {
                   application_docs: [
                     {
                       type: "Review",
-                      url: "http://www.accessdata.fda.gov/review.pdf",
+                      url: "http://www.accessdata.fda.gov/125557Orig1s000ChemR.pdf",
                       date: "20150112",
                     },
                     { type: "Review", url: "https://example.com/review.pdf" },
@@ -165,8 +165,8 @@ describe("regulatory documents and reports", () => {
         }),
     });
     expect(docs).toHaveLength(2);
-    expect(docs[1].url).toContain("ApplNo=125557");
-    expect(docs[0].url).toBe("https://www.accessdata.fda.gov/review.pdf");
+    expect(docs[0].url).toContain("ApplNo=125557");
+    expect(docs[1].url).toBe("https://www.accessdata.fda.gov/125557Orig1s000ChemR.pdf");
     expect(safeOfficialUrl("javascript:alert(1)")).toBeNull();
     expect(safeOfficialUrl("https://www.accessdata.fda.gov.evil.test/file")).toBeNull();
   });
@@ -180,7 +180,7 @@ describe("regulatory documents and reports", () => {
       fetchFdaDocuments(catalog.drugs[0], {
         fetcher: async () => new Response(null, { status: 429 }),
       }),
-    ).rejects.toThrow("fda_unavailable");
+    ).rejects.toThrow("upstream_429");
   });
   it("exports human-readable bilingual TXT/Markdown with source URLs and scope", () => {
     for (const locale of ["zh", "en"])
@@ -297,7 +297,7 @@ it("prefers original FDA applications and labels review types for the matched in
       { application_docs: [{ type: "Review", url: `https://www.accessdata.fda.gov/${filename}` }] },
     ],
   });
-  const fetcher = vi.fn(async () =>
+  const fetcher = vi.fn(async (_, options) => options.method === "HEAD" ? pdf() :
     Response.json({
       results: [
         application("ANDA200001", "ERLOTINIB HYDROCHLORIDE", "GenericR.pdf"),
@@ -311,8 +311,8 @@ it("prefers original FDA applications and labels review types for the matched in
     "application_number:(NDA* OR BLA*)",
   );
   expect(docs).toHaveLength(2);
-  expect(docs[0].title).toContain("Clinical review");
-  expect(docs[1].url).toContain("ApplNo=021743");
+  expect(docs[1].title).toContain("Clinical Review");
+  expect(docs[0].url).toContain("ApplNo=021743");
 });
 
 it("orders FDA documents by approval status date rather than document date", async () => {
@@ -321,11 +321,11 @@ it("orders FDA documents by approval status date rather than document date", asy
     submission_status,
     submission_status_date,
     application_docs: [
-      { type: "Review", date: "19990101", url: `https://www.accessdata.fda.gov/${filename}` },
+      { type: "Review", date: "19990101", url: `https://www.accessdata.fda.gov/125557${filename}` },
     ],
   });
   const docs = await fetchFdaDocuments(catalog.drugs[0], {
-    fetcher: async () =>
+    fetcher: async (_, options) => options.method === "HEAD" ? pdf() :
       Response.json({
         results: [
           {
@@ -345,7 +345,7 @@ it("orders FDA documents by approval status date rather than document date", asy
     "2024-06-14",
     null,
   ]);
-  expect(docs[0].url).toContain("initial.pdf");
+  expect(docs[1].url).toContain("initial.pdf");
 });
 
 it("counts only supported pharmacological actions and keeps VEGF blockade apart from payload delivery", () => {
@@ -388,7 +388,7 @@ it("keeps regional source dates separate from global development stage", () => {
     { agency: "FDA", kind: "review", approvedAt: "2020-01-01" },
     {
       agency: "FDA",
-      kind: "application",
+      kind: "overview",
       approvedAt: "2022-01-01",
       url: "https://www.accessdata.fda.gov",
     },
@@ -447,3 +447,5 @@ it("adds verified Chinese drug names to Chinese headings, including suffixed bio
   expect(drugHeadingName("ublituximab-xiiy", "zh")).toBe("Ublituximab-xiiy");
   expect(drugHeadingName("bevacizumab", "en")).toBe("Bevacizumab");
 });
+
+const pdf = () => new Response(null, { headers: { "Content-Type": "application/pdf" } });

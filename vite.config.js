@@ -2,15 +2,10 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { handleTargetToAssay } from "./src/worker/target-to-assay-api.js";
 
-export default defineConfig({
-  plugins: [
-    vue(),
-    {
-      name: "target-to-assay-local-api",
-      configureServer(server) {
+function configureApi(server) {
         server.middlewares.use(async (req, res, next) => {
           const path = req.url?.split("?")[0];
-          if (!["/api/v1/target-to-assay/mechanisms", "/api/v1/target-to-assay/ema-approvals"].includes(path)) return next();
+          if (!path?.startsWith("/api/v1/target-to-assay/")) return next();
           const controller = new AbortController();
           const disconnect = () => controller.abort();
           res.once("close", disconnect);
@@ -33,9 +28,10 @@ export default defineConfig({
             res.off("close", disconnect);
           }
         });
-      },
-    },
-  ],
+}
+
+export default defineConfig({
+  plugins: [vue(), { name: "target-to-assay-local-api", configureServer: configureApi, configurePreviewServer: configureApi }],
   build: {
     emptyOutDir: true,
   },

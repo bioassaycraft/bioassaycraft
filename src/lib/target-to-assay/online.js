@@ -382,7 +382,7 @@ export async function searchOnline(
       ? "not_queried"
       : responses.every((item) => item.status === "rejected")
         ? "failed"
-        : responses.some((item) => item.status === "rejected")
+        : responses.some((item) => item.status === "rejected" || item.value.count > item.value.rows.length)
           ? "partial"
           : importedCount
             ? "ok"

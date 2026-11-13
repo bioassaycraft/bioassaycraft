@@ -9,7 +9,10 @@ const key = (value) =>
 const equivalent = new Map([
   ["cd20", "ms4a1"],
   ["pd-1", "pdcd1"],
+  ["pd1", "pdcd1"],
   ["bcma", "tnfrsf17"],
+  ["b-cell maturation antigen", "tnfrsf17"],
+  ["cd3 receptor", "cd3"],
 ]);
 const canonical = (value) => equivalent.get(key(value)) || key(value);
 const unique = (items) => [...new Set(items)];
@@ -95,7 +98,31 @@ export function bindingAssertion(text, name) {
     /\b(?:binds|recognizes|directly targets)\s+(?:(?:specifically|only|exclusively)\s+)?(?:to\s+)?(?:(?:both|only|exclusively)\s+)?(.+)$/,
   )?.[1];
   if (!list) return null;
-  const arms = list
+  const normalizedList = list
+    .replace(/\s+leading to\b[^.]*$/, "")
+    .replace(/\s+\(bcma\)/g, "");
+  if (expected === 2) {
+    // In label prose, a cell list after “on” can itself contain commas and “and”.
+    // Try each explicit conjunction and require exactly one pair of resolved entities.
+    const resolve = (arm) => {
+      const phrase = arm.replace(/^(?:to\s+)?(?:the\s+)?/, "");
+      const location = phrase.match(/^(.+?)\s+(?:expressed\s+)?(?:on|by)\s+([^.]*)$/);
+      if (!location) return name(phrase);
+      const [, entity, context] = location;
+      if (/\b(?:on|by|binds|recognizes)\b/.test(context) ||
+        !context.split(/,\s*(?:and\s+)?|\s+and\s+/).every((part) =>
+          /(?:\bcells|\btissues|plasmablasts|lymphocytes|cell surface)$/.test(part))) return null;
+      return name(entity);
+    };
+    const candidates = [...normalizedList.matchAll(/\s+and\s+/g)].flatMap((join) => {
+      const left = resolve(normalizedList.slice(0, join.index).replace(/,$/, ""));
+      const right = resolve(normalizedList.slice(join.index + join[0].length));
+      return left && right && left !== right ? [[left, right]] : [];
+    });
+    if (candidates.length === 1) return candidates[0];
+    if (candidates.length > 1) return null;
+  }
+  const arms = normalizedList
     .replace(/, including [\w -]+(?=,? and |$)/g, "")
     .split(/,\s*(?:and\s+)?|\s+and\s+|\s*×\s*/);
   const targetIds = arms.map((arm) =>
@@ -237,7 +264,7 @@ export function prepareTargetMatch(drug, targets) {
     }
   }
   if (!drug.targetEvidence) {
-    for (const id of drug.targetIds || []) direct.add(canonicalId(id));
+    for (const id of drug.verification === "imported" ? [] : drug.targetIds || []) direct.add(canonicalId(id));
     // Legacy reviewed catalog rows intentionally enumerate their match scope.
     if (drug.verification !== "imported" && drug.targetSetComplete !== false && direct.size)
       complete.push(new Set(direct));
@@ -246,7 +273,7 @@ export function prepareTargetMatch(drug, targets) {
   return { direct, related, complete, conflicts, incompatible, evidence: normalized };
 }
 
-export function classifyTargetMatch(prepared, targetIds) {
+export function classifyTargetMatch(prepared, targetIds, { allowSingleDirect = false } = {}) {
   const { direct, related, complete, conflicts, incompatible, evidence } = prepared;
   const requested = new Set(targetIds);
   const supported = targetIds.filter((id) => direct.has(id));
@@ -257,6 +284,8 @@ export function classifyTargetMatch(prepared, targetIds) {
     return classified("conflict", "inconsistent_direct_evidence");
   if (complete.some((scope) => sameSet(scope, requested)))
     return classified("verified", "documented_complete_scope");
+  if (allowSingleDirect && requested.size === 1 && supported.length)
+    return classified("direct", extra.length ? "additional_direct_targets" : "scope_not_established");
   if (supported.length && supported.length < requested.size)
     return classified("partial", "missing_direct_target_evidence");
   if (extra.length && supported.length) return classified("other", "additional_direct_targets");

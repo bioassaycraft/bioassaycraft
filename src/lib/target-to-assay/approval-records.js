@@ -22,6 +22,29 @@ const reviewedAntibodies = {
 
 export function reviewedFdaRecord(drug) {
   const ingredient = ingredientKey(drug.name);
+  if (ingredient === "tarlatamab") return {
+    region: "US", date: "2024-05-16", application: "BLA761344", brand: "Imdelltra",
+    type: "bispecific", developer: "Amgen Inc.",
+    approvedIndication: {
+      en: "Extensive-stage small cell lung cancer progressing on or after platinum-based chemotherapy",
+      zh: "在含铂化疗期间或之后进展的广泛期小细胞肺癌",
+    },
+    indicationUrl: "https://www.fda.gov/drugs/cancer-approvals/fda-grants-traditional-approval-tarlatamab-dlle-extensive-stage-small-cell-lung-cancer",
+    url: "https://www.accessdata.fda.gov/scripts/purplebooksearch/index.cfm?blaNo=761344&event=productdetails",
+    documents: [
+      {
+        title: "Product Quality Review · BLA761344 · Original Application",
+        submissionType: "ORIG", approvedAt: "2024-05-16",
+        url: "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2024/761344Orig1s000ChemR.pdf",
+      },
+      // FDA's filename contains a different number; the PDF cover identifies 761344Orig1s001.
+      {
+        title: "Multidisciplinary Review · BLA761344 · Supplement 1",
+        submissionType: "SUPPL", submissionNumber: "1", approvedAt: "2025-11-19",
+        url: "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2026/763144Orig1s001.pdf",
+      },
+    ],
+  };
   const cellular = Object.hasOwn(cber, ingredient);
   const item = cellular
     ? cber[ingredient]
@@ -63,6 +86,10 @@ export async function fetchEmaApprovals(names, { fetcher = fetch, signal } = {})
   return matchEmaApprovals(names, emaCache.rows);
 }
 
+const plainText = (value) => typeof value === "string"
+  ? value.replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ").trim()
+  : "";
+
 function matchEmaApprovals(names, rows) {
   const results = Object.create(null);
   for (const name of names) {
@@ -70,11 +97,20 @@ function matchEmaApprovals(names, rows) {
     const matching = rows.flatMap((row) => {
       const substance = row.active_substance || "";
       const parenthetical = substance.match(/\(([^()]+)\)\s*$/)?.[1] || "";
-      if (![substance, parenthetical].some((value) => ingredientKey(value) === ingredient))
+      const inn = substance.trim() ? "" : row.international_non_proprietary_name_common_name || "";
+      if (![substance, parenthetical, inn].some((value) => ingredientKey(value) === ingredient))
         return [];
       const date = row.marketing_authorisation_date?.split("/").reverse().join("-");
       if (!validApprovalDate(date)) return [];
-      return [{ region: "EU", date, url: row.medicine_url, status: row.medicine_status }];
+      const authorised = row.medicine_status === "Authorised";
+      return [{
+        region: "EU", date, url: row.medicine_url, status: row.medicine_status,
+        ...(authorised && {
+          holder: plainText(row.marketing_authorisation_developer_applicant_holder),
+          indication: plainText(row.therapeutic_indication),
+          brand: plainText(row.name_of_medicine),
+        }),
+      }];
     });
     const selected = matching.sort(
       (a, b) =>
