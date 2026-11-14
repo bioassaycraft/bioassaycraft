@@ -1,4 +1,4 @@
-import { ingredientKey } from "./display.js";
+import { exactDrugName } from "./investigational-sources.js";
 import { providerIssue } from "./provider-status.js";
 
 const evs = "https://api-evsrest.nci.nih.gov/api/v1/concept/";
@@ -15,7 +15,7 @@ async function cached(url, fetcher, signal, pubchemRequest = false) {
     nextPubChem = now + 250;
   }
   const promise = (async () => {
-    const response = await fetcher(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(pubchemRequest ? 2500 : 5500)]) });
+    const response = await fetcher(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(pubchemRequest ? 2500 : url.startsWith(evs) ? 4000 : 2500)]) });
     if (response.status === 404) return null;
     if (!response.ok) throw new Error("upstream_" + response.status);
     return response.json();
@@ -42,7 +42,7 @@ function bindingTargets(definition, names) {
   const targets = new Set();
   for (const sentence of definition.split(/(?<=[.!?])\s+/)) {
     const assertion = sentence.match(/^(.+?) binds to (CD3 epsilon|CD3ε|CD3E|CD20|MS4A1|CD123|IL3RA|PD-1|PDCD1|PD-L1|CD274)(?= on | expressed on |[.,]?$)/i);
-    if (!assertion || !names.has(ingredientKey(assertion[1]))) continue;
+    if (!assertion || !names.has(exactDrugName(assertion[1]))) continue;
     const target = assertion[2].toUpperCase();
     targets.add({
       "CD3 EPSILON": "CD3E", "CD3Ε": "CD3E", CD20: "MS4A1", CD123: "IL3RA",
@@ -64,7 +64,8 @@ export async function fetchDrugSupplement(drug, { fetcher = fetch, signal = Abor
       throw new Error("unexpected_ncit_response");
     const matches = result?.concepts.filter((row) =>
       row.active === true && row.terminology === "ncit" && /^C\d+$/.test(row.code) &&
-      ingredientKey(row.name || "") === ingredientKey(drug.name) &&
+      (exactDrugName(row.name || "") === exactDrugName(drug.name) ||
+        row.synonyms?.some(({ type, name }) => type === "FULL_SYN" && exactDrugName(name) === exactDrugName(drug.name))) &&
       row.properties?.some(({ type, value }) => type === "Semantic_Type" && value === "Pharmacologic Substance"));
     if (matches?.length === 1 && result.total <= result.concepts.length) {
       const concept = matches[0];
@@ -78,25 +79,54 @@ export async function fetchDrugSupplement(drug, { fetcher = fetch, signal = Abor
       evidence.identifiers.push(field(identifiers, "concept_properties"));
       const aliases = [...new Set([concept.name, ...(concept.synonyms || []).filter(({ type }) => type === "FULL_SYN").map(({ name }) => name)].filter(Boolean))];
       evidence.aliases.push(field(aliases, "concept_synonyms"));
-      const names = new Set(aliases.map(ingredientKey));
+      const names = new Set(aliases.map(exactDrugName));
       for (const { definition, source } of concept.definitions || []) {
         if (source !== "NCI" || typeof definition !== "string") continue;
         const targets = bindingTargets(definition, names);
         if (!targets.ids.length) continue;
         evidence.targets.push({ ...field(targets.ids, "explicit_binding"), complete: targets.complete });
-        evidence.mechanisms.push(field(definition, "drug_definition"));
+        const labels = targets.ids.map((id) => ({ CD3E: "CD3 ε 亚基", MS4A1: "CD20", IL3RA: "CD123", PDCD1: "PD-1", CD274: "PD-L1" })[id] || id);
+        evidence.mechanisms.push({
+          ...field(definition, "drug_definition"),
+          mechanismZh: targets.complete
+            ? `同时结合 ${labels.join(" 和 ")} 的双特异性抗体。`
+            : `结合 ${labels.join(" 和 ")}。`,
+        });
       }
     }
   } catch (error) {
     issues.NCIt = providerIssue(error).state;
   }
-  if (!identifiers.unii) {
+  if (!identifiers.unii && !signal.aborted) {
+    try {
+      const query = new URLSearchParams({ search: `names.name:"${drug.name}"`, limit: "10" });
+      const result = await cached("https://api.fda.gov/other/substance.json?" + query, fetcher, signal);
+      if (result && (!Array.isArray(result.results) || !Number.isInteger(result.meta?.results?.total)))
+        throw new Error("unexpected_substance_response");
+      const matches = result?.results.filter((row) => Array.isArray(row.names) &&
+        row.names.some(({ name }) => typeof name === "string" && exactDrugName(name) === exactDrugName(drug.name)));
+      if (matches?.length === 1 && result.meta.results.total <= result.results.length &&
+        /^[A-Z0-9]{10}$/.test(matches[0].unii || "")) {
+        const { unii, names } = matches[0];
+        const field = (value, evidenceType) => ({ value, source: "openFDA Substance", sourceId: unii,
+          url: "https://api.fda.gov/other/substance.json?" + new URLSearchParams({ search: `unii:"${unii}"` }),
+          evidenceType, retrievedAt });
+        identifiers.unii = unii;
+        evidence.identifiers.push(field({ unii }, "substance_identifier"));
+        evidence.aliases.push(field([...new Set(names.map(({ name }) => name).filter((name) =>
+          typeof name === "string" && name.trim()))].slice(0, 40), "substance_names"));
+      }
+    } catch (error) {
+      issues["openFDA Substance"] = providerIssue(error).state;
+    }
+  }
+  if (!identifiers.unii && !signal.aborted) {
     try {
       const result = await cached(pubchem + "name/" + encodeURIComponent(identifiers.cas || drug.name) + "/synonyms/JSON", fetcher, signal, true);
       const rows = result?.InformationList?.Information;
       if (result && !Array.isArray(rows)) throw new Error("unexpected_pubchem_response");
       if (rows?.length === 1 && Number.isSafeInteger(rows[0].CID) &&
-        rows[0].Synonym?.some((name) => ingredientKey(name) === ingredientKey(drug.name))) {
+        rows[0].Synonym?.some((name) => exactDrugName(name) === exactDrugName(drug.name))) {
         const { CID, Synonym } = rows[0];
         const field = (value, evidenceType) => ({ value, source: "PubChem", sourceId: String(CID),
           url: "https://pubchem.ncbi.nlm.nih.gov/compound/" + CID, retrievedAt, evidenceType });

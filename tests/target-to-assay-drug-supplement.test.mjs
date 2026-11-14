@@ -41,6 +41,7 @@ it("merges records sharing a ChEMBL ID but keeps different IDs with a common ali
   ] };
   const [{ candidates }] = investigationalGroups(catalog, [{ key: "cd3", targetIds: ["CD3"] }]);
   expect(candidates).toHaveLength(2);
+  expect(candidates.every(({ aliases }) => !aliases.includes("Shared code"))).toBe(true);
   expect(candidates.find(({ drug }) => drug.id === "CHEMBL1").drug).toMatchObject({
     mechanisms: ["Source mechanism"], sourceIds: ["one", "two"],
   });
@@ -72,4 +73,16 @@ it("keeps the first clinical page when a later page fails", async () => {
   };
   const result = await fetchDevelopmentProfile({ name: "Fixture" }, { fetcher, includeStudyRecords: true });
   expect(result).toMatchObject({ recordIds: ["NCT00000001"], truncated: true, pageIssue: "upstream_error" });
+});
+
+it.each([1, 2])("requires one unambiguous openFDA substance match (%s matches)", async (count) => {
+  const result = await fetchDrugSupplement({ name: "Plamotamab" }, { fetcher: async (url) => {
+    if (!url.includes("/other/substance.json")) return new Response(null, { status: 404 });
+    return Response.json({ meta: { results: { total: count } }, results: Array.from({ length: count }, (_, index) => ({
+      names: [{ name: "PLAMOTAMAB" }, { name: "XmAb13676" }],
+      unii: `000000000${index}`,
+    })) });
+  } });
+  expect(result.evidence.identifiers).toHaveLength(count === 1 ? 1 : 0);
+  expect(result.evidence.targets).toEqual([]);
 });

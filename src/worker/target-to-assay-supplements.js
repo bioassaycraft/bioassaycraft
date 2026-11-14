@@ -59,7 +59,9 @@ function inputFor(action, body) {
   const aliases = body.aliases ?? [];
   if (!Array.isArray(aliases) || aliases.length > 6 || !aliases.every(trialName)) return null;
   return { name: body.name, brand: body.brand || "", aliases: [...new Set(aliases)].sort(),
-    ...(action === "investigational-profile" ? { developerLookup: body.developerLookup === true, supplement: body.supplement === true } : {}) };
+    ...(action === "investigational-profile" ? { developerLookup: body.developerLookup === true, supplement: body.supplement === true,
+      chemblId: typeof body.chemblId === "string" && /^CHEMBL\d{1,12}$/.test(body.chemblId) ? body.chemblId : null,
+      identityConflict: body.identityConflict === true } : {}) };
 }
 
 export async function handleSupplement(action, body, json, requestSignal, fetcher = fetch) {
@@ -81,7 +83,7 @@ export async function handleSupplement(action, body, json, requestSignal, fetche
     const hasData = (result.rows || result.recordIds || []).length > 0;
     const value = { ...result, source, state: result.validationFailures ? "partial" :
       hasData ? "success_with_data" : "success_empty" };
-    if (!result.validationFailures && !result.truncated && !Object.keys(result.supplement?.issues || {}).length && !Object.keys(result.issues || {}).length && !signal.aborted && (result.xml?.length || result.pubmed?.xml?.length || 0) <= 512_000) {
+    if (!result.validationFailures && !result.truncated && !result.developerSearchTruncated && !Object.keys(result.supplement?.issues || {}).length && !Object.keys(result.issues || {}).length && !signal.aborted && (result.xml?.length || result.pubmed?.xml?.length || 0) <= 512_000) {
       cache.set(key, { value, expires: Date.now() + 5 * 60_000 });
       if (cache.size > 48) cache.delete(cache.keys().next().value);
     }

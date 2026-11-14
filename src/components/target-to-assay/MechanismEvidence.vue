@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue";
+import BilingualMechanism from "./BilingualMechanism.vue";
 import { pd1Blockade } from "../../lib/target-to-assay/presentation.js";
 import { expressionLayers, expressionName, formatExpression } from "../../lib/target-to-assay/expression-display.js";
 import {
@@ -105,6 +106,20 @@ function matchLabel(row) {
   return match?.matchType === "direct" ? (match.reason === "additional_direct_targets"
     ? labels.directAdditionalTargets : labels.directScopePending) : labels.exactBadge;
 }
+const mechanismTranslations = new Map([
+  ["Engages CD20 on B cells and CD3 on T cells, inducing T-cell-mediated lysis of CD20-expressing cells.",
+    "结合 B 细胞上的 CD20 和 T 细胞上的 CD3，诱导 T 细胞裂解表达 CD20 的细胞。"],
+  ["Engages CD20 on B cells and CD3 on T cells, redirecting T cells to lyse CD20-expressing cells.",
+    "结合 B 细胞上的 CD20 和 T 细胞上的 CD3，引导 T 细胞裂解表达 CD20 的细胞。"],
+  ["Bridges CD3 on T cells and CD20 on B cells, promoting T-cell-mediated killing of CD20-expressing cells.",
+    "连接 T 细胞上的 CD3 和 B 细胞上的 CD20，促进 T 细胞杀伤表达 CD20 的细胞。"],
+  ["Binds CD20 on B cells and CD3 on T cells, bringing them together so that T cells can kill the B cells.",
+    "结合 B 细胞上的 CD20 和 T 细胞上的 CD3，使两者靠近，从而让 T 细胞杀伤 B 细胞。"],
+]);
+const blockadeMechanism = {
+  mechanismOriginal: "Inhibits immune checkpoint signalling mediated by PD-1.",
+  mechanismZh: "抑制 PD-1 介导的免疫检查点信号。",
+};
 const mechanismEntries = computed(() =>
   groups.value.map(({ row, drugs }) => ({
     drugs: drugs?.map((drug) => ({ id: drug.drugId, name: drugDisplayName(drug.drugName), label: matchLabel(drug) })),
@@ -118,7 +133,7 @@ const mechanismEntries = computed(() =>
       row.drugName,
       row.mechanismDescription,
       row.sources[0],
-      reviewedSummary(row.drugName),
+      reviewedSummary(row.drugName) || mechanismTranslations.get(row.mechanismDescription),
     ),
   })),
 );
@@ -255,7 +270,7 @@ const queryTime = computed(() =>
           <article v-for="entry in mechanismEntries" :key="entry.id" class="ta-target-info">
             <template v-if="entry.drugs">
               <h4>{{ locale === "zh" ? "PD-1 信号阻断" : "PD-1 signalling blockade" }}</h4>
-              <p>{{ locale === "zh" ? "抑制 PD-1 介导的免疫检查点信号。" : "Inhibits immune checkpoint signalling mediated by PD-1." }}</p>
+              <BilingualMechanism :entry="blockadeMechanism" class="ta-mechanism-description" />
               <ul>
                 <li v-for="drug in entry.drugs" :key="drug.id">{{ drug.name }} <span class="ta-source-note">· {{ drug.label }}</span></li>
               </ul>
@@ -263,7 +278,10 @@ const queryTime = computed(() =>
             <template v-else>
               <h4>{{ entry.name }}</h4>
               <p class="ta-source-note">{{ [entry.scope, entry.format, entry.stage, entry.label].filter(Boolean).join(" · ") }}</p>
-              <p :lang="locale === 'zh' && entry.mechanismZh ? 'zh' : 'en'">{{ shortMechanism(locale === 'zh' && entry.mechanismZh || entry.mechanismOriginal) }}</p>
+              <BilingualMechanism
+                :entry="{ mechanismOriginal: shortMechanism(entry.mechanismOriginal), mechanismZh: entry.mechanismZh }"
+                class="ta-mechanism-description"
+              />
             </template>
             <a :href="entry.mechanismSource.originalUrl" class="ta-source-note" target="_blank" rel="noopener noreferrer">{{ entry.mechanismSource.sourceName }} ↗</a>
           </article>
@@ -481,6 +499,7 @@ const queryTime = computed(() =>
 .ta-live-mechanism h3 { font-size: var(--ta-subheading-size); }
 .ta-live-mechanism h4 { font-size: var(--ta-card-title-size); }
 .ta-live-mechanism h5 { font-size: var(--ta-body-size); }
+.ta-moa-group .ta-mechanism-description { font-size: calc(var(--ta-body-size) * 0.94); }
 .ta-moa-group .ta-target-info { background: var(--app-accent-soft); }
 .ta-expression-field { display: grid; gap: 4px; }
 .ta-expression-field + .ta-expression-field { padding-top: var(--ta-field-gap); border-top: 1px solid var(--app-rule-subtle); }

@@ -35,6 +35,8 @@ export function reviewedMechanism(name) {
 const terminology = new Map([
   ["subtilisin/kexin type 9 inhibitor", "PCSK9 抑制剂。"],
   ["pcsk9 mrna rnai inhibitor", "通过 RNA 干扰作用于 PCSK9 mRNA，降低 PCSK9 表达。"],
+  ["t-cell surface glycoprotein cd3 epsilon chain binding agent", "T 细胞表面糖蛋白 CD3 ε 亚基结合剂。"],
+  ["cd3 binding agent", "CD3 结合剂。"],
   ["cd19 binding agent", "CD19 结合剂。"],
   ["antibody-mediated cell killing", "抗体介导的细胞杀伤。"],
   ["pd-1 inhibitor", "PD-1 抑制剂。"],

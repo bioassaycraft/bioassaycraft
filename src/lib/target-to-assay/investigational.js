@@ -1,7 +1,8 @@
+import { candidateView } from "./presentation.js";
 import { fetchDeveloperEvidence } from "./developer-evidence.js";
 import { fetchDrugSupplement } from "./drug-supplement.js";
 import { fetchEmaApprovals, reviewedFdaRecord } from "./approval-records.js";
-import { investigationalSources } from "./investigational-sources.js";
+import { chemblIdentity, exactDrugName, reviewedInvestigationalSource } from "./investigational-sources.js";
 import { reviewedMechanism } from "./bilingual-mechanism.js";
 import { ingredientKey } from "./display.js";
 import { discoverTrialInterventions } from "./trials.js";
@@ -15,10 +16,10 @@ const knownApproval = (drug) => drug.approval?.status === "approved" ||
   drug.regulatoryApprovals?.length || reviewedFdaRecord(drug) || reviewedMechanism(drug.name)?.chinaApproved;
 
 export function investigationalGroups(catalog, groups) {
-  const stableId = (drug) => drug.externalIds?.chembl || (/^CHEMBL\d+$/.test(drug.id) ? drug.id : null);
-  const records = catalog.drugs.map((drug) => ({ drug, keys: namesFor(drug).map(ingredientKey) }));
+  const stableId = chemblIdentity;
+  const records = catalog.drugs;
   const clusters = [];
-  for (const { drug } of records) {
+  for (const drug of records) {
     const id = stableId(drug);
     const cluster = clusters.find(({ members: [first] }) =>
       first.id === drug.id || (id && id === stableId(first)) ||
@@ -29,8 +30,16 @@ export function investigationalGroups(catalog, groups) {
     if (cluster) cluster.members.push(drug);
     else clusters.push({ members: [drug] });
   }
-  const prepared = new Map(records.map(({ drug, keys }) => {
-    const reviewed = investigationalSources.find(({ names }) => names.some((name) => keys.includes(ingredientKey(name))));
+  const owners = new Map();
+  for (const cluster of clusters) {
+    for (const name of cluster.members.flatMap(namesFor)) {
+      const key = ingredientKey(name);
+      if (!owners.has(key)) owners.set(key, new Set());
+      owners.get(key).add(cluster);
+    }
+  }
+  const prepared = new Map(records.map((drug) => {
+    const reviewed = owners.get(ingredientKey(drug.name))?.size === 1 ? reviewedInvestigationalSource(drug) : null;
     const evidence = reviewed?.targetAssertion && drug.targetEvidence ? {
       ...drug, targetEvidence: [...drug.targetEvidence, {
         role: "direct", sourceType: "developer", text: reviewed.targetAssertion,
@@ -46,7 +55,8 @@ export function investigationalGroups(catalog, groups) {
         classifyTargetMatch(prepared.get(drug), targetIds)?.supported.length)).length,
       excluded: clusters.filter(({ members }) => members.some(knownApproval) && members.some((drug) =>
         classifyTargetMatch(prepared.get(drug), targetIds)?.supported.length)).length },
-    candidates: clusters.flatMap(({ members }) => {
+    candidates: clusters.flatMap((cluster) => {
+      const { members } = cluster;
       if (members.some(knownApproval)) return [];
       const related = members.flatMap((drug) => {
         const match = classifyTargetMatch(prepared.get(drug), targetIds);
@@ -57,11 +67,13 @@ export function investigationalGroups(catalog, groups) {
       if (!best) return [];
       const drug = {
         ...best.drug,
+        brand: owners.get(ingredientKey(best.drug.brand || ""))?.size === 1 ? best.drug.brand : "",
+        identityConflict: owners.get(ingredientKey(best.drug.name))?.size > 1,
         mechanisms: [...new Set(members.flatMap(({ mechanisms }) => mechanisms || []).filter((value) => value?.trim()))],
         sourceIds: [...new Set(members.flatMap((row) => [row.sourceId, ...(row.sourceIds || [])]).filter(Boolean))],
       };
       return [{ ...best, drug, approvalSignal: members.some(approvalSignal),
-        aliases: [...new Set([...members.flatMap(namesFor)])].filter((name) => name.toLowerCase() !== best.drug.name.toLowerCase()) }];
+        aliases: [...new Set([...members.flatMap(namesFor)])].filter((name) => exactDrugName(name) !== exactDrugName(best.drug.name) && owners.get(ingredientKey(name))?.size === 1) }];
     }).sort((a, b) => {
       const priority = ({ match, approvalSignal }) =>
         Number(approvalSignal) * 4 + (match.state === "verified" ? 0 :
@@ -98,6 +110,28 @@ export function supplementInvestigationalMatch(item, evidence, targetIds) {
   return { ...item, directTargets, match: match || item.match };
 }
 
+// Use verified scope for combinations. Single-target groups also display
+// direct evidence with no recorded extra targets, while keeping scope unverified.
+export function investigationalView(groups, selected, profiles = {}) {
+  const classify = ({ targetIds, candidates }) => candidates.flatMap((item) => {
+    if (profiles[item.drug.id]?.approval === "approved") return [];
+    return [supplementInvestigationalMatch(item, profiles[item.drug.id]?.supplement?.evidence.targets, targetIds)];
+  });
+  const exact = groups.map((group) => ({
+    ...group, candidates: classify(group).filter(({ match }) => match.state === "verified" ||
+      (group.targetIds.length === 1 && match.reason === "scope_not_established" &&
+        match.supported.length === 1 && !match.extra.length)),
+  }));
+  const full = groups[0];
+  if (!full) return { groups: [], active: undefined, queue: [] };
+  const placed = new Set(exact.flatMap(({ candidates }) => candidates.map(({ drug }) => drug.id)));
+  const navigation = [...exact, { ...full, key: full.key + candidateView, supplemental: true,
+    candidates: classify(full).filter(({ drug }) => !placed.has(drug.id)) }];
+  const active = navigation.find(({ key }) => key === selected) || navigation[0];
+  const queue = groups.find(({ key }) => key === selected)?.candidates || full.candidates;
+  return { groups: navigation, active, queue };
+}
+
 async function fdaApproval(drug, { signal, fetcher }) {
   const names = namesFor(drug);
   const keys = new Set(names.map(ingredientKey));
@@ -124,23 +158,29 @@ async function fdaApproval(drug, { signal, fetcher }) {
 
 export async function fetchInvestigationalProfile(drug, options) {
   const names = namesFor(drug);
+  if (drug.identityConflict) return { approval: "unknown", issues: { identity: "ambiguous" } };
+  const reviewed = reviewedInvestigationalSource(drug);
+  const official = reviewed?.developer;
   const [fda, ema, clinical, supplement, developer] = await Promise.allSettled([
     fdaApproval(drug, options),
     fetchEmaApprovals(names, options),
     fetchDevelopmentProfile(drug, { ...options, includeStudyRecords: true }),
     drug.supplement ? fetchDrugSupplement(drug, options) : null,
-    drug.developerLookup ? fetchDeveloperEvidence(drug, options) : null,
+    drug.developerLookup && !official ? fetchDeveloperEvidence(drug, options) : null,
   ]);
   const approved = fda.value?.found || Object.keys(ema.value || {}).length > 0;
   const checked = fda.value?.complete && ema.status === "fulfilled";
   return {
     approval: approved ? "approved" : checked ? "checked" : "unknown",
-    issues: Object.fromEntries([["FDA", fda], ["EMA", ema], ["ClinicalTrials.gov", clinical], ["Europe PMC developer evidence", developer]]
+    issues: Object.fromEntries([["FDA", fda], ["EMA", ema], ["ClinicalTrials.gov", clinical], ["Drug identity and targets", supplement], ["Europe PMC developer evidence", developer]]
       .filter(([, result]) => result.status === "rejected")
       .map(([source, result]) => [source, providerIssue(result.reason).state])
+      .concat(Object.entries(developer.value?.issues || {}))
       .concat(clinical.value?.pageIssue ? [["ClinicalTrials.gov", clinical.value.pageIssue]] : [])),
     ...(clinical.value || {}),
     ...(supplement?.value ? { supplement: supplement.value } : {}),
+    ...(official ? { developerEvidence: [{ ...official, source: "Company pipeline", role: "reported_current_developer" }],
+      ...(reviewed.filing ? { filing: reviewed.filing } : {}) } : {}),
     ...(developer.value ? { developerEvidence: developer.value.evidence, developerSearchTruncated: developer.value.truncated } : {}),
     approvalEvidence: [...(fda.value?.evidence || []), ...Object.values(ema.value || {})],
     lastVerifiedAt: new Date().toISOString(),

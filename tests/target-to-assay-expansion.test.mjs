@@ -160,3 +160,40 @@ it("supplements licensed abstracts by exact identifiers and leaves restricted ab
   expect(result.rows[0].publicAbstract).toBeUndefined();
   expect(result.rows[1].publicAbstract).toMatchObject({ text: "First.\n\nSecond.", license: { label: "CC BY" } });
 });
+
+it.each([
+  ["Foralumab", "Tiziana Life Sciences"],
+  ["Plamotamab", "Xencor"],
+])("keeps %s company evidence when the trial source fails and skips developer literature", async (name, company) => {
+  const urls = [];
+  const result = await fetchInvestigationalProfile({ name, developerLookup: true }, {
+    fetcher: async (url) => {
+      urls.push(url);
+      if (url.includes("ema.europa.eu")) return Response.json({ data: [] });
+      return new Response(null, { status: url.includes("api.fda.gov") ? 404 : 503 });
+    },
+  });
+  expect(result.developerEvidence).toMatchObject([{ value: company, source: "Company pipeline" }]);
+  expect(result.issues).toMatchObject({ "ClinicalTrials.gov": "upstream_error" });
+  expect(result.filing.url).toContain("sec.gov/Archives/");
+  expect(urls).toHaveLength(3);
+});
+
+it("renders the saved example with single-target records outside the combination and a full-query candidate view", async () => {
+  const { default: { discovery, profiles } } = await import("../src/lib/target-to-assay/example-cd3-cd20.json");
+  const { researchGroups } = await import("../src/lib/target-to-assay/research.js");
+  const { investigationalView } = await import("../src/lib/target-to-assay/investigational.js");
+  const result = searchDrugs({ targets: ["CD3", "MS4A1"], matchMode: "verified_scope", includeClinical: true }, discovery.catalog);
+  const rawGroups = investigationalGroups(discovery.catalog, researchGroups(result));
+  const { groups, active } = investigationalView(rawGroups, "CD3", profiles);
+  const [full, cd3, cd20, supplemental] = groups;
+  const names = (group) => group.candidates.map(({ drug }) => drug.name.toLowerCase());
+  expect(groups.map(({ key }) => key)).toEqual(["CD3|MS4A1", "CD3", "MS4A1", "CD3|MS4A1:candidates"]);
+  expect(active).toBe(cd3);
+  expect(names(cd3)).toContain("foralumab");
+  expect(names(full)).not.toContain("foralumab");
+  expect(names(supplemental)).not.toContain("foralumab");
+  expect(names(cd20).length).toBeGreaterThan(0);
+  expect(names(supplemental)).toContain("flotetuzumab");
+  expect(investigationalView(rawGroups, supplemental.key, profiles).active.candidates).toEqual(supplemental.candidates);
+});

@@ -307,7 +307,7 @@ async function fetchEuropePmc(term, drugs, { fetcher, signal }, exactQuery, page
         .replace(/<[^>]*>/g, "").trim();
       const url = `https://europepmc.org/article/${row.source}/${row.id}`;
       return [{ id: `epmc-${row.source}-${row.id}`, source: "Europe PMC", pmid, pmcid,
-        doi: row.doi, title: row.title.replace(/<[^>]*>/g, ""), abstract,
+        openAccess: row.isOpenAccess === "Y", doi: row.doi, title: row.title.replace(/<[^>]*>/g, ""), abstract,
         preprint: row.source === "PPR" ? true : row.source === "MED" || row.source === "PMC" ? false : undefined,
         publishedDoi: row.source === "PPR" ? row.publishedVersion?.doi : undefined,
         authorKeys: row.authorList?.author?.map(({ lastName, initials }) => authorKey(lastName, initials)).filter(Boolean),
@@ -325,7 +325,7 @@ async function fetchEuropePmc(term, drugs, { fetcher, signal }, exactQuery, page
 export async function fetchDeveloperLiterature(names, options) {
   const query = names.map((name) => `TITLE_ABS:"${name}"`).join(" OR ");
   const { papers, truncated } = await fetchEuropePmc("", [], options,
-    `(${query}) AND (TITLE_ABS:developed OR TITLE_ABS:developing)`, "15");
+    `(${query}) AND (TITLE_ABS:developed OR TITLE_ABS:developing OR TITLE_ABS:development OR OPEN_ACCESS:Y)`, "15");
   return { papers, truncated };
 }
 

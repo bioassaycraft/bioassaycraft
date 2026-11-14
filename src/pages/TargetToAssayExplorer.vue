@@ -5,7 +5,6 @@ import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
 import { useLocale } from "../utils/locale";
 import { animateElement, getPanelEnterKeyframes } from "../utils/motion.js";
-import { sampleCatalog } from "../lib/target-to-assay/catalog.js";
 import { searchDrugs } from "../lib/target-to-assay/search.js";
 import InvestigationalDrugs from "../components/target-to-assay/InvestigationalDrugs.vue";
 import MechanismEvidence from "../components/target-to-assay/MechanismEvidence.vue";
@@ -29,6 +28,7 @@ import {
   drugHeadingName,
   chineseDrugName,
 } from "../lib/target-to-assay/display.js";
+import example from "../lib/target-to-assay/example-cd3-cd20.json";
 import { targetAssayCopy } from "../i18n/target-to-assay.js";
 
 const { locale, setLocale } = useLocale();
@@ -44,12 +44,13 @@ function stageLabel(stage) {
   return locale.value === "zh" ? `临床 ${phase} 期` : `Phase ${phase}`;
 }
 const input = ref("");
-const mechanismResult = ref(null);
-const submitted = ref("CD3 × CD20");
+const showingExample = ref(true);
+const mechanismResult = ref(example.discovery);
+const submitted = ref(example.discovery.resolvedTargets.map(({ id }) => id));
 const error = ref(null);
 const loading = ref(false);
-const activeKey = ref("CD3|CD20");
-const data = ref(sampleCatalog);
+const activeKey = ref("CD3|MS4A1");
+const data = ref(example.discovery.catalog);
 const resolutions = ref({});
 const documents = ref({});
 const emaRecords = ref({});
@@ -97,6 +98,9 @@ const resultGroups = computed(() => view.value.groups);
 const fallback = computed(() => resultGroups.value.length > 1 && !resultGroups.value[0].matches.length);
 const active = computed(() => view.value.active);
 const showCandidates = computed(() => view.value.showCandidates);
+function navigationTargetNames(ids) {
+  return ids.map((id) => id === "MS4A1" ? "CD20" : id).join(" × ");
+}
 function targetNames(ids) {
   return ids
     .map((id) => {
@@ -404,6 +408,7 @@ async function submit() {
     if (!response.ok) throw next?.error;
     if (!next?.catalog || !Array.isArray(next.resolvedTargets) || !next.sourceChecks)
       throw { code: "mechanism_response" };
+    showingExample.value = false;
     data.value = next.catalog;
     submitted.value = next.resolvedTargets.map((t) => t.id);
     mechanismResult.value = next;
@@ -576,6 +581,7 @@ async function loadDocuments(drug) {
             <button type="button" class="ta-planned" disabled>{{ c.assayOptions }}</button>
           </div>
         </div>
+        <p v-if="showingExample" class="ta-coverage">{{ locale === "zh" ? "CD3 × CD20 示例快照" : "CD3 × CD20 example snapshot" }} · <time :datetime="example.discovery.retrievedAt">{{ example.discovery.retrievedAt.slice(0, 10) }}</time></p>
         <MechanismEvidence :result="mechanismResult" :locale="locale" :stage-label="stageLabel" :drug-presentation="drugPresentation" :matches="resultGroups[0].matches" />
       </section>
       <section class="ta-results ta-panel" aria-labelledby="results-title" :aria-busy="loading">
@@ -611,7 +617,7 @@ async function loadDocuments(drug) {
               :aria-pressed="!showCandidates && active.key === combo.key"
               @click="chooseCombination(combo.key)"
             >
-              <span>{{ targetNames(combo.targetIds) }}</span><span class="ta-count">{{
+              <span>{{ navigationTargetNames(combo.targetIds) }}</span><span class="ta-count">{{
                 result.combinations.find((item) => item.key === combo.key).matches.length
               }}</span>
             </button>
@@ -852,12 +858,13 @@ async function loadDocuments(drug) {
           </div>
         </div>
       </section>
-      <section class="ta-literature ta-panel" aria-labelledby="investigational-title">
+      <details class="ta-panel ta-investigational">
+        <summary id="investigational-title">{{ locale === "zh" ? "未上市药物资料" : "Investigational Drug Information" }}</summary>
         <InvestigationalDrugs
-          :catalog="data" :combinations="resultGroups" :locale="locale" :stage-label="stageLabel" :target-names="targetNames"
-          :discovery="mechanismResult" :searching="loading" :search-error="Boolean(error)" @discover="submit"
+          :catalog="data" :combinations="resultGroups" :locale="locale" :stage-label="stageLabel" :target-names="navigationTargetNames"
+          :example-profiles="showingExample ? example.profiles : null" :discovery="mechanismResult" :searching="loading" :search-error="Boolean(error)" @discover="submit"
         />
-      </section>
+      </details>
       <section class="ta-literature ta-panel" aria-labelledby="literature-title">
         <div class="ta-section-heading">
           <h2 id="literature-title">{{ c.literatureTitle }}</h2>
@@ -1277,6 +1284,14 @@ a:focus-visible {
   background: var(--app-section);
 }
 .ta-activity { display: grid; gap: var(--ta-field-gap); }
+.ta-panel.ta-investigational:not([open]) { display: block; }
+.ta-container .ta-investigational > summary {
+  display: list-item;
+  font-size: var(--ta-section-size);
+  font-weight: 600;
+  line-height: var(--ta-heading-line);
+}
+.ta-investigational[open] > summary { margin-block-end: var(--ta-group-gap); }
 .ta-literature { display: grid; gap: var(--ta-group-gap); }
 .ta-literature-intro {
   margin: 0;
