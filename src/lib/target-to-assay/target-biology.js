@@ -7,6 +7,7 @@ const aliases = new Map([
   ["pd-1", "PDCD1"],
   ["pd1", "PDCD1"],
   ["pd-l1", "CD274"],
+  ["cd123", "IL3RA"],
   ["4-1bb", "TNFRSF9"],
 ]);
 const key = (value) => value.trim().toLowerCase().replace(/\s+/g, " ");

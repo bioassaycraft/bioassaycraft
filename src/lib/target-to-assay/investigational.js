@@ -1,3 +1,5 @@
+import { fetchDeveloperEvidence } from "./developer-evidence.js";
+import { fetchDrugSupplement } from "./drug-supplement.js";
 import { fetchEmaApprovals, reviewedFdaRecord } from "./approval-records.js";
 import { investigationalSources } from "./investigational-sources.js";
 import { reviewedMechanism } from "./bilingual-mechanism.js";
@@ -13,15 +15,19 @@ const knownApproval = (drug) => drug.approval?.status === "approved" ||
   drug.regulatoryApprovals?.length || reviewedFdaRecord(drug) || reviewedMechanism(drug.name)?.chinaApproved;
 
 export function investigationalGroups(catalog, groups) {
-  const identity = (drug) => [drug.id, drug.externalIds?.chembl, ...namesFor(drug).map(ingredientKey)].filter(Boolean);
-  const records = catalog.drugs.map((drug) => ({ drug, keys: identity(drug) }));
+  const stableId = (drug) => drug.externalIds?.chembl || (/^CHEMBL\d+$/.test(drug.id) ? drug.id : null);
+  const records = catalog.drugs.map((drug) => ({ drug, keys: namesFor(drug).map(ingredientKey) }));
   const clusters = [];
-  for (const record of records) {
-    const related = clusters.filter(({ keys }) => record.keys.some((key) => keys.has(key)));
-    const keys = new Set([...record.keys, ...related.flatMap((cluster) => [...cluster.keys])]);
-    const members = [record.drug, ...related.flatMap((cluster) => cluster.members)];
-    for (const cluster of related) clusters.splice(clusters.indexOf(cluster), 1);
-    clusters.push({ keys, members });
+  for (const { drug } of records) {
+    const id = stableId(drug);
+    const cluster = clusters.find(({ members: [first] }) =>
+      first.id === drug.id || (id && id === stableId(first)) ||
+      (!id && !stableId(first) && first.verification === "reviewed" && drug.verification === "reviewed" &&
+        ingredientKey(first.name) === ingredientKey(drug.name) &&
+        first.molecularFormat === drug.molecularFormat &&
+        JSON.stringify([...first.targetIds].sort()) === JSON.stringify([...drug.targetIds].sort())));
+    if (cluster) cluster.members.push(drug);
+    else clusters.push({ members: [drug] });
   }
   const prepared = new Map(records.map(({ drug, keys }) => {
     const reviewed = investigationalSources.find(({ names }) => names.some((name) => keys.includes(ingredientKey(name))));
@@ -49,7 +55,12 @@ export function investigationalGroups(catalog, groups) {
         b.match.supported.length - a.match.supported.length || a.drug.id.localeCompare(b.drug.id));
       const best = related[0];
       if (!best) return [];
-      return [{ ...best, approvalSignal: members.some(approvalSignal),
+      const drug = {
+        ...best.drug,
+        mechanisms: [...new Set(members.flatMap(({ mechanisms }) => mechanisms || []).filter((value) => value?.trim()))],
+        sourceIds: [...new Set(members.flatMap((row) => [row.sourceId, ...(row.sourceIds || [])]).filter(Boolean))],
+      };
+      return [{ ...best, drug, approvalSignal: members.some(approvalSignal),
         aliases: [...new Set([...members.flatMap(namesFor)])].filter((name) => name.toLowerCase() !== best.drug.name.toLowerCase()) }];
     }).sort((a, b) => {
       const priority = ({ match, approvalSignal }) =>
@@ -59,6 +70,32 @@ export function investigationalGroups(catalog, groups) {
       return priority(a) - priority(b) || a.drug.name.localeCompare(b.drug.name);
     }),
   }));
+}
+
+export function supplementInvestigationalMatch(item, evidence, targetIds) {
+  if (!evidence?.length) return item;
+  const candidates = evidence.map(({ value, complete }) => ({ ids: new Set(value), complete }));
+  const distinct = new Set(candidates.map(({ ids }) => JSON.stringify([...ids].sort())));
+  if (distinct.size > 1) return { ...item, match: { ...item.match, state: "conflict", reason: "inconsistent_direct_evidence" } };
+  const [{ ids, complete }] = candidates;
+  const hasCd3Scope = ids.has("CD3") || ids.has("CD3E");
+  const prior = item.directTargets.filter((id) => !hasCd3Scope || !["CD3", "CD3E", "CD3D", "CD3G", "CD247"].includes(id) ||
+    item.drug.targetEvidence?.some((entry) => entry.role === "direct" &&
+      (entry.targetIds?.includes(id) || (entry.rawTargets?.length === 1 && entry.rawTargets[0].approvedSymbol === id))));
+  const directTargets = [...new Set([...ids, ...prior])];
+  if (complete && prior.some((id) => !ids.has(id))) {
+    return { ...item, match: { ...item.match, state: "conflict", reason: "inconsistent_direct_evidence" } };
+  }
+  const scope = new Set(directTargets);
+  if (scope.has("CD3E") && targetIds.includes("CD3")) {
+    scope.delete("CD3E");
+    scope.add("CD3");
+  }
+  const match = classifyTargetMatch({
+    direct: scope, complete: complete ? [scope] : [], related: new Set(item.match.supported),
+    conflicts: new Set(), incompatible: item.match.state === "conflict", evidence: [],
+  }, targetIds);
+  return { ...item, directTargets, match: match || item.match };
 }
 
 async function fdaApproval(drug, { signal, fetcher }) {
@@ -87,19 +124,24 @@ async function fdaApproval(drug, { signal, fetcher }) {
 
 export async function fetchInvestigationalProfile(drug, options) {
   const names = namesFor(drug);
-  const [fda, ema, clinical] = await Promise.allSettled([
+  const [fda, ema, clinical, supplement, developer] = await Promise.allSettled([
     fdaApproval(drug, options),
     fetchEmaApprovals(names, options),
     fetchDevelopmentProfile(drug, { ...options, includeStudyRecords: true }),
+    drug.supplement ? fetchDrugSupplement(drug, options) : null,
+    drug.developerLookup ? fetchDeveloperEvidence(drug, options) : null,
   ]);
   const approved = fda.value?.found || Object.keys(ema.value || {}).length > 0;
   const checked = fda.value?.complete && ema.status === "fulfilled";
   return {
     approval: approved ? "approved" : checked ? "checked" : "unknown",
-    issues: Object.fromEntries([["FDA", fda], ["EMA", ema], ["ClinicalTrials.gov", clinical]]
+    issues: Object.fromEntries([["FDA", fda], ["EMA", ema], ["ClinicalTrials.gov", clinical], ["Europe PMC developer evidence", developer]]
       .filter(([, result]) => result.status === "rejected")
-      .map(([source, result]) => [source, providerIssue(result.reason).state])),
+      .map(([source, result]) => [source, providerIssue(result.reason).state])
+      .concat(clinical.value?.pageIssue ? [["ClinicalTrials.gov", clinical.value.pageIssue]] : [])),
     ...(clinical.value || {}),
+    ...(supplement?.value ? { supplement: supplement.value } : {}),
+    ...(developer.value ? { developerEvidence: developer.value.evidence, developerSearchTruncated: developer.value.truncated } : {}),
     approvalEvidence: [...(fda.value?.evidence || []), ...Object.values(ema.value || {})],
     lastVerifiedAt: new Date().toISOString(),
   };

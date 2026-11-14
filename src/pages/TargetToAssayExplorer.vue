@@ -854,7 +854,7 @@ async function loadDocuments(drug) {
       </section>
       <section class="ta-literature ta-panel" aria-labelledby="investigational-title">
         <InvestigationalDrugs
-          :catalog="data" :combinations="resultGroups" :locale="locale" :stage-label="stageLabel"
+          :catalog="data" :combinations="resultGroups" :locale="locale" :stage-label="stageLabel" :target-names="targetNames"
           :discovery="mechanismResult" :searching="loading" :search-error="Boolean(error)" @discover="submit"
         />
       </section>
@@ -865,7 +865,6 @@ async function loadDocuments(drug) {
         </div>
         <p class="ta-literature-intro">
           {{ c.literatureHelp }}
-          <a href="https://www.ncbi.nlm.nih.gov/About/disclaimer.html" target="_blank" rel="noopener noreferrer">{{ c.mechanism.ncbiNotice }} ↗</a>
         </p>
         <div class="ta-literature-content" aria-live="polite">
           <div v-if="currentLiterature?.state !== 'loaded'" class="ta-literature-actions">
@@ -1061,7 +1060,7 @@ textarea {
   font-size: 1rem;
   line-height: 1.5;
 }
-button {
+button, .ta-container :deep(.investigational-workspace .ta-combinations button) {
   cursor: pointer;
   background: transparent;
   border: 1px solid var(--app-rule);
@@ -1076,11 +1075,11 @@ button:disabled {
   opacity: 0.45;
   cursor: default;
 }
-button:not(:disabled):hover {
+button:not(:disabled):hover, .ta-container :deep(.investigational-workspace .ta-combinations button:not(:disabled):hover) {
   border-color: var(--app-accent);
   background: var(--app-accent-soft);
 }
-button:focus-visible,
+button:focus-visible, .ta-container :deep(.investigational-workspace .ta-combinations button:focus-visible),
 textarea:focus-visible,
 select:focus-visible,
 input:focus-visible,
@@ -1144,7 +1143,7 @@ a:focus-visible {
   font-size: 0.7rem;
   overflow-wrap: anywhere;
 }
-.ta-tag {
+.ta-tag, .ta-container :deep(.drug-heading > .ta-tag) {
   padding: 3px 7px;
   background: var(--app-section);
   border-radius: 4px;
@@ -1173,23 +1172,23 @@ a:focus-visible {
   color: var(--app-muted);
   font-size: 0.68rem;
 }
-.ta-workspace {
+.ta-workspace, .ta-container :deep(.investigational-workspace.ta-workspace) {
   display: grid;
   grid-template-columns: minmax(160px, 0.65fr) minmax(0, 2fr);
   gap: 24px;
 }
-.ta-combinations {
+.ta-combinations, .ta-container :deep(.investigational-workspace .ta-combinations) {
   display: flex;
   flex-direction: column;
   gap: 4px;
   max-height: 660px;
   overflow-y: auto;
 }
-.ta-combinations p {
+.ta-combinations p, .ta-container :deep(.investigational-workspace .ta-combinations p) {
   margin: 0 0 10px;
   font-size: 0.68rem;
 }
-.ta-combinations button {
+.ta-combinations button, .ta-container :deep(.investigational-workspace .ta-combinations button) {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1197,16 +1196,16 @@ a:focus-visible {
   text-align: left;
   border-color: transparent;
 }
-.ta-combinations button[aria-pressed="true"] {
+.ta-combinations button[aria-pressed="true"], .ta-container :deep(.investigational-workspace .ta-combinations button[aria-pressed="true"]) {
   color: var(--app-accent);
   background: var(--app-accent-soft);
 }
-.ta-count {
+.ta-count, .ta-container :deep(.investigational-workspace .ta-count) {
   font-size: var(--ta-meta-size);
   font-variant-numeric: tabular-nums;
   color: var(--app-muted);
 }
-.ta-drugs {
+.ta-drugs, .ta-container :deep(.investigational-workspace .ta-drugs) {
   min-width: 0;
   border-left: 1px solid var(--app-rule-subtle);
   padding-left: 24px;
@@ -1553,22 +1552,22 @@ details.ta-evidence {
     flex-direction: column;
     gap: 8px;
   }
-  .ta-workspace {
+  .ta-workspace, .ta-container :deep(.investigational-workspace.ta-workspace) {
     grid-template-columns: minmax(0, 1fr);
     gap: 18px;
   }
-  .ta-combinations {
+  .ta-combinations, .ta-container :deep(.investigational-workspace .ta-combinations) {
     flex-direction: row;
     max-height: none;
     padding-bottom: 8px;
   }
-  .ta-combinations p {
+  .ta-combinations p, .ta-container :deep(.investigational-workspace .ta-combinations p) {
     display: none;
   }
-  .ta-combinations button {
+  .ta-combinations button, .ta-container :deep(.investigational-workspace .ta-combinations button) {
     flex: 0 0 auto;
   }
-  .ta-drugs {
+  .ta-drugs, .ta-container :deep(.investigational-workspace .ta-drugs) {
     padding: 16px 0 0;
     border-left: none;
     border-top: 1px solid var(--app-rule-subtle);

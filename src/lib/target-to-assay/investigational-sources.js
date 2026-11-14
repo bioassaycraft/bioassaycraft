@@ -1,8 +1,16 @@
 // Reviewed links are supplemental evidence for discovered identities, never search fixtures.
 export const investigationalSources = [
   {
+    names: ["Foralumab"],
+    chemblId: "CHEMBL1743020",
+    official: [{
+      title: "Intranasal Foralumab",
+      url: "https://www.tizianalifesciences.com/drug-pipeline/intranasal-foralumab/",
+    }],
+    conferences: [],
+  },
+  {
     names: ["plamotamab", "XmAb13676"],
-    developer: "Xencor",
     targetAssertion: "Plamotamab is a bispecific T-cell engager that directly targets CD20 and CD3.",
 
     official: [{

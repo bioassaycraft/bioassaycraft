@@ -46,13 +46,15 @@ function chemblStage(molecule) {
   return [1, 2, 3].includes(phase) ? `PHASE_${phase}` : "UNKNOWN";
 }
 async function chemblRows(resource, filters, field, fetcher, signal) {
-  const url = new URL(resource + ".json", chemblBase);
+  let url = new URL(resource + ".json", chemblBase);
+  url.search = new URLSearchParams({ ...filters, limit: "60" });
+  const visited = new Set();
   const rows = [];
   let total;
   let truncated = false;
   let issue;
   for (let page = 0; page < 2; page += 1) {
-    url.search = new URLSearchParams({ ...filters, limit: "60", offset: String(page * 60) });
+    visited.add(url.href);
     let payload;
     try {
       payload = await getJson(url, fetcher, signal);
@@ -69,7 +71,10 @@ async function chemblRows(resource, filters, field, fetcher, signal) {
     rows.push(...payload[field]);
     total = payload.page_meta?.total_count ?? rows.length;
     truncated = Boolean(payload.page_meta?.next || total > rows.length);
-    if (!truncated || !payload[field].length) break;
+    if (!truncated || !payload[field].length || !payload.page_meta?.next) break;
+    const next = new URL(payload.page_meta.next, url);
+    if (next.origin !== url.origin || next.pathname !== url.pathname || visited.has(next.href)) break;
+    url = next;
   }
   return { rows, total, truncated, issue };
 }
@@ -589,7 +594,8 @@ export async function queryMechanisms(
       ...new Set([...(primary.proposedTargetIds || []), ...(drug.proposedTargetIds || [])]),
     ];
     primary.targetEvidence = mergeEvidence(curatedTargetEvidence(primary), curatedTargetEvidence(drug));
-    primary.sourceIds = [...new Set([...(primary.sourceIds || []), drug.sourceId].filter(Boolean))];
+    primary.sourceIds = [...new Set([...(primary.sourceIds || []), drug.sourceId, ...(drug.sourceIds || [])].filter(Boolean))];
+    primary.mechanisms = [...new Set([...(primary.mechanisms || []), ...(drug.mechanisms || [])].filter((value) => value?.trim()))];
     if (identity?.source) primary.identityEvidence = identity.source;
     if (
       drug.clinicalStage === "APPROVAL" &&

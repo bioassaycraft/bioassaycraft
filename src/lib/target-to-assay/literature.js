@@ -282,7 +282,7 @@ function authorKey(lastName, initials) {
   return (lastName + " " + initials[0]).normalize("NFKD").toLowerCase().replace(/[^\p{L} ]/gu, "");
 }
 
-async function fetchEuropePmc(term, drugs, { fetcher, signal }, exactQuery) {
+async function fetchEuropePmc(term, drugs, { fetcher, signal }, exactQuery, pageSize = "35") {
   const groups = term ? expressionGroups(term) : [];
   const targetQuery = groups.map((group) => "(" + group.map((alias) => `TITLE_ABS:"${alias}"`).join(" OR ") + ")").join(" AND ");
   const drugQuery = drugs.map((name) => `TITLE_ABS:"${name}"`).join(" OR ");
@@ -290,7 +290,7 @@ async function fetchEuropePmc(term, drugs, { fetcher, signal }, exactQuery) {
   const scope = [targetQuery, drugQuery].filter(Boolean).join(" OR ");
   const query = term ? `(${scope}) AND (${context} OR TITLE_ABS:bispecific OR TITLE_ABS:pharmacology)` : scope;
   const response = await fetcher("https://www.ebi.ac.uk/europepmc/webservices/rest/search?" +
-    new URLSearchParams({ query: exactQuery || query, pageSize: "35", format: "json", resultType: "core" }), { signal, redirect: "manual" });
+    new URLSearchParams({ query: exactQuery || query, pageSize, format: "json", resultType: "core" }), { signal, redirect: "manual" });
   if (!response.ok) throw new Error("upstream_" + response.status);
   const payload = await response.json();
   const rows = payload?.resultList?.result;
@@ -320,6 +320,13 @@ async function fetchEuropePmc(term, drugs, { fetcher, signal }, exactQuery) {
         fullText: pmcid ? `https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/` : null }];
     }),
   };
+}
+
+export async function fetchDeveloperLiterature(names, options) {
+  const query = names.map((name) => `TITLE_ABS:"${name}"`).join(" OR ");
+  const { papers, truncated } = await fetchEuropePmc("", [], options,
+    `(${query}) AND (TITLE_ABS:developed OR TITLE_ABS:developing)`, "15");
+  return { papers, truncated };
 }
 
 async function fetchOpenAlex(term, { fetcher, signal }, names = []) {

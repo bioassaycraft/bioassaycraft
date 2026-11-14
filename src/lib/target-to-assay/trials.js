@@ -1,3 +1,4 @@
+import { providerIssue } from "./provider-status.js";
 import { ingredientKey } from "./display.js";
 
 const fields = [
@@ -165,12 +166,24 @@ export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch, i
     ",BriefTitle,OverallStatus,LastUpdatePostDate,StartDate,CompletionDate,CollaboratorName,BriefSummary");
   const studies = new Map();
   let next;
+  let pageIssue;
+  const seenTokens = new Set();
   for (let page = 0; page < 3; page++) {
-    if (next) params.set("pageToken", next);
-    const response = await fetcher(`https://clinicaltrials.gov/api/v2/studies?${params}`, { signal, redirect: "manual" });
-    if (!response.ok) throw new Error("upstream_" + response.status);
-    const payload = await response.json();
-    if (!Array.isArray(payload.studies)) throw new Error("unexpected_trials_response");
+    if (next) {
+      seenTokens.add(next);
+      params.set("pageToken", next);
+    }
+    let payload;
+    try {
+      const response = await fetcher(`https://clinicaltrials.gov/api/v2/studies?${params}`, { signal, redirect: "manual" });
+      if (!response.ok) throw new Error("upstream_" + response.status);
+      payload = await response.json();
+      if (!Array.isArray(payload.studies)) throw new Error("unexpected_trials_response");
+    } catch (error) {
+      if (!includeStudyRecords || page === 0) throw error;
+      pageIssue = providerIssue(error).state;
+      break;
+    }
     for (const { protocolSection: study } of payload.studies) {
       const id = study?.identificationModule?.nctId;
       if (!/^NCT\d{8}$/.test(id || "") || study.designModule?.studyType !== "INTERVENTIONAL") continue;
@@ -185,9 +198,8 @@ export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch, i
         : matches.length === interventions.length;
       studies.set(id, { study, attributable, matches });
     }
-    if (next && next === payload.nextPageToken) break;
     next = payload.nextPageToken;
-    if (!next) break;
+    if (!next || seenTokens.has(next)) break;
   }
   const conditions = new Map();
   const sponsors = new Map();
@@ -235,6 +247,7 @@ export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch, i
     researchIndications: ranked(conditions).slice(0, 3),
     recordIds: [...studies.keys()],
     truncated: Boolean(next),
+    ...(pageIssue ? { pageIssue } : {}),
     retrievedAt: new Date().toISOString(),
     url: `https://clinicaltrials.gov/search?intr=${encodeURIComponent(query)}`,
   };

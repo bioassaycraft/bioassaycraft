@@ -11,7 +11,7 @@ const trialName = (value) => name(value) && !/["\\]/.test(value);
 const sources = {
   "investigational-research": { source: "PubMed, Europe PMC, OpenAlex", run: fetchDrugPapers },
   "investigational-trials": { source: "ClinicalTrials.gov", run: fetchTrialCandidates },
-  "investigational-profile": { source: "FDA, EMA, ClinicalTrials.gov", run: fetchInvestigationalProfile, fetchTrialCandidates },
+  "investigational-profile": { source: "FDA, EMA, ClinicalTrials.gov", run: fetchInvestigationalProfile },
   "fda-documents": { source: "Drugs@FDA", run: fetchFdaDocuments },
   "drug-development": { source: "ClinicalTrials.gov", run: fetchDevelopmentProfile },
   "chembl-indications": { source: "ChEMBL", run: fetchChemblIndications },
@@ -58,13 +58,14 @@ function inputFor(action, body) {
   if (!trialName(body?.name) || (body.brand != null && body.brand !== "" && !trialName(body.brand))) return null;
   const aliases = body.aliases ?? [];
   if (!Array.isArray(aliases) || aliases.length > 6 || !aliases.every(trialName)) return null;
-  return { name: body.name, brand: body.brand || "", aliases: [...new Set(aliases)].sort() };
+  return { name: body.name, brand: body.brand || "", aliases: [...new Set(aliases)].sort(),
+    ...(action === "investigational-profile" ? { developerLookup: body.developerLookup === true, supplement: body.supplement === true } : {}) };
 }
 
 export async function handleSupplement(action, body, json, requestSignal, fetcher = fetch) {
   const input = inputFor(action, body);
   if (input === null) return json({ error: { code: "invalid_query" } }, 422);
-  const key = JSON.stringify([action, input]);
+  const key = JSON.stringify([1, action, input]);
   const cached = cache.get(key);
   if (cached?.expires > Date.now()) return json(cached.value);
   cache.delete(key);
@@ -80,7 +81,7 @@ export async function handleSupplement(action, body, json, requestSignal, fetche
     const hasData = (result.rows || result.recordIds || []).length > 0;
     const value = { ...result, source, state: result.validationFailures ? "partial" :
       hasData ? "success_with_data" : "success_empty" };
-    if (!result.validationFailures && !Object.keys(result.issues || {}).length && !signal.aborted && (result.xml?.length || result.pubmed?.xml?.length || 0) <= 512_000) {
+    if (!result.validationFailures && !result.truncated && !Object.keys(result.supplement?.issues || {}).length && !Object.keys(result.issues || {}).length && !signal.aborted && (result.xml?.length || result.pubmed?.xml?.length || 0) <= 512_000) {
       cache.set(key, { value, expires: Date.now() + 5 * 60_000 });
       if (cache.size > 48) cache.delete(cache.keys().next().value);
     }

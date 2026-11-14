@@ -8,6 +8,8 @@ const key = (value) =>
     .toLowerCase();
 const equivalent = new Map([
   ["cd20", "ms4a1"],
+  ["cd123", "il3ra"],
+  ["pd-l1", "cd274"],
   ["pd-1", "pdcd1"],
   ["pd1", "pdcd1"],
   ["bcma", "tnfrsf17"],
