@@ -11,10 +11,12 @@ defineProps({
 <template>
   <label class="assay-filter-select">
     <span>{{ label }}</span>
-    <select v-model="value" :disabled="disabled">
-      <option value="">{{ all }}</option>
-      <option v-for="option in options" :key="option" :value="option">{{ option }}</option>
-    </select>
+    <span class="assay-filter-control">
+      <select v-model="value" :disabled="disabled">
+        <option value="">{{ all }}</option>
+        <option v-for="option in options" :key="option" :value="option">{{ option }}</option>
+      </select>
+    </span>
   </label>
 </template>
 
@@ -28,11 +30,25 @@ defineProps({
   font-size: var(--ta-label-size);
   line-height: 1.4;
 }
+.assay-filter-control { position: relative; }
+.assay-filter-control::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: 12px;
+  inset-block-start: 50%;
+  width: 6px;
+  height: 6px;
+  border: solid var(--app-muted);
+  border-width: 0 1px 1px 0;
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
 select {
-  appearance: auto;
+  appearance: none;
+  box-sizing: border-box;
   min-height: 36px;
   width: 100%;
-  padding: 5px 10px;
+  padding: 5px 28px 5px 10px;
   border: 1px solid var(--app-rule-subtle);
   border-radius: 8px;
   background: var(--app-section);

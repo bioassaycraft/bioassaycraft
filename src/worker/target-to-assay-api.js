@@ -1,3 +1,4 @@
+import { supplierSearch } from "../lib/assay-design/product-discovery.js";
 import { supplierPageRenderer } from "../lib/assay-design/render-page.js";
 import { liveProteinVendors, queryLiveProteins } from "../lib/assay-design/live-products.js";
 import { handleSupplement, supplementActions } from "./target-to-assay-supplements.js";
@@ -67,14 +68,14 @@ export async function handleTargetToAssay(request, env = {}) {
     if (action === "live-proteins") {
       const { target, vendor, offset = 0 } = body ?? {};
       if (typeof target !== "string" || !/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,49}$/.test(target) ||
-          !liveProteinVendors.includes(vendor) || !Number.isInteger(offset) || offset < 0 || offset > 216)
+          !liveProteinVendors.includes(vendor) || !Number.isInteger(offset) || offset < 0 || offset > 2388 || offset % 12 !== 0)
         return json({ error: { code: "invalid_query" } }, 422);
       if (inFlightProductQueries >= 6) return json({ error: { code: "rate_limited" } }, 429);
       inFlightProductQueries++;
       try {
         const renderPage = supplierPageRenderer(env.CF_BROWSER_ACCOUNT_ID, env.CF_BROWSER_API_TOKEN);
         const signal = AbortSignal.any([request.signal, AbortSignal.timeout(renderPage ? 14000 : 7000)]);
-        return json(await queryLiveProteins(target, vendor, { signal, offset, renderPage }));
+        return json(await queryLiveProteins(target, vendor, { signal, offset, renderPage, discover: supplierSearch(env.BRAVE_SEARCH_API_KEY) }));
       } finally {
         inFlightProductQueries--;
       }

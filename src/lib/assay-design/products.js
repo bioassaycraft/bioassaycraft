@@ -114,7 +114,24 @@ export function mergeProducts(rows) {
       if (!size) continue;
       if (!variants.has(size) || variant.price) variants.set(size, variant);
     }
-    products.set(key, { ...(previous || row), variants: [...variants.values()] });
+    const merged = { ...(previous || row), variants: [...variants.values()] };
+    if (previous?.live && row.live) {
+      // A conflicting construct must never contribute fields to another record.
+      const normalize = (value) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (["accession", "range", "species"].some((field) => previous[field] && row[field] &&
+          normalize(previous[field]) !== normalize(row[field]))) continue;
+      merged.fieldSources = { ...previous.fieldSources };
+      for (const field of ["name", "url", "species", "tags", "accession", "range", "host"]) {
+        if ((!merged[field] || merged[field].length === 0) && row[field]?.length) {
+          merged[field] = row[field];
+          if (row.fieldSources?.[field]) merged.fieldSources[field] = row.fieldSources[field];
+        }
+      }
+      merged.sources = [...new Map([...previous.sources || [], ...row.sources || []]
+        .map((source) => [source.url, source])).values()];
+      merged.validation = [...new Set([...(previous.validation || []), ...(row.validation || [])])];
+    }
+    products.set(key, merged);
   }
   return [...products.values()];
 }

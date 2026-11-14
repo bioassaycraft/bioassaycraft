@@ -38,7 +38,7 @@ function openSources(event, drug) {
     <p v-if="loading" role="status">{{ tr("正在查询已上市药物…", "Searching for approved drugs…") }}</p>
     <p v-else-if="!ready">{{ tr("请输入靶点以查看方法。", "Enter targets to see documented methods.") }}</p>
     <template v-else>
-      <p v-if="partial" role="status">{{ tr("部分药物来源不可用或返回不完整。", "Some drug sources were unavailable or returned partial data.") }}</p>
+      <p v-if="partial" class="assay-coverage-note" role="status">{{ tr("部分药物来源不可用或返回不完整。", "Some drug sources were unavailable or returned partial data.") }}</p>
       <p v-if="!drugs.length">{{ tr("当前结果中未找到已确认获批的药物。", "No drugs with confirmed approvals in these results.") }}</p>
       <article v-for="{ drug, methods } in rankedDrugs" :key="drug.id" class="assay-drug" :class="{ 'assay-drug-compact': !methods.length }">
         <h3>{{ drug.brand ? drug.brand + ' · ' : '' }}{{ drug.name }}</h3>
@@ -76,7 +76,7 @@ function openSources(event, drug) {
       </label>
     </div>
   </section>
-  <section class="assay-design-panel" :aria-busy="loading">
+  <section class="assay-design-panel assay-method-details" :aria-busy="loading">
     <div class="assay-heading">
       <h2>{{ tr("方法详细信息", "Method details") }}</h2>
       <button class="assay-ai" type="button" disabled>
@@ -119,7 +119,9 @@ h4 { font-size: var(--ta-subheading-size); margin-top: 8px; }
 p, a, label, summary { font-size: var(--ta-body-size); }
 p { color: var(--app-muted); }
 a { color: var(--app-accent); overflow-wrap: anywhere; }
-.assay-ai { min-height: 44px; border: 1px solid var(--app-rule); border-radius: 8px; padding: 6px 10px; background: var(--app-section); color: var(--app-muted); font: inherit; font-size: var(--ta-meta-size); }
+.assay-method-details { --assay-action-width: 7.5rem; }
+.assay-coverage-note { font-size: calc(var(--ta-body-size) - 2px); }
+.assay-ai { box-sizing: border-box; inline-size: var(--assay-action-width); min-height: 44px; border: 1px solid var(--app-rule); border-radius: 8px; padding: 6px 10px; background: var(--app-section); color: var(--app-muted); font: inherit; font-size: var(--ta-meta-size); }
 .assay-drug { padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--app-rule-subtle); }
 .assay-drug :is(h3, h4) { font-size: var(--ta-body-size); }
 .assay-drug :is(p, a, summary) { font-size: var(--ta-meta-size); }

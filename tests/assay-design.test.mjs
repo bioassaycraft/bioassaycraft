@@ -64,3 +64,14 @@ describe("assay design resources", () => {
     expect(activityMethods([{ kind: "review", title: "ELISA", url: "https://example.org" }])).toEqual([]);
   });
 });
+
+it("combines compatible official sources and rejects conflicting construct metadata", () => {
+  const pdf = { vendor: "ACROBiosystems", sku: "TLA-H5263", live: true,
+    range: "Val 84 - Leu 251", accession: "O95150-1", sources: [{ url: "pdf" }] };
+  const detail = { ...pdf, url: "detail", sources: [{ url: "detail" }],
+    variants: [{ size: "100 µg", price: "CNY 100", sourceUrl: "detail" }] };
+  const conflict = { ...detail, range: "Met 1 - Leu 251", variants: [{ size: "1 mg", price: "CNY 200" }] };
+  expect(mergeProducts([pdf, detail, conflict])).toEqual([expect.objectContaining({
+    url: "detail", sources: [{ url: "pdf" }, { url: "detail" }], variants: detail.variants,
+  })]);
+});

@@ -34,3 +34,25 @@ For optional ACRO browser rendering, configure `CF_BROWSER_ACCOUNT_ID` and
 Write permission. For local preview, provide both variables to the preview process.
 The renderer is used only when an ACRO HTML response contains no parseable
 product content. Supplier access restrictions can still prevent a live lookup.
+
+Set `BRAVE_SEARCH_API_KEY` in the Worker or preview environment to discover
+additional supplier product URLs. Search results supply candidate links only.
+The Worker fetches and verifies the manufacturer detail page before returning a
+live row. Browser Rendering uses `CF_BROWSER_ACCOUNT_ID` and
+`CF_BROWSER_API_TOKEN` with Browser Rendering Write permission. HTTP access
+restrictions, rate limits, redirects, deadlines, and parse failures are reported
+separately.
+
+The protein lookup also reads public China catalog tables and official product
+datasheets. A datasheet URL can come from a known public document link, a
+supplier page, or the optional search API. PDF text is extracted inside the
+existing Worker using unpdf, with a 2 MB and 16-page limit. The lookup keeps
+field provenance and does not persist the downloaded PDFs or search responses.
+The table shows official material, unresolved candidate links, and historical
+snapshots separately. Prices are only returned when paired with a pack size by
+the source. PDF links without a verifiable version date are shown without one.
+
+Direct live verification on 2026-11-14 returned ACRO PDF rows for CD19
+(CD9-H5251, CD9-H52Hb), CD20 (CD0-H52H3), PD-1 (PD1-H5257), and TL1A
+(TLA-H5244, TLA-H5263). The Sino Biological China catalog requests returned 403
+for all four targets in the verification environment.

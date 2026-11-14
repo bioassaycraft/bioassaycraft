@@ -19,3 +19,9 @@ const aliases = new Map([
 ]);
 export const canonicalAlias = (value) => aliases.get(targetNameKey(value)) || value;
 export const canonicalTargetKey = (value) => targetNameKey(canonicalAlias(value));
+
+export function targetSearchAliases(value) {
+  const key = canonicalTargetKey(value);
+  return [...new Set([targetNameKey(value), key, ...[...aliases]
+    .filter(([, canonical]) => targetNameKey(canonical) === key).map(([alias]) => alias)])].filter(Boolean);
+}

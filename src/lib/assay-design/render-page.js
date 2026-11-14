@@ -17,7 +17,7 @@ export function supplierPageRenderer(account, token, fetcher = fetch) {
         }),
       },
     );
-    if (!response.ok) throw new Error("render_unavailable");
+    if (!response.ok) throw new Error(`render_http_${response.status}`);
     const { success, result } = await response.json();
     if (!success || typeof result !== "string" || result.length > 2_000_000)
       throw new Error("render_unavailable");
