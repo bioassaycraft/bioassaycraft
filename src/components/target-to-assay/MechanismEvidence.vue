@@ -103,8 +103,8 @@ const groups = computed(() => {
 function matchLabel(row) {
   const match = matchById.value.get(row.drugId);
   const labels = targetAssayCopy[props.locale];
-  return match?.matchType === "direct" ? (match.reason === "additional_direct_targets"
-    ? labels.directAdditionalTargets : labels.directScopePending) : labels.exactBadge;
+  if (match?.matchType !== "direct") return labels.exactBadge;
+  return match.reason === "additional_direct_targets" ? labels.directAdditionalTargets : "";
 }
 const mechanismTranslations = new Map([
   ["Engages CD20 on B cells and CD3 on T cells, inducing T-cell-mediated lysis of CD20-expressing cells.",
@@ -272,7 +272,7 @@ const queryTime = computed(() =>
               <h4>{{ locale === "zh" ? "PD-1 信号阻断" : "PD-1 signalling blockade" }}</h4>
               <BilingualMechanism :entry="blockadeMechanism" class="ta-mechanism-description" />
               <ul>
-                <li v-for="drug in entry.drugs" :key="drug.id">{{ drug.name }} <span class="ta-source-note">· {{ drug.label }}</span></li>
+                <li v-for="drug in entry.drugs" :key="drug.id">{{ drug.name }} <span v-if="drug.label" class="ta-source-note">· {{ drug.label }}</span></li>
               </ul>
             </template>
             <template v-else>

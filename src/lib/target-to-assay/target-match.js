@@ -1,22 +1,6 @@
 // Identity, direct interaction, and completeness are independent assertions.
-const key = (value) =>
-  String(value ?? "")
-    .normalize("NFKC")
-    .trim()
-    .replace(/[‐‑–—]/g, "-")
-    .replace(/\s+/g, " ")
-    .toLowerCase();
-const equivalent = new Map([
-  ["cd20", "ms4a1"],
-  ["cd123", "il3ra"],
-  ["pd-l1", "cd274"],
-  ["pd-1", "pdcd1"],
-  ["pd1", "pdcd1"],
-  ["bcma", "tnfrsf17"],
-  ["b-cell maturation antigen", "tnfrsf17"],
-  ["cd3 receptor", "cd3"],
-]);
-const canonical = (value) => equivalent.get(key(value)) || key(value);
+import { targetNameKey as key, canonicalTargetKey as canonical } from "./target-aliases.js";
+
 const unique = (items) => [...new Set(items)];
 const sameSet = (left, right) => left.size === right.size && [...left].every((id) => right.has(id));
 
@@ -279,7 +263,7 @@ export function prepareTargetMatch(drug, targets) {
   return { direct, related, complete, conflicts, incompatible, evidence: normalized };
 }
 
-export function classifyTargetMatch(prepared, targetIds) {
+export function classifyTargetMatch(prepared, targetIds, { allowSingleDirect = false } = {}) {
   const { direct, related, complete, conflicts, incompatible, evidence } = prepared;
   const requested = new Set(targetIds);
   const supported = targetIds.filter((id) => direct.has(id));
@@ -302,6 +286,8 @@ export function classifyTargetMatch(prepared, targetIds) {
     )
   )
     return classified("other", "non_direct_relationship");
+  if (allowSingleDirect && requested.size === 1 && supported.length === 1)
+    return classified("direct", "scope_not_established");
   return classified(
     "unverified",
     supported.length ? "scope_not_established" : "no_direct_evidence",

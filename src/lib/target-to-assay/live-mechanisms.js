@@ -10,8 +10,8 @@ import {
 import { reviewedMechanism } from "./bilingual-mechanism.js";
 import { curatedTargetEvidence, mergeEvidence, parseTargetInput, searchOnline } from "./online.js";
 import { SearchError } from "./search.js";
+import { canonicalAlias, canonicalTargetKey, targetNameKey } from "./target-aliases.js";
 import {
-  canonicalAlias,
   evidence,
   fetchPathways,
   getJson,
@@ -88,7 +88,7 @@ async function fetchChemblMechanisms(targets, fetcher, signal, retrievedAt) {
       : [];
   });
   if (!entities.length) return { state: "not_queried", drugs: [], mechanisms: [] };
-  const targetsPage = await chemblRows(
+  const accessionLookup = chemblRows(
     "target",
     {
       target_components__accession__in: [
@@ -101,9 +101,28 @@ async function fetchChemblMechanisms(targets, fetcher, signal, retrievedAt) {
     fetcher,
     signal,
   );
-  const rawTargets = new Map(targetsPage.rows.map((row) => [row.target_chembl_id, row]));
+  // Search source-confirmed names independently of the accession index.
+  const terms = [...new Map(targets.filter(({ id }) => entities.some((entity) => entity.id === id))
+    .flatMap(({ id, canonicalName, synonyms }) => [id, canonicalName, ...synonyms])
+    .filter((name) => name && name.length <= 160)
+    .map((name) => [targetNameKey(name), name])).values()];
+  const aliasSignal = AbortSignal.any([signal, AbortSignal.timeout(5000)]);
+  const aliasPages = [];
+  const [accession] = await Promise.all([
+    accessionLookup.then((page) => page, (error) => ({ rows: [], issue: providerIssue(error) })),
+    Promise.all(Array.from({ length: Math.min(4, terms.length) }, async (_, worker) => {
+      for (let index = worker; index < terms.length && !aliasSignal.aborted; index += 4) {
+        const page = await chemblRows("target/search", { q: terms[index] }, "targets", fetcher, aliasSignal)
+          .catch((error) => ({ rows: [], issue: providerIssue(error) }));
+        aliasPages[index] = page;
+      }
+    })),
+  ]);
+  const completed = aliasPages.filter(Boolean);
+  const targetRows = [...accession.rows, ...completed.flatMap(({ rows }) => rows)];
+  const rawTargets = new Map();
   const targetIds = new Map(
-    targetsPage.rows.flatMap((row) => {
+    targetRows.flatMap((row) => {
       if (
         !chemblId(row.target_chembl_id) ||
         row.organism !== "Homo sapiens" ||
@@ -114,22 +133,37 @@ async function fetchChemblMechanisms(targets, fetcher, signal, retrievedAt) {
       const matches = entities.filter(
         (entity) =>
           entity.type === row.target_type &&
-          entity.accessions.length === accessions.size &&
-          entity.accessions.every((id) => accessions.has(id)),
+          (entity.type === "SINGLE PROTEIN"
+            ? accessions.size === 1 && entity.accessions.some((id) => accessions.has(id))
+            : entity.accessions.length === accessions.size &&
+              entity.accessions.every((id) => accessions.has(id))),
       );
-      return matches.length === 1 ? [[row.target_chembl_id, matches[0].id]] : [];
+      if (matches.length !== 1) return [];
+      rawTargets.set(row.target_chembl_id, row);
+      return [[row.target_chembl_id, matches[0].id]];
     }),
   );
   const coverage = [
     {
       resource: "target",
-      count: targetsPage.total,
-      returned: targetsPage.rows.length,
-      truncated: targetsPage.truncated,
-      issue: targetsPage.issue,
+      count: accession.total,
+      returned: accession.rows.length,
+      truncated: accession.truncated,
+      issue: accession.issue,
+    },
+    {
+      resource: "target_aliases",
+      count: terms.length,
+      returned: completed.length,
+      truncated: completed.length < terms.length || completed.some(({ truncated }) => truncated),
+      issue: completed.find(({ issue }) => issue)?.issue,
     },
   ];
-  if (!targetIds.size) return { state: "empty", drugs: [], mechanisms: [], coverage };
+  if (!targetIds.size) {
+    if (accession.issue && completed.every(({ issue }) => issue))
+      return { state: "failed", issue: accession.issue, drugs: [], mechanisms: [] };
+    return { state: "empty", drugs: [], mechanisms: [], coverage };
+  }
   const mechanismsPage = await chemblRows(
     "mechanism",
     {
@@ -341,14 +375,12 @@ export async function queryMechanisms(
         const target = await resolveReactomeComplex(value, selection, fetcher, signal, retrievedAt);
         if (target) return target;
       }
-      const lookup = (selection || value).replace(/[‐‑–]/g, "-");
-      const providerLookup = !selection && /^pd-?1$/i.test(lookup) ? canonicalAlias(lookup) : lookup;
+      const lookup = (selection || value).replace(/[‐‑‒–—−]/g, "-");
       const hgncId = /^HGNC:\d+$/i.test(lookup);
-      const preferHgnc =
-        hgncId || (!selection && /[ -]/.test(lookup) && canonicalAlias(lookup) === lookup);
+      const preferHgnc = hgncId || !selection;
       const lookupGene = async () => {
         try {
-          const gene = await resolveHgnc(providerLookup, fetcher, signal, retrievedAt);
+          const gene = await resolveHgnc(lookup, fetcher, signal, retrievedAt);
           checks.HGNC = { state: gene ? "success_with_data" : "unresolved_target" };
           return gene;
         } catch (error) {
@@ -362,7 +394,7 @@ export async function queryMechanisms(
       let provisionalProtein;
       if (!gene && !hgncId) {
         try {
-          const target = await resolveProtein(providerLookup, selection, fetcher, signal, retrievedAt);
+          const target = await resolveProtein(lookup, selection, fetcher, signal, retrievedAt);
           checks.UniProt = { state: target ? "success_with_data" : "unresolved_target" };
           if (target) {
             target.identity.inputName = value;
@@ -370,7 +402,7 @@ export async function queryMechanisms(
               target.identity.geneSymbol,
               ...target.identity.ensemblIds,
               ...target.identity.uniprotIds,
-            ].some((id) => id.toLowerCase() === canonicalAlias(lookup).toLowerCase());
+            ].some((id) => canonicalTargetKey(id) === canonicalTargetKey(lookup));
             if ((selection || exactId) && target.identity.ensemblIds.length < 2) return target;
             provisionalProtein = target;
           }
@@ -385,8 +417,7 @@ export async function queryMechanisms(
       if (!gene && !preferHgnc) gene = await lookupGene();
       if (!gene) {
         if (choice) throw choice;
-        if (provisionalProtein && (!preferHgnc || checks.HGNC.state === "unresolved_target"))
-          return provisionalProtein;
+        if (provisionalProtein) return provisionalProtein;
         if (Object.values(checks).every(({ state }) => state !== "unresolved_target"))
           throw new Error("identity_sources_unavailable");
         return null;
@@ -457,7 +488,7 @@ export async function queryMechanisms(
   const resolvedTargets = identities.map((identity) => ({
     id: identity.id,
     label: identity.id,
-    aliases: [...new Set([identity.inputName, ...identity.synonyms])],
+    aliases: [...new Set([identity.canonicalName, ...identity.synonyms])],
     canonicalId: identity.canonicalId,
     canonicalName: identity.canonicalName,
     resolutionStatus: identity.resolutionStatus,
@@ -467,7 +498,7 @@ export async function queryMechanisms(
     subunits: identity.subunits,
     componentAccessions: identity.componentAccessions,
     literatureNames: [
-      ...new Set([identity.inputName, identity.canonicalName, ...identity.synonyms]),
+      ...new Set([identity.canonicalName, ...identity.synonyms]),
     ]
       .filter((name) => name !== identity.id && name.length <= 100)
       .slice(0, 5),

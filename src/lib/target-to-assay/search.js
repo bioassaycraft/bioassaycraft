@@ -1,5 +1,6 @@
 import { classifyTargetMatch, prepareTargetMatch } from "./target-match.js";
 import { catalog } from "./catalog.js";
+import { canonicalTargetKey, targetNameKey } from "./target-aliases.js";
 
 export class SearchError extends Error {
   constructor(code, details = {}) {
@@ -10,10 +11,6 @@ export class SearchError extends Error {
 }
 
 const normalize = (value) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
-const targetKey = (value) => {
-  const key = normalize(value);
-  return /^(?:pd-?1|pdcd1)$/.test(key) ? "pdcd1" : key;
-};
 export function resolveTargets(input, data = catalog) {
   const tokens = typeof input === "string" ? input.split(/[,，、;；\n×+]+/) : input;
   if (!Array.isArray(tokens) || tokens.some((v) => typeof v !== "string"))
@@ -24,8 +21,10 @@ export function resolveTargets(input, data = catalog) {
   if (!values.length) throw new SearchError("empty_targets");
   const resolved = [];
   for (const value of values) {
-    const matches = data.targets.filter((t) =>
-      [t.id, t.label, ...t.aliases].some((a) => targetKey(a) === targetKey(value)),
+    const exact = data.targets.filter((t) => targetNameKey(t.id) === targetNameKey(value));
+    const key = canonicalTargetKey(value);
+    const matches = exact.length ? exact : data.targets.filter((t) =>
+      [t.id, t.label, ...t.aliases].some((a) => canonicalTargetKey(a) === key),
     );
     if (!matches.length) throw new SearchError("unknown_target", { input: value });
     if (matches.length > 1)
@@ -82,14 +81,17 @@ export function searchDrugs(input, data = catalog) {
     ...(evidenceMode
       ? (() => {
           const assessed = prepared.flatMap(([drug, record]) => {
-            const match = classifyTargetMatch(record, combo.targetIds);
+            const match = classifyTargetMatch(record, combo.targetIds, {
+              allowSingleDirect: matchMode === "verified_scope" && combo.targetIds.length === 1 &&
+                !resolvedTargets.find(({ id }) => id === combo.targetIds[0])?.subunits?.length,
+            });
             return match ? [{ drugId: drug.id, ...match }] : [];
           });
           return {
             matches: assessed
-              .filter(({ state }) => state === "verified")
-              .map(({ drugId }) => ({ drugId, matchType: "exact" })),
-            candidates: assessed.filter(({ state }) => state !== "verified"),
+              .filter(({ state }) => state === "verified" || state === "direct")
+              .map(({ drugId, state }) => ({ drugId, matchType: state === "verified" ? "exact" : "direct" })),
+            candidates: assessed.filter(({ state }) => state !== "verified" && state !== "direct"),
           };
         })()
       : {

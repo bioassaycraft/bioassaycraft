@@ -1,16 +1,7 @@
 import { SearchError } from "./search.js";
 
-const aliases = new Map([
-  ["cd20", "MS4A1"],
-  ["bcma", "TNFRSF17"],
-  ["tl1a", "TNFSF15"],
-  ["pd-1", "PDCD1"],
-  ["pd1", "PDCD1"],
-  ["pd-l1", "CD274"],
-  ["cd123", "IL3RA"],
-  ["4-1bb", "TNFRSF9"],
-]);
-const key = (value) => value.trim().toLowerCase().replace(/\s+/g, " ");
+import { canonicalAlias, targetNameKey as key } from "./target-aliases.js";
+
 const list = (values) => [...new Set(values.filter(Boolean))];
 const proteinNames = (entry) => {
   const description = entry.proteinDescription;
@@ -29,8 +20,6 @@ const names = (entry) =>
       ...(gene.synonyms || []).map((name) => name.value),
     ]),
   ]);
-
-export const canonicalAlias = (input) => aliases.get(key(input)) || input;
 
 export function evidence(sourceName, recordId, originalUrl, retrievedAt, extra = {}) {
   return {
@@ -229,20 +218,8 @@ export function resolveCd3(inputName) {
 
 export function resolveComposite(inputName, selection) {
   const normalized = key(inputName).replace(/[‐‑–]/g, "-");
-  if (!selection && normalized === "vegf") {
-    throw new SearchError("choose_target", {
-      input: inputName,
-      candidates: [
-        {
-          id: "VEGF-FAMILY",
-          name: "VEGF family",
-          description: "VEGFA, VEGFB, VEGFC, FIGF and PGF",
-        },
-        { id: "P15692", name: "VEGFA", description: "Vascular endothelial growth factor A" },
-      ],
-    });
-  }
-  if (normalized === "vegf" && selection === "VEGF-FAMILY")
+  if ((!selection && ["vegf-family", "vegf family"].includes(normalized)) ||
+      (normalized === "vegf" && selection === "VEGF-FAMILY"))
     return {
       identity: {
         id: "VEGF-family",
@@ -250,7 +227,7 @@ export function resolveComposite(inputName, selection) {
         inputName,
         canonicalName: "VEGF family",
         entityType: "protein_family",
-        synonyms: ["VEGF"],
+        synonyms: ["VEGF family"],
         members: ["VEGFA", "VEGFB", "VEGFC", "FIGF", "PGF"],
         uniprotIds: [],
         ensemblIds: [],

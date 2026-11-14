@@ -98,19 +98,11 @@ const resultGroups = computed(() => view.value.groups);
 const fallback = computed(() => resultGroups.value.length > 1 && !resultGroups.value[0].matches.length);
 const active = computed(() => view.value.active);
 const showCandidates = computed(() => view.value.showCandidates);
-function navigationTargetNames(ids) {
-  return ids.map((id) => id === "MS4A1" ? "CD20" : id).join(" × ");
-}
 function targetNames(ids) {
-  return ids
-    .map((id) => {
-      const target = mechanismResult.value?.resolvedTargets.find((item) => item.id === id);
-      const alias = target?.inputName;
-      return alias && alias.toLowerCase() !== id.toLowerCase() && !/^ENSG\d+$/i.test(alias)
-        ? `${alias} (${id})`
-        : id;
-    })
-    .join(" × ");
+  return ids.map((id) =>
+    mechanismResult.value?.resolvedTargets.find((target) => target.id === id)?.inputName ||
+    (id === "MS4A1" ? "CD20" : id),
+  ).join(" × ");
 }
 const discoveryChecks = computed(() => Object.values(mechanismResult.value?.sourceChecks || {}).flat());
 const discoveryTruncated = computed(() => discoveryChecks.value.some(({ truncated }) => truncated));
@@ -544,6 +536,7 @@ async function loadDocuments(drug) {
             <textarea
               id="target-input"
               v-model="input"
+              placeholder="CD3, CD20"
               rows="1"
               maxlength="1000"
               :aria-invalid="!!error"
@@ -581,7 +574,6 @@ async function loadDocuments(drug) {
             <button type="button" class="ta-planned" disabled>{{ c.assayOptions }}</button>
           </div>
         </div>
-        <p v-if="showingExample" class="ta-coverage">{{ locale === "zh" ? "CD3 × CD20 示例快照" : "CD3 × CD20 example snapshot" }} · <time :datetime="example.discovery.retrievedAt">{{ example.discovery.retrievedAt.slice(0, 10) }}</time></p>
         <MechanismEvidence :result="mechanismResult" :locale="locale" :stage-label="stageLabel" :drug-presentation="drugPresentation" :matches="resultGroups[0].matches" />
       </section>
       <section class="ta-results ta-panel" aria-labelledby="results-title" :aria-busy="loading">
@@ -617,7 +609,7 @@ async function loadDocuments(drug) {
               :aria-pressed="!showCandidates && active.key === combo.key"
               @click="chooseCombination(combo.key)"
             >
-              <span>{{ navigationTargetNames(combo.targetIds) }}</span><span class="ta-count">{{
+              <span>{{ targetNames(combo.targetIds) }}</span><span class="ta-count">{{
                 result.combinations.find((item) => item.key === combo.key).matches.length
               }}</span>
             </button>
@@ -667,7 +659,7 @@ async function loadDocuments(drug) {
                 <p class="ta-drug-targets">
                   <span>{{ targetNames(drugById(match.drugId).targetIds) }}</span>
                   <span v-if="match.matchType !== 'reported'" class="ta-status-item">
-                    <span aria-hidden="true">·</span>{{ c.exactBadge }}
+                    <span aria-hidden="true">·</span>{{ match.matchType === "direct" ? c.directScopePending : c.exactBadge }}
                   </span>
                   <span v-if="drugPresentation[match.drugId].earliest" class="ta-status-item">
                     <span aria-hidden="true">·</span>{{ c.drugCard.firstApproval }}
@@ -861,7 +853,7 @@ async function loadDocuments(drug) {
       <details class="ta-panel ta-investigational">
         <summary id="investigational-title">{{ locale === "zh" ? "未上市药物资料" : "Investigational Drug Information" }}</summary>
         <InvestigationalDrugs
-          :catalog="data" :combinations="resultGroups" :locale="locale" :stage-label="stageLabel" :target-names="navigationTargetNames"
+          :catalog="data" :combinations="resultGroups" :locale="locale" :stage-label="stageLabel" :target-names="targetNames"
           :example-profiles="showingExample ? example.profiles : null" :discovery="mechanismResult" :searching="loading" :search-error="Boolean(error)" @discover="submit"
         />
       </details>
@@ -1066,6 +1058,10 @@ textarea {
   resize: vertical;
   font-size: 1rem;
   line-height: 1.5;
+}
+textarea::placeholder {
+  color: var(--app-muted);
+  opacity: 1;
 }
 button, .ta-container :deep(.investigational-workspace .ta-combinations button) {
   cursor: pointer;

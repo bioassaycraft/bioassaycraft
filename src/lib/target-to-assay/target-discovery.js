@@ -1,7 +1,11 @@
 import { evidence, getJson } from "./target-biology.js";
 import { SearchError } from "./search.js";
+import { targetNameKey as geneKey } from "./target-aliases.js";
 
-const geneKey = (value) => value.trim().normalize("NFKC").toLowerCase();
+const geneAliases = (row) => [
+  ...(row.alias_symbol || []), ...(row.prev_symbol || []),
+  ...(row.alias_name || []), ...(row.prev_name || []),
+];
 
 export async function resolveHgnc(name, fetcher, signal, retrievedAt) {
   const root = "https://rest.genenames.org/";
@@ -24,18 +28,15 @@ export async function resolveHgnc(name, fetcher, signal, retrievedAt) {
   if (!Array.isArray(payload.response?.docs)) throw new Error("unexpected_hgnc_response");
   const hits = payload.response.docs;
   if (!explicitId && payload.response.numFound > 6) return null;
-  const records = directHit
-    ? hits
-    : (
-        await Promise.allSettled(
-          hits
-            .slice(0, 6)
-            .filter(({ symbol }) => /^[A-Z0-9][A-Z0-9._-]*$/i.test(symbol))
-            .map(({ symbol }) => request("fetch/symbol/" + encodeURIComponent(symbol))),
-        )
-      ).flatMap((result) =>
-        result.status === "fulfilled" ? result.value.response?.docs || [] : [],
-      );
+  const symbols = [...new Set(hits.map(({ symbol }) => symbol))]
+    .filter((symbol) => /^[A-Z0-9][A-Z0-9._-]*$/i.test(symbol));
+  // If one candidate cannot be checked, don't declare another candidate unique.
+  const records = directHit ? hits : (await Promise.all(
+    symbols.slice(0, 6).map((symbol) => request("fetch/symbol/" + encodeURIComponent(symbol))),
+  )).flatMap(({ response }) => {
+    if (!Array.isArray(response?.docs)) throw new Error("unexpected_hgnc_response");
+    return response.docs;
+  });
   const exact = records.filter(
     (row) =>
       row.status === "Approved" &&
@@ -44,10 +45,7 @@ export async function resolveHgnc(name, fetcher, signal, retrievedAt) {
         row.symbol,
         row.name,
         row.ensembl_gene_id,
-        ...(row.alias_symbol || []),
-        ...(row.prev_symbol || []),
-        ...(row.alias_name || []),
-        ...(row.prev_name || []),
+        ...geneAliases(row),
         ...(row.uniprot_ids || []),
       ].some((value) => value && geneKey(value) === geneKey(name)),
   );
@@ -67,7 +65,7 @@ export async function resolveHgnc(name, fetcher, signal, retrievedAt) {
     name: row.name,
     hgncId: row.hgnc_id,
     ensemblId: row.ensembl_gene_id,
-    synonyms: [...(row.alias_symbol || []), ...(row.prev_symbol || [])],
+    synonyms: geneAliases(row),
     source: evidence(
       "HGNC",
       row.hgnc_id,

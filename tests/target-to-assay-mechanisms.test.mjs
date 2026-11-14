@@ -59,7 +59,7 @@ describe("live target-to-assay evidence", () => {
       "epcoritamab-bysp",
       "odronextamab",
     ]);
-    expect(result.partialFailures).toEqual(["ChEMBL", "Open Targets"]);
+    expect(result.partialFailures).toEqual(["HGNC", "ChEMBL", "Open Targets"]);
     expect(result.drugMechanisms.find(({ drugId }) => drugId === "odronextamab")).toMatchObject({
       completeTargetSet: true,
       developmentStatus: {
@@ -78,6 +78,7 @@ describe("live target-to-assay evidence", () => {
         });
       }
       if (url.hostname === "reactome.org") return Response.json([]);
+      if (url.pathname.endsWith("/target/search.json")) return Response.json({ targets: [] });
       if (url.pathname.endsWith("target.json"))
         return Response.json({
           targets: [
@@ -155,6 +156,7 @@ describe("live target-to-assay evidence", () => {
     );
     expect(allDown.partialFailures).toEqual([
       "UniProt",
+      "HGNC",
       "Reactome",
       "Open Targets",
     ]);
@@ -226,7 +228,7 @@ describe("live target-to-assay evidence", () => {
       return new Response(null, { status: 302, headers: { Location: "https://example.test" } });
     });
     const result = await queryMechanisms({ targets: "PCSK9" }, { fetcher });
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(2);
     expect(result.sourceErrors.UniProt).toEqual([{ input: "PCSK9", code: "upstream_302" }]);
   });
 
@@ -338,6 +340,97 @@ describe("live target-to-assay evidence", () => {
       returned: 1,
       truncated: true,
     });
+  });
+
+  it("uses the source's gene identity for symbols and aliases, without merging the VEGF family", async () => {
+    const ensembl = "ENSG00000112715";
+    const aliases = ["VEGF", "VPF"];
+    const gene = {
+      status: "Approved", symbol: "VEGFA", hgnc_id: "HGNC:12680",
+      name: "vascular endothelial growth factor A", ensembl_gene_id: ensembl,
+      alias_symbol: aliases, alias_name: ["vascular permeability factor"],
+    };
+    const fetcher = async (rawUrl, request) => {
+      const url = new URL(rawUrl);
+      if (url.hostname === "rest.genenames.org") {
+        const docs = url.pathname.startsWith("/fetch/symbol/") && !url.pathname.endsWith("/VEGFA")
+          ? [] : [gene];
+        return Response.json({ response: { numFound: docs.length, docs } });
+      }
+      if (url.hostname === "rest.uniprot.org")
+        return Response.json({ results: [protein("VEGFA", "P15692")] });
+      if (url.pathname.endsWith("/target.json")) return unavailable();
+      if (url.pathname.endsWith("/target/search.json")) {
+        const term = url.searchParams.get("q");
+        const target = (id, accession) => ({
+          target_chembl_id: id, organism: "Homo sapiens", target_type: "SINGLE PROTEIN",
+          target_components: [{ accession }],
+        });
+        const rows = term === "VPF" ? [target("CHEMBL401", "P15692"), target("CHEMBL999", "P49765")]
+          : term === "vascular permeability factor" ? [target("CHEMBL401", "P15692"), target("CHEMBL402", "P15692")]
+          : [];
+        return Response.json({ targets: rows });
+      }
+      if (url.pathname.endsWith("/mechanism.json")) {
+        const ids = url.searchParams.get("target_chembl_id__in");
+        if (!ids) return Response.json({ mechanisms: [] });
+        expect(ids.split(",").sort()).toEqual(["CHEMBL401", "CHEMBL402"]);
+        return Response.json({ mechanisms: ids.split(",").map((id, index) => ({
+          target_chembl_id: id, molecule_chembl_id: index ? "CHEMBL125" : "CHEMBL123",
+          direct_interaction: true, action_type: "INHIBITOR", mechanism_of_action: "VEGFA inhibitor",
+        })) });
+      }
+      if (url.pathname.endsWith("/molecule.json")) return Response.json({ molecules: [
+        { molecule_chembl_id: "CHEMBL123", pref_name: "Fixturemab", max_phase: 4 },
+        { molecule_chembl_id: "CHEMBL125", pref_name: "Alias drug", max_phase: 4 },
+      ] });
+      if (url.hostname === "api.platform.opentargets.org") {
+        const { query, variables } = JSON.parse(request.body);
+        expect(variables.id).toBe(ensembl);
+        if (query.includes("TargetAssociations"))
+          return Response.json({ data: { target: { associatedDiseases: { rows: [] } } } });
+        return Response.json({ data: { target: { drugAndClinicalCandidates: {
+          count: 1, rows: [{ drug: {
+            id: "CHEMBL123", name: "Fixturemab", maximumClinicalStage: "APPROVAL",
+            mechanismsOfAction: { rows: [{
+              mechanismOfAction: "VEGFA inhibitor", actionType: "INHIBITOR",
+              targets: [{ id: ensembl, approvedSymbol: "VPF" }],
+            }] },
+          } }],
+        } } } });
+      }
+      return unavailable();
+    };
+
+    for (const input of ["VEGFA", ...aliases, ...gene.alias_name]) {
+      const result = await queryMechanisms({ targets: input }, { fetcher });
+      expect(result.resolvedTargets).toMatchObject([{ id: "VEGFA", canonicalId: ensembl }]);
+      const [group] = searchDrugs(
+        { targets: input, matchMode: "verified_scope", includeClinical: true }, result.catalog,
+      ).combinations;
+      expect(group).toMatchObject({
+        targetIds: ["VEGFA"], candidates: [],
+        matches: [
+          { drugId: "CHEMBL123", matchType: "direct" },
+          { drugId: "CHEMBL125", matchType: "direct" },
+        ],
+      });
+    }
+    const sharedAlias = async (rawUrl) => {
+      const { pathname } = new URL(rawUrl);
+      const other = { ...gene, symbol: "VEGFB", hgnc_id: "HGNC:12681" };
+      const docs = pathname.endsWith("/VEGFA") ? [gene]
+        : pathname.endsWith("/VEGFB") ? [other]
+        : pathname.startsWith("/search/") ? [gene, other] : [];
+      return Response.json({ response: { numFound: docs.length, docs } });
+    };
+    await expect(queryMechanisms({ targets: "VEGF" }, { fetcher: sharedAlias })).rejects.toMatchObject({
+      code: "choose_target",
+      details: { candidates: [{ name: "VEGFA" }, { name: "VEGFB" }] },
+    });
+
+    const family = await queryMechanisms({ targets: "VEGF family" }, { fetcher });
+    expect(family.resolvedTargets[0].id).toBe("VEGF-family");
   });
 
   it("keeps trial keyword hits unverified and reconciles only unique exact intervention names", async () => {

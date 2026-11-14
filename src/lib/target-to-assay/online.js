@@ -2,6 +2,7 @@ import { providerIssue } from "./provider-status.js";
 import { catalog, sampleCatalog, regulatoryCd3Cd20 } from "./catalog.js";
 import { ingredientKey } from "./display.js";
 import { SearchError, searchDrugs } from "./search.js";
+import { canonicalAlias } from "./target-aliases.js";
 
 export const openTargetsEndpoint = "https://api.platform.opentargets.org/api/v4/graphql";
 const normalize = (s) => s.normalize("NFKC").trim().toLowerCase();
@@ -103,7 +104,7 @@ export async function searchOnline(
         const requested = Object.hasOwn(input.resolutions || {}, value)
           ? input.resolutions[value]
           : value;
-        const lookup = normalize(requested) === "cd20" ? "MS4A1" : requested;
+        const lookup = canonicalAlias(requested);
         const data = await graphql(
           `
             query FindTarget($q: String!) {

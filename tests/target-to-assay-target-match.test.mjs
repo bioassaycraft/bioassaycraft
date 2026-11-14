@@ -329,8 +329,8 @@ it.each(["PDCD1", "MS4A1", "PCSK9"])("separates direct %s evidence from complete
   const queried = target(id);
   const records = [row([id])];
   expect(search([queried], records)).toMatchObject({
-    matches: [],
-    candidates: [{ drugId: "CHEMBL123", state: "unverified", reason: "scope_not_established", supported: [id] }],
+    matches: [{ drugId: "CHEMBL123", matchType: "direct" }],
+    candidates: [],
   });
   expect(search([queried], [row([id], { role: "unverified" })]).matches).toEqual([]);
   expect(search([queried], [row([id], { actionType: "AGONIST" }),
@@ -354,9 +354,8 @@ it("uses one partition for the three PD-1 aliases and excludes indirect or propo
     const [combo] = searchDrugs({ targets: alias, matchMode: "verified_scope", includeClinical: true },
       { targets: [target("PDCD1")], sources: [], drugs: [...drugs, indirect, proposed] }).combinations;
     expect(combo.targetIds).toEqual(["PDCD1"]);
-    expect(combo.matches).toEqual([]);
+    expect(combo.matches).toEqual(drugs.map(({ id }) => ({ drugId: id, matchType: "direct" })));
     expect(combo.candidates).toMatchObject([
-      ...drugs.map(({ id }) => ({ drugId: id, state: "unverified", reason: "scope_not_established" })),
       { drugId: "indirect", reason: "non_direct_relationship" },
       { drugId: "proposed", reason: "no_direct_evidence" },
     ]);

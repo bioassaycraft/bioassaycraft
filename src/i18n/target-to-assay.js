@@ -216,7 +216,7 @@ export const targetAssayCopy = {
     intro: "从靶点出发，让方法研究有据可循。",
     description: "检索靶点相关药物，对照不同地区的审评资料，整理研究清单。",
     inputTitle: "定义研究靶点",
-    inputHint: "请输入靶点名称，多个靶点请以逗号、顿号或者乘号隔开",
+    inputHint: "请输入靶点名称，多个靶点以逗号、顿号或者乘号隔开",
     label: "靶点名称、基因符号或 Ensembl ID",
     help: "支持任意靶点检索，用逗号、换行或 × 分隔，最多 8 个。常见别名自动识别，遇到歧义时可选择。",
     search: "检索靶点与药物",
