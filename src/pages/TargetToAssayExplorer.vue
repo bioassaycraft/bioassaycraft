@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
@@ -7,6 +7,7 @@ import { useLocale } from "../utils/locale";
 import { animateElement, getPanelEnterKeyframes } from "../utils/motion.js";
 import { sampleCatalog } from "../lib/target-to-assay/catalog.js";
 import { searchDrugs } from "../lib/target-to-assay/search.js";
+import InvestigationalDrugs from "../components/target-to-assay/InvestigationalDrugs.vue";
 import MechanismEvidence from "../components/target-to-assay/MechanismEvidence.vue";
 import { nciDrugLink, targetSourceLinks } from "../lib/target-to-assay/external-links.js";
 import CandidateDrugTable from "../components/target-to-assay/CandidateDrugTable.vue";
@@ -19,13 +20,14 @@ import {
 import { reviewedFdaRecord, validApprovalDate } from "../lib/target-to-assay/approval-records.js";
 import { rankMatches, researchProfile } from "../lib/target-to-assay/research.js";
 import { candidateView, explorerView, fdaDocumentDisplay, fdaReviewLimit, regulatorGroups, uniqueIndications, visibleReviewDocuments } from "../lib/target-to-assay/presentation.js";
-import { displayLiterature, literatureTerm } from "../lib/target-to-assay/literature.js";
+import { displayAssayLiterature, literatureSearchUrl, literatureTerm } from "../lib/target-to-assay/literature.js";
 import { loadSupplement } from "../lib/target-to-assay/supplement-client.js";
 import {
   conditionName,
   organizationName,
   drugDisplayName,
   drugHeadingName,
+  chineseDrugName,
 } from "../lib/target-to-assay/display.js";
 import { targetAssayCopy } from "../i18n/target-to-assay.js";
 
@@ -64,7 +66,18 @@ watch([activeKey, submitted], () => {
 });
 let controller;
 const documentControllers = new Set();
+const isHeaderMorphed = ref(false);
+const headerMorphTrigger = ref(null);
+let headerMorphObserver;
+onMounted(() => {
+  if (!("IntersectionObserver" in window) || !headerMorphTrigger.value) return;
+  headerMorphObserver = new IntersectionObserver(([entry]) => {
+    isHeaderMorphed.value = !entry.isIntersecting;
+  }, { rootMargin: "-48px 0px 0px 0px" });
+  headerMorphObserver.observe(headerMorphTrigger.value);
+});
 onBeforeUnmount(() => {
+  headerMorphObserver?.disconnect();
   controller?.abort();
   controller = null;
   documentControllers.forEach((v) => v.abort());
@@ -109,8 +122,17 @@ const additionalCandidates = computed(() => {
   return candidates.map((match) => {
     const { drugId } = match;
     const drug = drugById(drugId);
-    return { drug, status: match.reason === "non_direct_relationship" ? "nonDirectMatch" : labels[match.state],
-      url: sourceById(drug.sourceId)?.url };
+    const status = {
+      non_direct_relationship: "nonDirectMatch", scope_not_established: "scopePending",
+    }[match.reason] || labels[match.state];
+    return {
+      drug: status === "conflictingMatch" ? {
+        ...drug, normalizedTargetEvidence: drug.normalizedTargetEvidence?.map((row) => ({
+          ...row, sourceUrl: sourceById(row.sourceId)?.url,
+        })),
+      } : drug,
+      status, url: sourceById(drug.sourceId)?.url,
+    };
   });
 });
 const sourceById = (id) => data.value.sources.find((source) => source.id === id);
@@ -118,22 +140,52 @@ const activeTargets = computed(() =>
   result.value.resolvedTargets.filter((target) => active.value.targetIds.includes(target.id)),
 );
 const paperTerm = computed(() => literatureTerm(activeTargets.value));
+const paperDrugs = computed(() => active.value.matches.slice(0, 4).flatMap(({ drugId }) => {
+  const drug = drugById(drugId);
+  return [drug.name, drug.brand].filter((name) => typeof name === "string" &&
+    /^[\p{L}\p{N}][\p{L}\p{N} .()/'’+,-]{0,139}$/u.test(name));
+}));
+const paperKey = computed(() => JSON.stringify([paperTerm.value, paperDrugs.value]));
 const literature = ref({});
-const currentLiterature = computed(() => literature.value[paperTerm.value]);
+const currentLiterature = computed(() => literature.value[paperKey.value]);
+async function supplementAbstracts(papers, signal) {
+  const missing = papers.filter(({ publicAbstract }) => !publicAbstract);
+  const pmids = missing.flatMap(({ pmid }) => /^\d{1,10}$/.test(pmid || "") ? [pmid] : []);
+  const dois = missing.flatMap(({ pmid, doi }) =>
+    !pmid && /^10\.\d{4,9}\/[a-z0-9._;()/+:-]{1,140}$/i.test(doi || "") ? [doi] : []);
+  if (!pmids.length && !dois.length) return;
+  try {
+    const { rows } = await loadSupplement("literature-abstracts", { pmids, dois }, signal);
+    for (const paper of missing) {
+      const sameVersion = rows.find((row) => (paper.pmid && row.pmid === paper.pmid) ||
+        (paper.doi && row.doi === paper.doi));
+      if (sameVersion?.publicAbstract) paper.publicAbstract = sameVersion.publicAbstract;
+      paper.abstractSource ||= sameVersion?.abstractSource;
+    }
+  } catch {
+    // Metadata and abstracts from the initial search remain available.
+  }
+}
 async function loadLiterature() {
   const term = paperTerm.value;
-  if (!term || literature.value[term]?.state === "loading") return;
-  literature.value[term] = { state: "loading" };
+  const key = paperKey.value;
+  const drugs = paperDrugs.value;
+  if (!term || Object.values(literature.value).some(({ state }) => state === "loading")) return;
+  literature.value[key] = { state: "loading" };
   const abort = new AbortController();
   documentControllers.add(abort);
-  const timeout = setTimeout(() => abort.abort(), 15000);
+  const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15000)]);
   try {
-    const response = displayLiterature(await loadSupplement("pubmed-literature", { term }, abort.signal), term);
-    literature.value[term] = { state: "loaded", ...response };
-  } catch {
-    literature.value[term] = { state: "error" };
+    const response = displayAssayLiterature(await loadSupplement("assay-literature", { term, drugs }, signal), term, drugs);
+    literature.value[key] = { ...response, state: "loaded" };
+    await supplementAbstracts(literature.value[key].papers, AbortSignal.any([abort.signal, AbortSignal.timeout(5000)]));
+  } catch (error) {
+    if (abort.signal.aborted) return;
+    literature.value[key] = {
+      state: "error",
+      code: signal.aborted || error.name === "TimeoutError" ? "timeout" : error.message,
+    };
   } finally {
-    clearTimeout(timeout);
     documentControllers.delete(abort);
   }
 }
@@ -313,6 +365,15 @@ function toggleDocuments(key, event) {
   expandedDocuments.value[key] = !expandedDocuments.value[key];
   nextTick(() => animateElement(element, getPanelEnterKeyframes(2)));
 }
+const cdeCopyState = ref({});
+async function copyCdeKeyword(drug) {
+  try {
+    await navigator.clipboard.writeText(chineseDrugName(drug.name) || drug.name);
+    cdeCopyState.value[drug.id] = "copied";
+  } catch {
+    cdeCopyState.value[drug.id] = "manual";
+  }
+}
 function chooseCombination(key) {
   activeKey.value = key;
   nextTick(() => animateElement(drugPanel.value, getPanelEnterKeyframes(4)));
@@ -445,12 +506,13 @@ async function loadDocuments(drug) {
 </script>
 
 <template>
-  <div class="target-assay-page">
+  <div class="target-assay-page morph-header-v1" :class="{ 'is-header-morphed': isHeaderMorphed }">
     <ToolTopbar
       :title="c.title"
       :language="locale"
       :language-label="c.language"
       :home-label="c.home"
+      :is-morphed="isHeaderMorphed"
       @set-language="setLocale"
     />
     <MobileToolHeader
@@ -468,10 +530,8 @@ async function loadDocuments(drug) {
     />
     <main class="ta-container">
       <header class="ta-intro">
-        <RouterLink to="/learn/" class="ta-back">
-          ← {{ locale === "zh" ? "全部探索" : "All Explore" }}
-        </RouterLink>
         <h1>{{ c.title }}</h1>
+        <span ref="headerMorphTrigger" class="ta-header-trigger" aria-hidden="true"></span>
       </header>
       <section class="ta-input ta-panel" :aria-label="c.inputTitle">
         <form @submit.prevent="submit">
@@ -511,6 +571,10 @@ async function loadDocuments(drug) {
       <section class="ta-panel ta-overview" :aria-busy="loading">
         <div class="ta-section-heading ta-mechanism-heading">
           <h2>{{ c.mechanismTypes }}</h2>
+          <div class="ta-literature-actions">
+            <button type="button" class="ta-planned" disabled>{{ c.mechanism.ai }}</button>
+            <button type="button" class="ta-planned" disabled>{{ c.assayOptions }}</button>
+          </div>
         </div>
         <MechanismEvidence :result="mechanismResult" :locale="locale" :stage-label="stageLabel" :drug-presentation="drugPresentation" :matches="resultGroups[0].matches" />
       </section>
@@ -551,7 +615,7 @@ async function loadDocuments(drug) {
                 result.combinations.find((item) => item.key === combo.key).matches.length
               }}</span>
             </button>
-            <button type="button" :aria-pressed="showCandidates" @click="chooseCombination(candidateView)">
+            <button type="button" :aria-pressed="showCandidates" @click="chooseCombination(active.key + candidateView)">
               <span>{{ c.mechanism.candidates }}</span><span class="ta-count">({{ additionalCandidates.length }})</span>
             </button>
           </nav>
@@ -563,7 +627,7 @@ async function loadDocuments(drug) {
               </div>
               <CandidateDrugTable
                 v-if="additionalCandidates.length"
-                :key="mechanismResult?.retrievedAt || active.key"
+                :key="active.key + (mechanismResult?.retrievedAt || '')"
                 :candidates="additionalCandidates"
                 :mechanisms="mechanismResult?.drugMechanisms || []"
                 :copy="c.mechanism"
@@ -597,9 +661,7 @@ async function loadDocuments(drug) {
                 <p class="ta-drug-targets">
                   <span>{{ targetNames(drugById(match.drugId).targetIds) }}</span>
                   <span v-if="match.matchType !== 'reported'" class="ta-status-item">
-                    <span aria-hidden="true">·</span>{{ match.matchType === "direct"
-                      ? (match.reason === "additional_direct_targets" ? c.directAdditionalTargets : c.directScopePending)
-                      : c.exactBadge }}
+                    <span aria-hidden="true">·</span>{{ c.exactBadge }}
                   </span>
                   <span v-if="drugPresentation[match.drugId].earliest" class="ta-status-item">
                     <span aria-hidden="true">·</span>{{ c.drugCard.firstApproval }}
@@ -708,7 +770,6 @@ async function loadDocuments(drug) {
                     {{ c.fdaEmpty }}
                   </p>
                   <div
-                    v-if="otherSources(drugById(match.drugId), reviewLists[match.drugId]).length"
                     class="ta-evidence-group"
                   >
                     <h5>{{ locale === "zh" ? "其他数据来源" : "Other data sources" }}</h5>
@@ -720,7 +781,13 @@ async function loadDocuments(drug) {
                         target="_blank"
                         rel="noopener noreferrer"
                       >{{ source.title }} ↗</a>
+                      <a href="https://www.cde.org.cn/main/xxgk/listpage/b40868b5e21c038a6aa8b4319d21b07d" target="_blank" rel="noopener noreferrer">{{ locale === "zh" ? "CDE 上市药品信息查询" : "CDE marketed drug lookup" }} ↗</a>
+                      <button type="button" class="ta-text-button" @click="copyCdeKeyword(drugById(match.drugId))">{{ locale === "zh" ? "复制检索关键词" : "Copy search term" }}</button>
                     </div>
+                    <small v-if="cdeCopyState[match.drugId]" role="status">
+                      {{ cdeCopyState[match.drugId] === "copied" ? (locale === "zh" ? "已复制" : "Copied") : (locale === "zh" ? "检索关键词" : "Search term") }}
+                      · {{ chineseDrugName(drugById(match.drugId).name) || drugById(match.drugId).name }}
+                    </small>
                   </div>
                 </details>
                 <section class="ta-evidence ta-development">
@@ -785,10 +852,16 @@ async function loadDocuments(drug) {
           </div>
         </div>
       </section>
+      <section class="ta-literature ta-panel" aria-labelledby="investigational-title">
+        <InvestigationalDrugs
+          :catalog="data" :combinations="resultGroups" :locale="locale" :stage-label="stageLabel"
+          :discovery="mechanismResult" :searching="loading" :search-error="Boolean(error)" @discover="submit"
+        />
+      </section>
       <section class="ta-literature ta-panel" aria-labelledby="literature-title">
         <div class="ta-section-heading">
           <h2 id="literature-title">{{ c.literatureTitle }}</h2>
-          <span>PubMed · {{ targetNames(active.targetIds) }}</span>
+          <span>PubMed · Europe PMC · OpenAlex · {{ targetNames(active.targetIds) }}</span>
         </div>
         <p class="ta-literature-intro">
           {{ c.literatureHelp }}
@@ -799,17 +872,23 @@ async function loadDocuments(drug) {
             <button
               type="button"
               class="ta-primary"
-              :disabled="currentLiterature?.state === 'loading'"
+              :disabled="Object.values(literature).some(({ state }) => state === 'loading')"
               @click="loadLiterature"
             >
-              {{ currentLiterature?.state === "loading" ? c.searching : c.literatureSearch }}
+              {{ currentLiterature?.state === "loading" ? c.searching :
+                currentLiterature?.state === "error" ? c.literatureRetry : c.literatureSearch }}
             </button>
           </div>
-          <p v-if="currentLiterature?.state === 'error'" role="alert">{{ c.literatureError }}</p>
+          <p v-if="currentLiterature?.state === 'error'" role="alert">
+            {{ c.literatureErrors[currentLiterature.code] || c.literatureError }}
+          </p>
           <template v-if="currentLiterature?.state === 'loaded'">
-            <p v-if="currentLiterature.truncated">{{ coverageLabel }}</p>
+            <p v-for="(issue, source) in currentLiterature.issues" :key="source" role="status">
+              {{ source }} · {{ c.literatureErrors[issue] || c.literatureError }}
+            </p>
+            <button v-if="Object.keys(currentLiterature.issues).length" type="button" class="ta-primary" @click="loadLiterature">{{ c.literatureRetry }}</button>
             <p v-if="!currentLiterature.papers.length">{{ c.literatureEmpty }}</p>
-            <div v-else class="ta-paper-list">
+            <div v-else :key="paperKey" class="ta-paper-list">
               <article v-for="paper in currentLiterature.papers" :key="paper.id" class="ta-paper">
                 <header class="ta-paper-header">
                   <h3>
@@ -817,33 +896,40 @@ async function loadDocuments(drug) {
                   </h3>
                   <p class="ta-paper-meta">
                     {{
-                      [paper.journal, paper.year, c.mechanism.publication[paper.publicationKind], "PMID " + paper.id].filter(Boolean).join(" · ")
+                      [paper.sources?.join(" / ") || paper.source, paper.journal, paper.year, paper.pmid ? "PMID " + paper.pmid : paper.pmcid].filter(Boolean).join(" · ")
                     }}
                   </p>
                 </header>
-                <p v-if="paper.excerpt" class="ta-paper-excerpt">
-                  <strong>{{ c.literatureKinds[paper.kind] }}</strong>
-                  <span>{{ paper.excerpt }}</span>
-                </p>
-                <div v-if="paper.fullText" class="ta-literature-actions">
-                  <a
-                    class="ta-literature-link"
-                    :href="paper.fullText"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >{{ c.literatureFullText }} ↗</a>
+                <div class="ta-paper-links">
+                  <a v-if="paper.doi" :href="'https://doi.org/' + encodeURI(paper.doi)" target="_blank" rel="noopener noreferrer">DOI {{ paper.doi }} ↗</a>
+                  <a v-if="paper.fullText" :href="paper.fullText" target="_blank" rel="noopener noreferrer">{{ c.literatureFullText }} ↗</a>
+                  <a v-for="version in paper.preprints" :key="version.url" :href="version.url" target="_blank" rel="noopener noreferrer">{{ locale === "zh" ? "预印本" : "Preprint" }} ↗</a>
                 </div>
+                <details v-if="paper.publicAbstract" class="ta-paper-excerpt">
+                  <summary><span class="ta-expand-abstract">{{ locale === "zh" ? "展开摘要" : "Show abstract" }}</span><span class="ta-collapse-abstract">{{ locale === "zh" ? "收起摘要" : "Hide abstract" }}</span></summary>
+                  <p v-if="paper.publicAbstract.preprint" class="ta-paper-meta">{{ locale === "zh" ? "预印本摘要" : "Preprint abstract" }}</p>
+                  <p>{{ paper.publicAbstract.text }}</p>
+                  <a :href="paper.publicAbstract.url" target="_blank" rel="noopener noreferrer">{{ paper.publicAbstract.source }} ↗</a>
+                  · <a v-if="paper.publicAbstract.license.url" :href="paper.publicAbstract.license.url" target="_blank" rel="noopener noreferrer">{{ paper.publicAbstract.license.label }}</a>
+                  <span v-else>{{ paper.publicAbstract.license.label }}</span>
+                </details>
+                <a
+                  v-if="paper.abstractSource && (!paper.publicAbstract || paper.publicAbstract.preprint)" class="ta-paper-meta" :href="paper.abstractSource.url"
+                  target="_blank" rel="noopener noreferrer"
+                >
+                  {{ locale === "zh" ? "在来源网站查看摘要" : "Read abstract at source" }} · {{ paper.abstractSource.source }} ↗
+                </a>
               </article>
             </div>
-            <div class="ta-literature-actions">
-              <a
-                class="ta-literature-link"
-                :href="currentLiterature.url"
-                target="_blank"
-                rel="noopener noreferrer"
-              >{{ c.literatureAll }} ↗</a>
-            </div>
           </template>
+          <div v-if="['loaded', 'error'].includes(currentLiterature?.state)" class="ta-literature-actions">
+            <a
+              class="ta-literature-link"
+              :href="literatureSearchUrl(paperTerm)"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ c.literatureAll }} ↗</a>
+          </div>
         </div>
       </section>
       <SiteFooter />
@@ -881,30 +967,28 @@ async function loadDocuments(drug) {
   --ta-field-gap: 8px;
   --ta-row-gap: 12px;
   --ta-group-gap: 16px;
-  --ta-panel-gap: 24px;
+  --ta-drug-spacing: 24px;
   display: grid;
-  gap: var(--ta-panel-gap);
+  gap: 12px;
   width: min(var(--bc-content-max, 1120px), calc(100% - var(--bc-container-inline, 48px)));
   margin: 0 auto;
-  padding-top: 72px;
+  padding-top: calc(var(--topbar-sticky-height) + 10px);
 }
-.ta-intro {
-  display: grid;
-  gap: var(--ta-row-gap);
-  padding-block-start: 12px;
-}
-.ta-back {
-  font-size: 0.74rem;
-  text-decoration: none;
-  color: var(--app-muted);
-}
+.ta-intro { position: relative; padding: 4px 0 5px; }
+.ta-header-trigger { position: absolute; inset: auto auto 0 0; width: 1px; height: 1px; pointer-events: none; }
 .ta-intro h1 {
-  font-size: clamp(1.7rem, 2.4vw, 2.25rem);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.2;
   margin: 0;
+  font-size: clamp(1.5rem, 2.25vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1;
+  transform-origin: left center;
+  transition: opacity 280ms ease, transform 280ms ease;
 }
+.is-header-morphed .ta-intro h1 { opacity: 0; transform: translateY(-10px) scale(0.92); }
+@media (prefers-reduced-motion: reduce) {
+  .ta-intro h1 { transition: none; }
+}
+
 p {
   color: var(--app-muted);
   line-height: var(--ta-body-line);
@@ -1004,6 +1088,12 @@ a:focus-visible {
   outline: 2px solid var(--app-accent);
   outline-offset: 3px;
 }
+.ta-input-row textarea:focus {
+  border-color: var(--app-accent);
+  outline: 2px solid var(--app-accent);
+  outline-offset: -2px;
+  box-shadow: none;
+}
 .ta-primary {
   color: var(--app-accent);
   background: var(--app-accent-soft);
@@ -1028,6 +1118,7 @@ a:focus-visible {
 }
 .ta-input-hint {
   margin: 0;
+  font-size: 0.75rem;
 }
 .ta-error {
   border-left: 2px solid var(--app-accent);
@@ -1129,7 +1220,7 @@ a:focus-visible {
 .ta-drug {
   display: grid;
   gap: var(--ta-group-gap);
-  padding-block: calc(var(--ta-panel-gap) / 2);
+  padding-block: calc(var(--ta-drug-spacing) / 2);
   border-bottom: 1px solid var(--app-rule-subtle);
 }
 .ta-drug:last-child {
@@ -1182,6 +1273,8 @@ a:focus-visible {
 .ta-evidence {
   padding: var(--ta-card-padding);
   border-radius: 10px;
+}
+.ta-evidence:not(details) {
   background: var(--app-section);
 }
 .ta-activity { display: grid; gap: var(--ta-field-gap); }
@@ -1211,10 +1304,24 @@ a:focus-visible {
 .ta-literature-content > p {
   margin: 0;
 }
-.ta-paper-meta {
-  font-size: var(--ta-meta-size);
+.ta-paper-header h3 {
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
+.ta-paper-meta, .ta-paper > a, .ta-paper .ta-literature-link {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.ta-paper-links { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+.ta-paper-links:empty { display: none; }
+.ta-collapse-abstract, .ta-paper-excerpt[open] .ta-expand-abstract { display: none; }
+.ta-paper-excerpt[open] .ta-collapse-abstract { display: inline; }
+.ta-paper-excerpt > p { white-space: pre-line; margin-block: 6px; }
 .ta-paper-excerpt {
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
   display: grid;
   gap: 3px;
 }
@@ -1248,6 +1355,16 @@ a:focus-visible {
 }
 .ta-mechanism-heading > * {
   min-width: 0;
+}
+.ta-planned {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--app-rule);
+  border-radius: 8px;
+  background: var(--app-section);
+  color: var(--app-muted);
+  font: inherit;
+  font-size: var(--ta-meta-size);
 }
 .ta-overview { display: grid; gap: var(--ta-group-gap); }
 .ta-approvals {
@@ -1324,34 +1441,31 @@ details.ta-evidence {
   margin: 0;
   padding: 0;
 }
-.ta-document { padding: 4px 8px; min-width: 0; overflow-wrap: anywhere; }
+.ta-document { padding: 0; min-width: 0; overflow-wrap: anywhere; }
 .ta-document a {
   overflow-wrap: anywhere;
-  font-size: var(--ta-body-size);
-  line-height: var(--ta-body-line);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  font-weight: 400;
 }
 .ta-document small {
   display: block;
   color: var(--app-muted);
   font-size: var(--ta-meta-size);
 }
-.ta-document-overview {
-  background: var(--app-accent-soft);
-  border-radius: 6px;
-  margin: 5px 0;
-}
-.ta-document-overview { padding: 8px 10px; }
-.ta-document-overview a {
-  font-weight: 600;
+.ta-document-list { display: grid; gap: var(--ta-field-gap) 16px; }
+.ta-evidence-group .ta-source-links { align-items: baseline; }
+.ta-evidence-group small { color: var(--app-muted); font-size: 0.75rem; }
+.ta-evidence-group .ta-source-links a, .ta-evidence-group .ta-source-links button {
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 .ta-fda-documents {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 12px;
+  gap: var(--ta-field-gap) 16px;
 }
 .ta-document-overview, .ta-document-package { grid-column: 1 / -1; }
-.ta-document:not(.ta-document-overview) { border-bottom: 1px solid var(--app-rule-subtle); }
-.ta-document-package a { font-weight: 600; }
 .ta-evidence-group h5, .ta-development h4 { font-size: var(--ta-subheading-size); }
 .ta-development {
   display: grid;
@@ -1419,16 +1533,22 @@ details.ta-evidence {
     margin-inline: auto;
   }
   .ta-container {
-    --ta-panel-gap: 20px;
-    padding-top: 20px;
+    --ta-drug-spacing: 20px;
+    padding-top: 12px;
   }
-  .ta-intro h1 {
-    font-size: 1.75rem;
+  .ta-intro {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    padding: 0;
   }
   .ta-fda-documents { grid-template-columns: minmax(0, 1fr); }
   .ta-panel {
     padding: 18px 14px;
   }
+  .ta-input-row > .ta-primary { min-height: 46px; }
   .ta-input-row {
     flex-direction: column;
     gap: 8px;

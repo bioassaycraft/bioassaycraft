@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sampleCatalog } from "../src/lib/target-to-assay/catalog.js";
 import { searchDrugs } from "../src/lib/target-to-assay/search.js";
 import { reviewFdaLabels } from "../src/lib/target-to-assay/candidate-review.js";
 import { queryMechanisms } from "../src/lib/target-to-assay/live-mechanisms.js";
@@ -106,8 +107,8 @@ describe("direct target evidence and complete scope", () => {
     (complex, subunits, label) => {
       const records = subunits.map((id) => component(id));
       expect(search([complex], records, undefined, [complex.id]).matches).toHaveLength(0);
-      expect(search([complex], [component(subunits[0], label)]).matches[0]).toMatchObject({
-        matchType: "direct",
+      expect(search([complex], [component(subunits[0], label)]).candidates[0]).toMatchObject({
+        state: "unverified",
         reason: "scope_not_established",
       });
       expect(
@@ -328,8 +329,8 @@ it.each(["PDCD1", "MS4A1", "PCSK9"])("separates direct %s evidence from complete
   const queried = target(id);
   const records = [row([id])];
   expect(search([queried], records)).toMatchObject({
-    matches: [{ drugId: "CHEMBL123", matchType: "direct", reason: "scope_not_established" }],
-    candidates: [],
+    matches: [],
+    candidates: [{ drugId: "CHEMBL123", state: "unverified", reason: "scope_not_established", supported: [id] }],
   });
   expect(search([queried], [row([id], { role: "unverified" })]).matches).toEqual([]);
   expect(search([queried], [row([id], { actionType: "AGONIST" }),
@@ -353,8 +354,35 @@ it("uses one partition for the three PD-1 aliases and excludes indirect or propo
     const [combo] = searchDrugs({ targets: alias, matchMode: "verified_scope", includeClinical: true },
       { targets: [target("PDCD1")], sources: [], drugs: [...drugs, indirect, proposed] }).combinations;
     expect(combo.targetIds).toEqual(["PDCD1"]);
-    expect(combo.matches.map(({ drugId, matchType }) => [drugId, matchType]))
-      .toEqual(drugs.map(({ id }) => [id, "direct"]));
-    expect(combo.candidates.map(({ drugId }) => drugId)).toEqual(["indirect", "proposed"]);
+    expect(combo.matches).toEqual([]);
+    expect(combo.candidates).toMatchObject([
+      ...drugs.map(({ id }) => ({ drugId: id, state: "unverified", reason: "scope_not_established" })),
+      { drugId: "indirect", reason: "non_direct_relationship" },
+      { drugId: "proposed", reason: "no_direct_evidence" },
+    ]);
   }
+});
+
+it("keeps reviewed CD3 bispecifics out of single-target groups and keeps the complete groups order-independent", () => {
+  const lookup = (targets) => searchDrugs({ targets, matchMode: "verified_scope" }, sampleCatalog).combinations.at(-1);
+  expect(lookup("CD3").matches).toEqual([]);
+  expect(lookup("CD3").candidates).toEqual(expect.arrayContaining([
+    ["blinatumomab", "CD19"], ["mosunetuzumab-axgb", "CD20"], ["glofitamab-gxbm", "CD20"],
+  ].map(([drugId, partner]) => ({
+    drugId, state: "other", reason: "additional_direct_targets", supported: ["CD3"], extra: [partner],
+  }))));
+  expect(lookup("CD20").matches).toContainEqual({ drugId: "rituximab", matchType: "exact" });
+  expect(lookup("CD20").candidates.map(({ drugId }) => drugId)).toContain("mosunetuzumab-axgb");
+  expect(lookup("CD20 × CD3")).toEqual(lookup("CD3 × CD20"));
+  expect(lookup("CD20 × CD3").matches).toContainEqual({ drugId: "glofitamab-gxbm", matchType: "exact" });
+  expect(lookup("CD19 × CD3").matches).toContainEqual({ drugId: "blinatumomab", matchType: "exact" });
+  expect(lookup("CD3 × CD19 × CD20").matches).toEqual([]);
+});
+
+it("keeps independent TL1A and OSMR records outside the complete combination", () => {
+  const targets = [target("TNFSF15", { aliases: ["TL1A"] }), target("OSMR")];
+  expect(search(targets, [row(["TL1A"]), row(["OSMR"])], ["TL1A", "OSMR"])).toMatchObject({
+    matches: [],
+    candidates: [{ state: "unverified", reason: "scope_not_established", supported: ["OSMR", "TNFSF15"] }],
+  });
 });

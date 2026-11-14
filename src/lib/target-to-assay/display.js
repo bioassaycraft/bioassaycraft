@@ -107,6 +107,9 @@ export const ingredientKey = (name) =>
       "",
     );
 
+export const chineseDrugName = (name) => Object.hasOwn(chineseDrugNames, ingredientKey(name))
+  ? chineseDrugNames[ingredientKey(name)] : null;
+
 export function drugHeadingName(name, locale) {
   const display = drugDisplayName(name);
   const key = ingredientKey(name);

@@ -23,14 +23,22 @@ const termKey = (text) => text.trim().replace(/\.$/, "").toLowerCase();
 
 const rows = computed(() => props.candidates.slice(0, limit.value).map(({ drug, status, url }) => {
   const records = props.mechanisms.filter(({ drugId }) => drugId === drug.id);
-  const conflicts = new Set(records.filter(({ evidenceStatus }) => evidenceStatus === "conflicting_evidence")
-    .map(({ mechanismDescription }) => termKey(mechanismDescription)));
+  const conflictRecords = (drug.normalizedTargetEvidence || []).filter(({ role }) => role === "direct");
+  const conflictingSources = status === "conflictingMatch" ? conflictRecords.flatMap((record) => {
+    const references = (record.references || []).flatMap(({ urls }) => urls || []);
+    return [...references, record.originalUrl, record.sourceUrl]
+      .filter((link) => typeof link === "string" && /^https:\/\//i.test(link) && URL.canParse(link));
+  }) : [];
   const evidence = new Map();
-  for (const record of [...records, ...(drug.mechanismRecords || [])]) {
+  const curated = drug.verification === "reviewed"
+    ? (drug.mechanisms || []).map((text) => ({ text, targetIds: drug.targetIds,
+      sources: url ? [{ originalUrl: url }] : [] }))
+    : [];
+  for (const record of [...records, ...(drug.mechanismRecords || []), ...curated]) {
     const original = record.mechanismDescription || record.text;
     if (!original?.trim()) continue;
     const key = termKey(original);
-    if (conflicts.has(key) || evidence.has(key) || record.actionType === "OTHER") continue;
+    if (evidence.has(key) || record.actionType === "OTHER") continue;
     evidence.set(key, {
       ...bilingualMechanism("", original, record.sources?.[0], translations.get(key)),
       binding: record.actionType === "BINDING AGENT" || key.endsWith(" binding agent"),
@@ -56,6 +64,7 @@ const rows = computed(() => props.candidates.slice(0, limit.value).map(({ drug, 
   const names = [...targets].map((id) => id === "MS4A1" ? "CD20 (MS4A1)" : id);
   return {
     id: drug.id, name: drugDisplayName(drug.name), status, url,
+    conflictingSources: [...new Set(conflictingSources)].map((url) => ({ url, label: new URL(url).hostname })),
     targets: names.join(" · "),
     antigen: adc && names.length > 0 && mechanisms.some((entry) =>
       entry.binding && entry.targetIds.some((id) => targets.has(id))),
@@ -86,6 +95,9 @@ const rows = computed(() => props.candidates.slice(0, limit.value).map(({ drug, 
           <div><span v-if="row.antigen">{{ copy.antigen }} · </span>{{ row.targets || copy.noCandidateTarget }}</div>
           <div v-if="row.payload">{{ copy.payload }} · {{ row.payload }}</div>
           <small>{{ copy[row.status] }}</small>
+          <div v-for="{ url, label } in row.conflictingSources" :key="url">
+            <a :href="url" target="_blank" rel="noopener noreferrer">{{ label }} ↗</a>
+          </div>
         </td>
         <td role="cell">
           <span class="ta-candidate-mobile-label" aria-hidden="true">{{ copy.candidateMoa }}</span>

@@ -134,6 +134,9 @@ const phaseStages = new Map([
   ["PHASE2", "PHASE_2"], ["PHASE2/PHASE3", "PHASE_2_3"], ["PHASE3", "PHASE_3"],
 ]);
 const phaseOrder = [...phaseStages.keys()];
+function studyPhase(phases = []) {
+  return phaseStages.get(phases.filter((phase) => phase !== "NA").sort().join("/")) || null;
+}
 const indicationAliases = new Map([
   ["es sclc", "extensive stage small cell lung cancer"],
   ["extensive stage small cell lung carcinoma", "extensive stage small cell lung cancer"],
@@ -150,7 +153,7 @@ function indicationKey(label) {
 }
 const broadCondition = /^(cancer|neoplasms?|solid tumou?rs?|advanced solid tumou?rs?|malignanc(y|ies)|healthy (volunteers|subjects))$/i;
 
-export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch } = {}) {
+export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch, includeStudyRecords = false } = {}) {
   const terms = [...new Set([drug.name, drug.brand, ...(drug.aliases || [])]
     .filter(Boolean).map(ingredientKey))].slice(0, 6);
   const query = terms.map((term) => `"${term}"`).join(" OR ");
@@ -158,6 +161,8 @@ export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch } 
     "query.intr": query, pageSize: "25",
     fields: "NCTId,Condition,Phase,LeadSponsorName,StudyType,InterventionName,InterventionOtherName,InterventionType",
   });
+  if (includeStudyRecords) params.set("fields", params.get("fields") +
+    ",BriefTitle,OverallStatus,LastUpdatePostDate,StartDate,CompletionDate,CollaboratorName,BriefSummary");
   const studies = new Map();
   let next;
   for (let page = 0; page < 3; page++) {
@@ -174,7 +179,11 @@ export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch } 
       const matches = interventions.filter((entry) => [entry.name, ...(entry.otherNames || [])]
         .some((name) => typeof name === "string" && terms.includes(ingredientKey(name))));
       if (!matches.length) continue;
-      studies.set(id, { study, attributable: matches.length === interventions.length });
+      const attributable = includeStudyRecords
+        ? matches.length === interventions.length && new Set(matches.map(({ name }) => ingredientKey(name))).size === 1 &&
+          !matches.some(({ name }) => /\s(?:plus|with|and)\s|\+|\//i.test(name))
+        : matches.length === interventions.length;
+      studies.set(id, { study, attributable, matches });
     }
     if (next && next === payload.nextPageToken) break;
     next = payload.nextPageToken;
@@ -205,6 +214,22 @@ export async function fetchDevelopmentProfile(drug, { signal, fetcher = fetch } 
   const ranked = (map) => [...map.values()].sort((a, b) =>
     b.count - a.count || a.label.localeCompare(b.label, "en")).map(({ label }) => label);
   return {
+    ...(includeStudyRecords ? { studies: [...studies].map(([id, { study, attributable, matches }]) => ({
+      id,
+      title: study.identificationModule.briefTitle,
+      interventionNames: [...new Set(matches.flatMap(({ name, otherNames }) => [name, ...(otherNames || [])]))],
+      startedAt: study.statusModule?.startDateStruct?.date,
+      completedAt: study.statusModule?.completionDateStruct?.date,
+      collaborators: study.sponsorCollaboratorsModule?.collaborators?.map(({ name }) => name) || [],
+      summary: study.descriptionModule?.briefSummary?.slice(0, 700),
+      phase: studyPhase(study.designModule.phases),
+      status: study.statusModule?.overallStatus || "UNKNOWN",
+      updatedAt: study.statusModule?.lastUpdatePostDateStruct?.date,
+      conditions: study.conditionsModule?.conditions || [],
+      sponsor: study.sponsorCollaboratorsModule?.leadSponsor?.name,
+      combined: !attributable,
+      url: "https://clinicaltrials.gov/study/" + id,
+    })) } : {}),
     highestTrialPhase: phaseStages.get(phaseOrder[highest]) || null,
     sponsors: ranked(sponsors).slice(0, 3),
     researchIndications: ranked(conditions).slice(0, 3),

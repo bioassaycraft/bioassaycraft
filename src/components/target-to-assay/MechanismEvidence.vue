@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { pd1Blockade } from "../../lib/target-to-assay/presentation.js";
-import { expressionLayers, expressionName } from "../../lib/target-to-assay/expression-display.js";
+import { expressionLayers, expressionName, formatExpression } from "../../lib/target-to-assay/expression-display.js";
 import {
   bilingualMechanism,
   reviewedMechanism,
@@ -129,19 +129,29 @@ const conclusion = computed(() => {
 const sentences = new Intl.Segmenter("en", { granularity: "sentence" });
 const expressionCopy = computed(() => props.locale === "zh" ? {
   cells: "主要表达细胞", disease: "疾病组织表达", noDirect: "暂无直接疾病组织表达证据。",
-  cd3: "T 细胞相关的受体复合物（定性证据）。", regulatoryProtein: "蛋白 · 监管产品资料",
+  cd3: "T 细胞相关的受体复合物（定性证据）。",
   noAssociation: "本次未取得疾病关联记录。",
   otherTissues: "组织层面记录",
   bulkLimit: "肿瘤组织混合样本 RNA，无法确定信号是否来自肿瘤细胞。",
   limits: "RNA 读数不代表细胞表面蛋白表达；nCPM 与 nTPM 不直接比较。未核实译名保留原文。",
 } : {
   cells: "Main expressing cells", disease: "Expression in diseased tissue", noDirect: "No direct evidence of expression in diseased tissue.",
-  cd3: "T-cell receptor complex (qualitative evidence).", regulatoryProtein: "Protein · regulatory product information",
+  cd3: "T-cell receptor complex (qualitative evidence).",
   noAssociation: "No disease association retrieved.",
   otherTissues: "Tissue-level records",
   bulkLimit: "Bulk tumor tissue RNA cannot establish whether the signal comes from tumor cells.",
   limits: "RNA does not establish cell-surface protein expression. nCPM and nTPM are not directly comparable.",
 });
+const diseaseDisplay = {
+  "Blincyto · EPAR": {
+    zh: "B 细胞前体急性淋巴细胞白血病（白血病 B 系细胞有 CD19 蛋白表达证据）",
+    en: "B-cell precursor acute lymphoblastic leukemia (CD19 protein documented on leukemic B-lineage cells)",
+  },
+  "MabThera · SmPC §5.1": {
+    zh: "B 细胞非霍奇金淋巴瘤（有 CD20 表达记录，具体表达需按亚型或样本核实）",
+    en: "B-cell non-Hodgkin lymphoma (CD20 expression documented, with variation by subtype or specimen)",
+  },
+};
 function shortMechanism(value = "") {
   const text = value.replace(/^\s*12\.1\s+Mechanism of Action\s*/i, "");
   const first = [...sentences.segment(text)][0]?.segment.trim() || text;
@@ -157,11 +167,6 @@ function functionSummary(target) {
   const first = parts[0] || cleaned;
   return first.length <= 245 ? first : first.slice(0, 242).replace(/\s+\S*$/, "") + "…";
 }
-function expressionText(profile, limit = profile.values.length) {
-  return profile.values.slice(0, limit)
-    .map(({ name, value }) => [name, value, profile.unit].filter((item) => item !== "").join(" "))
-    .join(" · ");
-}
 const evidenceGroups = computed(() => {
   const biology = targets.value.flatMap((target) => {
     const source = target.biology?.biologicalFunctions[0]?.source;
@@ -173,10 +178,18 @@ const evidenceGroups = computed(() => {
     ];
   });
   const expression = targets.value.flatMap((target) => [
+    ...(target.id === "CD3" ? [{
+      source: { originalUrl: "https://www.ema.europa.eu/en/medicines/human/EPAR/blincyto", sourceName: "EMA", recordId: "Blincyto · EPAR" },
+      supports: expressionCopy.value.cd3,
+    }] : []),
+    ...(/^ENSG\d+$/.test(target.ensemblId || "") ? [{
+      source: { originalUrl: "https://www.bgee.org/gene/" + target.ensemblId, sourceName: "Bgee" },
+      supports: target.geneSymbol || target.id,
+    }] : []),
     ...(target.biology?.expressionProfiles || []).map((profile) => ({
       source: profile.source,
       supports:
-        target.id + " · " + copy.value.modalities[profile.kind] + " · " + expressionText(profile),
+        target.id + " · " + copy.value.modalities[profile.kind] + " · " + formatExpression(profile, props.locale),
     })),
     ...(target.biology?.diseaseExpression || []).map(({ source, description }) => ({
       source,
@@ -289,17 +302,16 @@ const queryTime = computed(() =>
               <h5>{{ expressionCopy.cells }}</h5>
               <p v-if="target.id === 'CD3'">
                 {{ expressionCopy.cd3 }}
-                <a href="https://www.ema.europa.eu/en/medicines/human/EPAR/blincyto" target="_blank" rel="noopener noreferrer">EMA ↗</a>
               </p>
               <p v-for="profile in target.baseline.filter(({ kind }) => kind === 'single_cell_rna' || kind === 'immune_rna')" :key="profile.kind">
-                <a :href="profile.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ copy.modalities[profile.kind] }}</a>
-                · <span v-for="(row, index) in profile.values" :key="row.name" :title="row.name">{{ index ? ' · ' : '' }}{{ expressionName(row.name, locale) }} {{ row.value }} {{ profile.unit }}</span>
+                <span>{{ copy.modalities[profile.kind] }}</span>
+                · <span>{{ profile.values.map(({ name }) => expressionName(name, locale)).join(locale === "zh" ? "、" : ", ") }}</span>
               </p>
               <details v-if="target.baseline.some(({ kind }) => kind === 'tissue_rna' || kind === 'tissue_protein')" class="ta-source-note">
                 <summary>{{ expressionCopy.otherTissues }}</summary>
                 <p v-for="profile in target.baseline.filter(({ kind }) => kind === 'tissue_rna' || kind === 'tissue_protein')" :key="profile.kind">
-                  <a :href="profile.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ copy.modalities[profile.kind] }}</a>
-                  · <span v-for="(row, index) in profile.values" :key="row.name" :title="row.name">{{ index ? ' · ' : '' }}{{ expressionName(row.name, locale) }} {{ row.value }} {{ profile.unit }}</span>
+                  <span>{{ copy.modalities[profile.kind] }}</span>
+                  · <span>{{ profile.values.map(({ name }) => expressionName(name, locale)).join(locale === "zh" ? "、" : ", ") }}</span>
                 </p>
               </details>
               <p v-if="!target.baseline.length" class="ta-source-note">{{ target.entityType === 'protein_complex' ? copy.complexExpression : copy.noExpression }}</p>
@@ -308,12 +320,11 @@ const queryTime = computed(() =>
               <h5>{{ expressionCopy.disease }}</h5>
               <p v-if="!target.biology?.diseaseExpression?.length" class="ta-source-note">{{ expressionCopy.noDirect }}</p>
               <p v-for="record in target.biology?.diseaseExpression || []" :key="record.source.recordId">
-                {{ expressionCopy.regulatoryProtein }} · {{ record.description[locale] }}
-                <a :href="record.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ record.source.sourceName }} ↗</a>
+                {{ diseaseDisplay[record.source.recordId]?.[locale] || record.description[locale] }}
               </p>
               <p v-for="profile in target.bulk" :key="profile.kind">
                 <a :href="profile.source.originalUrl" target="_blank" rel="noopener noreferrer">{{ copy.modalities[profile.kind] }}</a>
-                · <span v-for="(row, index) in profile.values" :key="row.name" :title="row.name">{{ index ? ' · ' : '' }}{{ expressionName(row.name, locale) }} {{ row.value }} {{ profile.unit }}</span>
+                · <span>{{ formatExpression(profile, locale) }}</span>
               </p>
               <p v-if="target.bulk.length" class="ta-source-note">{{ expressionCopy.bulkLimit }}</p>
             </section>
@@ -392,11 +403,15 @@ const queryTime = computed(() =>
                   ? [
                     ...new Set(
                       rows.map(
-                        ({ state, status, count, returned, truncated }) =>
-                          (copy.source[state] || state) +
+                        ({ state, status, count, returned, truncated, resource, queryType, issue, missingTargetMetadata, drugsWithoutMechanisms }) =>
+                          ([resource, queryType === "drug_mechanisms" ? copy.drugMechanism : null,
+                            copy.source[state] || state].filter(Boolean).join(" · ")) +
                           (status ? " · HTTP " + status : "") +
                           (Number.isInteger(count) ? ` · ${returned}/${count}` : "") +
-                          (truncated ? " · " + copy.truncated : ""),
+                          (truncated ? " · " + copy.truncated : "") +
+                          (issue ? " · " + (copy.source[issue.state] || issue.state) : "") +
+                          (missingTargetMetadata ? ` · ${copy.missingTargetMetadata} (${missingTargetMetadata})` : "") +
+                          (drugsWithoutMechanisms ? ` · ${copy.drugsWithoutMechanisms} (${drugsWithoutMechanisms})` : ""),
                       ),
                     ),
                   ].join(" / ")

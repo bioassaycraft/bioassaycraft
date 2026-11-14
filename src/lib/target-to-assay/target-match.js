@@ -264,7 +264,11 @@ export function prepareTargetMatch(drug, targets) {
     }
   }
   if (!drug.targetEvidence) {
-    for (const id of drug.verification === "imported" ? [] : drug.targetIds || []) direct.add(canonicalId(id));
+    for (const value of drug.targetIds || []) {
+      const id = canonicalId(value);
+      related.add(id);
+      if (drug.verification !== "imported") direct.add(id);
+    }
     // Legacy reviewed catalog rows intentionally enumerate their match scope.
     if (drug.verification !== "imported" && drug.targetSetComplete !== false && direct.size)
       complete.push(new Set(direct));
@@ -273,7 +277,7 @@ export function prepareTargetMatch(drug, targets) {
   return { direct, related, complete, conflicts, incompatible, evidence: normalized };
 }
 
-export function classifyTargetMatch(prepared, targetIds, { allowSingleDirect = false } = {}) {
+export function classifyTargetMatch(prepared, targetIds) {
   const { direct, related, complete, conflicts, incompatible, evidence } = prepared;
   const requested = new Set(targetIds);
   const supported = targetIds.filter((id) => direct.has(id));
@@ -284,8 +288,6 @@ export function classifyTargetMatch(prepared, targetIds, { allowSingleDirect = f
     return classified("conflict", "inconsistent_direct_evidence");
   if (complete.some((scope) => sameSet(scope, requested)))
     return classified("verified", "documented_complete_scope");
-  if (allowSingleDirect && requested.size === 1 && supported.length)
-    return classified("direct", extra.length ? "additional_direct_targets" : "scope_not_established");
   if (supported.length && supported.length < requested.size)
     return classified("partial", "missing_direct_target_evidence");
   if (extra.length && supported.length) return classified("other", "additional_direct_targets");

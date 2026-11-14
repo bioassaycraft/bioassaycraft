@@ -40,3 +40,11 @@ export function expressionLayers(profiles = []) {
     bulk: profiles.filter(({ kind }) => kind === "cancer_bulk_rna"),
   };
 }
+
+export function formatExpression(profile, locale) {
+  const chinese = locale === "zh";
+  return profile.values.map(({ name, value }) => {
+    const reading = [value, profile.unit].filter((item) => item !== "").join(" ");
+    return expressionName(name, locale) + (chinese ? `（${reading}）` : ` (${reading})`);
+  }).join(chinese ? "，" : ", ");
+}

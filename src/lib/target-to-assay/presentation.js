@@ -6,11 +6,12 @@ export const candidateView = ":candidates";
 export function explorerView(result, selected, presentation = {}) {
   const groups = researchGroups(result);
   const full = groups[0];
-  const showCandidates = selected === candidateView;
-  const active = (showCandidates ? full : groups.find(({ key }) => key === selected)) || full;
-  const exact = new Set(full.matches.map(({ drugId }) => drugId));
+  const showCandidates = selected.endsWith(candidateView);
+  const scope = showCandidates ? selected.slice(0, -candidateView.length) : selected;
+  const active = groups.find(({ key }) => key === scope) || full;
+  const exact = new Set(active.matches.map(({ drugId }) => drugId));
   const unique = new Map();
-  for (const match of full.candidates || []) {
+  for (const match of active.candidates || []) {
     if (!exact.has(match.drugId) && !unique.has(match.drugId)) unique.set(match.drugId, match);
   }
   return { groups, active, showCandidates, candidates: rankMatches([...unique.values()], presentation) };

@@ -147,3 +147,24 @@ it("uses only the existing PubMed endpoints and preserves search coverage and re
   });
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
+
+it.each([
+  ["TIMEOUT", () => { throw new DOMException("Timed out", "TimeoutError"); }, 504, "timeout"],
+  ["LIMIT", () => new Response(null, { status: 429 }), 429, "rate_limited"],
+  ["UPSTREAM", () => new Response(null, { status: 503 }), 502, "upstream_error"],
+  ["MALFORMED", () => json({ esearchresult: { idlist: null } }), 502, "parse_error"],
+])("reports PubMed failure %s with a distinct code", async (term, fetcher, status, code) => {
+  vi.stubGlobal("fetch", fetcher);
+  const response = await request("pubmed-literature", { term: `("${term}"[Title/Abstract])` });
+  expect(response.status).toBe(status);
+  expect(await response.json()).toEqual({ error: { source: "PubMed", code } });
+});
+
+it("returns an empty PubMed response without requesting EFetch", async () => {
+  const fetcher = vi.fn(async () => json({ esearchresult: { count: "0", idlist: [] } }));
+  vi.stubGlobal("fetch", fetcher);
+  const response = await request("pubmed-literature", { term: '("EMPTY FIXTURE"[Title/Abstract])' });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({ state: "success_empty", recordIds: [], xml: "" });
+  expect(fetcher).toHaveBeenCalledOnce();
+});

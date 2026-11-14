@@ -82,16 +82,14 @@ export function searchDrugs(input, data = catalog) {
     ...(evidenceMode
       ? (() => {
           const assessed = prepared.flatMap(([drug, record]) => {
-            const match = classifyTargetMatch(record, combo.targetIds, { allowSingleDirect: matchMode === "verified_scope" });
+            const match = classifyTargetMatch(record, combo.targetIds);
             return match ? [{ drugId: drug.id, ...match }] : [];
           });
           return {
             matches: assessed
-              .filter(({ state }) => state === "verified" || state === "direct")
-              .map(({ drugId, state, reason }) => state === "verified"
-                ? { drugId, matchType: "exact" }
-                : { drugId, matchType: "direct", reason }),
-            candidates: assessed.filter(({ state }) => state !== "verified" && state !== "direct"),
+              .filter(({ state }) => state === "verified")
+              .map(({ drugId }) => ({ drugId, matchType: "exact" })),
+            candidates: assessed.filter(({ state }) => state !== "verified"),
           };
         })()
       : {

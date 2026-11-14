@@ -219,7 +219,11 @@ export async function searchOnline(
       )
         throw new Error("unexpected_graphql_response");
       const rows = candidates?.rows || [];
-      return { rows, count: candidates?.count ?? rows.length };
+      const drugsWithoutMechanisms = new Set(rows.flatMap(({ drug }) =>
+        drug && !drug.mechanismsOfAction?.rows?.some(({ mechanismOfAction }) => mechanismOfAction)
+          ? [drug.id] : [],
+      )).size;
+      return { rows, count: candidates?.count ?? rows.length, drugsWithoutMechanisms };
     }),
   );
   const byId = new Map();
@@ -356,6 +360,7 @@ export async function searchOnline(
       ...(response.status === "rejected"
         ? providerIssue(response.reason)
         : {
+            drugsWithoutMechanisms: response.value.drugsWithoutMechanisms,
             count: response.value.count,
             returned: response.value.rows.length,
             truncated: response.value.count > response.value.rows.length,

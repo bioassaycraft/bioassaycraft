@@ -265,12 +265,13 @@ async function reviewChemblDrugs(drugs, targets, fetcher, signal) {
   const metadata = targetIds.length ? await chemblRows("target", { target_chembl_id__in: targetIds.join(",") },
     "targets", fetcher, signal) : { rows: [] };
   const byTarget = new Map(metadata.rows.map((row) => [row.target_chembl_id, row]));
+  const missingTargetMetadata = targetIds.filter((id) => !byTarget.has(id)).length;
   for (const { id, drug } of batch) {
     const evidence = records.filter((row) => row.molecule_chembl_id === id).map((row) => {
       const raw = byTarget.get(row.target_chembl_id);
       const accessions = new Set(raw?.target_components?.map(({ accession }) => accession) || []);
       const matches = targets.filter((target) => {
-        const complex = target.kind === "complex";
+        const complex = target.kind === "complex" || target.entityType === "protein_complex";
         const accepted = complex ? target.componentAccessions || [] : target.uniprotIds || [];
         return raw?.organism === "Homo sapiens" && accessions.size &&
           raw.target_type === (complex ? "PROTEIN COMPLEX" : "SINGLE PROTEIN") &&
@@ -288,6 +289,7 @@ async function reviewChemblDrugs(drugs, targets, fetcher, signal) {
         role: /\b(?:payload|cytotoxic warhead)\b/i.test(row.mechanism_of_action || "") ? "payload"
           : [false, 0].includes(row.direct_interaction) ? "indirect"
           : [true, 1].includes(row.direct_interaction) && matches.length === 1 ? "direct" : "unverified",
+        reportedDirectInteraction: row.direct_interaction,
         allowBindingAssertion: Boolean(row.mechanism_refs?.length),
         references: row.mechanism_refs,
       };
@@ -296,7 +298,8 @@ async function reviewChemblDrugs(drugs, targets, fetcher, signal) {
   }
   return { state: records.length ? "success_with_data" : "success_empty",
     queryType: "drug_mechanisms", count: selected.length, returned: batch.length,
-    truncated: selected.length > batch.length || page.truncated || metadata.truncated,
+    missingTargetMetadata,
+    truncated: selected.length > batch.length || page.truncated || metadata.truncated || missingTargetMetadata > 0,
     issue: page.issue || metadata.issue };
 }
 
@@ -528,6 +531,7 @@ export async function queryMechanisms(
       ) ||
       (sameName.length === 1 ? sameName[0] : null);
     if (prior) {
+      prior.externalIds = { ...prior.externalIds, chembl: molecule.molecule_chembl_id };
       prior.molecularFormat ||= molecule.molecule_type;
       prior.proposedTargetIds = [
         ...new Set([...(prior.proposedTargetIds || []), ...molecule.proposedTargetIds]),
@@ -799,9 +803,11 @@ export async function queryMechanisms(
               resources: chembl.coverage,
             },
             ...(chemblReview ? [chemblReview] : []),
-            ...(chembl.coverage || []).flatMap(({ resource, issue }) =>
-              issue ? [{ resource, ...issue }] : [],
-            ),
+            ...(chembl.coverage || []).map(({ resource, count, returned, truncated, issue }) => ({
+              resource, count, returned, truncated,
+              state: returned ? "success_with_data" : "success_empty",
+              ...issue,
+            })),
           ],
     "Open Targets": online.openTargetsChecks,
     FDA: [...fdaReview.checks, ...(fdaReview.truncated ? [{ state: "not_queried", truncated: true }] : [])],

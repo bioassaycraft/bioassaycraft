@@ -2,9 +2,12 @@ import { handleSupplement, supplementActions } from "./target-to-assay-supplemen
 import { fetchEmaApprovals } from "../lib/target-to-assay/approval-records.js";
 import { queryMechanisms } from "../lib/target-to-assay/live-mechanisms.js";
 import { catalog } from "../lib/target-to-assay/catalog.js";
+import { researchGroups } from "../lib/target-to-assay/research.js";
 import { SearchError, resolveTargets, searchDrugs } from "../lib/target-to-assay/search.js";
 
 let inFlightMechanismQueries = 0;
+let inFlightInvestigationalQueries = 0;
+const discoveryCache = new Map();
 const prefix = "/api/v1/target-to-assay/";
 const json = (value, status = 200, extra = {}) =>
   Response.json(value, {
@@ -15,7 +18,7 @@ const json = (value, status = 200, extra = {}) =>
 export async function handleTargetToAssay(request) {
   const path = new URL(request.url).pathname;
   const action = path.slice(prefix.length);
-  const expected = ["search", "resolve", "mechanisms", "ema-approvals", ...supplementActions].includes(action) ? "POST" : "GET";
+  const expected = ["search", "resolve", "mechanisms", "investigational-discovery", "ema-approvals", ...supplementActions].includes(action) ? "POST" : "GET";
   if (request.method !== expected)
     return json({ error: { code: "method_not_allowed" } }, 405, { Allow: expected });
   if (action === "meta")
@@ -31,7 +34,7 @@ export async function handleTargetToAssay(request) {
       ? json({ drug, source: catalog.sources.find((s) => s.id === drug.sourceId) })
       : json({ error: { code: "not_found" } }, 404);
   }
-  if (!["search", "resolve", "mechanisms", "ema-approvals", ...supplementActions].includes(action)) return json({ error: { code: "not_found" } }, 404);
+  if (!["search", "resolve", "mechanisms", "investigational-discovery", "ema-approvals", ...supplementActions].includes(action)) return json({ error: { code: "not_found" } }, 404);
   if (!request.headers.get("content-type")?.includes("application/json"))
     return json({ error: { code: "unsupported_media_type" } }, 415);
   // Bound the stream, including chunked requests without Content-Length.
@@ -68,6 +71,37 @@ export async function handleTargetToAssay(request) {
         return json({ records: await fetchEmaApprovals(names, { signal }) });
       } catch {
         return json({ error: { code: "ema_unavailable" } }, 502);
+      }
+    }
+    if (action === "investigational-discovery") {
+      const key = JSON.stringify(body);
+      const cached = discoveryCache.get(key);
+      if (cached?.expires > Date.now()) return json(cached.data);
+      if (inFlightInvestigationalQueries >= 2) return json({ error: { code: "busy" } }, 429);
+      inFlightInvestigationalQueries++;
+      try {
+        const signal = AbortSignal.any([request.signal, AbortSignal.timeout(22000)]);
+        const result = await queryMechanisms(body, { signal });
+        const resultCatalog = result.catalog;
+        const combinations = researchGroups(searchDrugs({ targets: result.resolvedTargets.map(({ id }) => id),
+          matchMode: "verified_scope", includeClinical: true }, resultCatalog))
+          .map(({ key, targetIds }) => ({ key, targetIds }));
+        const data = {
+          catalog: { ...resultCatalog, drugs: resultCatalog.drugs.map((drug) => {
+            const compact = { ...drug };
+            delete compact.normalizedTargetEvidence;
+            delete compact.mechanismRecords;
+            return compact;
+          }) },
+          combinations, sourceChecks: result.sourceChecks,
+        };
+        if (!result.partialFailures.length && !signal.aborted) {
+          discoveryCache.set(key, { data, expires: Date.now() + 300000 });
+          if (discoveryCache.size > 12) discoveryCache.delete(discoveryCache.keys().next().value);
+        }
+        return json(data);
+      } finally {
+        inFlightInvestigationalQueries--;
       }
     }
     if (action === "mechanisms") {

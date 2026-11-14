@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { candidateView, explorerView, fdaDocumentDisplay, pd1Blockade, regulatorGroups, uniqueIndications, visibleReviewDocuments } from "../src/lib/target-to-assay/presentation.js";
 import { evidenceFor } from "../src/lib/target-to-assay/evidence.js";
 
-it.each(["DLL3", "MS4A1", "TNFRSF17", "OSMR"])("keeps full-query candidates when switching from the %s view", (targetId) => {
+it.each(["DLL3", "MS4A1", "TNFRSF17", "OSMR"])("uses the selected scope for candidates in the %s view", (targetId) => {
   const candidate = { drugId: "partial", state: "partial" };
   const single = { key: targetId, targetIds: [targetId], matches: [{ drugId: "partial" }],
     candidates: [{ drugId: "single-only" }] };
@@ -14,7 +14,10 @@ it.each(["DLL3", "MS4A1", "TNFRSF17", "OSMR"])("keeps full-query candidates when
   expect(explorerView(result, candidateView)).toMatchObject({
     groups: [full, single], active: full, showCandidates: true, candidates: [candidate],
   });
-  expect(explorerView(result, targetId).showCandidates).toBe(false);
+  expect(explorerView(result, targetId)).toMatchObject({ active: single, showCandidates: false });
+  expect(explorerView(result, targetId + candidateView)).toMatchObject({
+    active: single, showCandidates: true, candidates: [{ drugId: "single-only" }],
+  });
 });
 
 it("keeps the single-target navigation independent of the user's PD-1 alias", () => {
