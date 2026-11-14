@@ -193,6 +193,14 @@ h2 {
   line-height: 1.24;
 }
 
+.desktop-learn-grid .desktop-card-copy {
+  max-width: none;
+}
+
+.desktop-learn-grid .desktop-card-copy strong {
+  overflow-wrap: anywhere;
+}
+
 .desktop-card-copy small {
   display: -webkit-box;
   overflow: hidden;

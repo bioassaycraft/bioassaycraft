@@ -20,7 +20,9 @@ export const modules = [
     listOrder: 4,
     category: "methodDevelopment",
     title: { zh: "探索靶点方法", en: "Target-to-Assay Explorer" },
-    homeTitle: { zh: "探索靶点方法", en: "Target-to-Assay Explorer" },
+    homeTitle: { zh: "探索靶点方法", en: "Explore Target-to-Assay" },
+    homeTitleLines: { zh: ["探索", "靶点方法"], en: ["Explore", "Target-to-Assay"] },
+    homeNote: { zh: "从靶点到活性方法", en: "From Targets to Bioassay" },
     description: {
       zh: "从靶点组合查找药物与证据。",
       en: "Find drugs and evidence through target combinations.",
@@ -59,8 +61,8 @@ export const modules = [
     listOrder: 2,
     category: "statisticalInference",
     title: { zh: "探索置信区间", en: "Explore Confidence Interval" },
-    homeTitle: { zh: "探索置信区间", en: "Explore CI" },
-    homeTitleLines: { zh: ["探索", "置信区间"], en: ["Explore", "CI"] },
+    homeTitle: { zh: "探索置信区间", en: "Explore Confidence Interval" },
+    homeTitleLines: { zh: ["探索", "置信区间"], en: ["Explore", "Confidence Interval"] },
     homeNote: {
       zh: "交互式置信区间可视化。",
       en: "Interactive confidence interval visualization.",
@@ -83,8 +85,8 @@ export const modules = [
     listOrder: 3,
     category: "errorDiagnostics",
     title: { zh: "探索残差分布", en: "Explore Residual Distribution" },
-    homeTitle: { zh: "探索残差分布", en: "Explore residuals" },
-    homeTitleLines: { zh: ["探索", "残差分布"], en: ["Explore", "residuals"] },
+    homeTitle: { zh: "探索残差分布", en: "Explore Residuals" },
+    homeTitleLines: { zh: ["探索", "残差分布"], en: ["Explore", "Residuals"] },
     homeNote: { zh: "探索拟合后的残差结构。", en: "Explore residual structure after fitting." },
     description: {
       zh: "通过残差诊断模型假设。",
@@ -103,8 +105,8 @@ export const modules = [
     listOrder: 5,
     category: "statisticalInference",
     title: { zh: "探索方法验证", en: "Explore Method Validation" },
-    homeTitle: { zh: "探索方法验证", en: "Explore validation" },
-    homeTitleLines: { zh: ["探索", "方法验证"], en: ["Explore", "validation"] },
+    homeTitle: { zh: "探索方法验证", en: "Explore Validation" },
+    homeTitleLines: { zh: ["探索", "方法验证"], en: ["Explore", "Validation"] },
     homeNote: { zh: "方法验证学习模块。", en: "Method validation learning." },
     description: {
       zh: "理解方法验证中的证据与判断。",

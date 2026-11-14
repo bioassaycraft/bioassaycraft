@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import TceCardPreview from "../components/target-to-assay/TceCardPreview.vue";
 import { useLocale } from "../utils/locale";
 import { getFeaturedModules, getLuckyModules, getModules } from "../config/modules";
 import { navigateWithViewTransition } from "../utils/view-transition";
@@ -208,10 +209,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section
-    class="notebook-home"
-    aria-labelledby="home-title"
-  >
+  <section class="notebook-home" aria-labelledby="home-title">
     <h1 id="home-title" class="home-page-title">BioassayCraft</h1>
 
     <section
@@ -256,7 +254,13 @@ onBeforeUnmount(() => {
                 <i v-if="item.ready" aria-hidden="true"></i>{{ mobileStatusLabel(item) }}
               </span>
               <span class="desktop-card-copy">
-                <strong>{{ itemTitle(item) }}</strong>
+                <strong>
+                  {{
+                    item.id === "target-to-assay-explorer"
+                      ? localizedValue(item.homeTitle)
+                      : itemTitle(item)
+                  }}
+                </strong>
                 <small>{{ itemNote(item) }}</small>
               </span>
               <span
@@ -283,8 +287,14 @@ onBeforeUnmount(() => {
               >
                 <svg viewBox="0 0 112 58" focusable="false">
                   <path class="preview-axis" d="M10 48h94" />
-                  <path class="preview-ci-band" d="M24 48C30 47 36 41 42 29c5-11 10-18 14-18s9 7 14 18c6 12 12 18 18 19Z" />
-                  <path class="preview-ci-curve" d="M10 48C27 47 34 40 42 29c5-11 10-18 14-18s9 7 14 18c8 11 15 18 32 19" />
+                  <path
+                    class="preview-ci-band"
+                    d="M24 48C30 47 36 41 42 29c5-11 10-18 14-18s9 7 14 18c6 12 12 18 18 19Z"
+                  />
+                  <path
+                    class="preview-ci-curve"
+                    d="M10 48C27 47 34 40 42 29c5-11 10-18 14-18s9 7 14 18c8 11 15 18 32 19"
+                  />
                   <path class="preview-ci-bound" d="M24 48V30" />
                   <path class="preview-ci-bound" d="M88 48V30" />
                   <path class="preview-ci-center" d="M56 14v34" />
@@ -307,6 +317,10 @@ onBeforeUnmount(() => {
                   <circle class="preview-residual-point" cx="92" cy="27" r="2.4" />
                 </svg>
               </span>
+              <TceCardPreview
+                v-if="item.id === 'target-to-assay-explorer'"
+                class="desktop-card-preview"
+              />
               <span v-if="item.href" class="desktop-card-arrow" aria-hidden="true">→</span>
             </component>
           </li>
@@ -419,8 +433,14 @@ onBeforeUnmount(() => {
             >
               <svg viewBox="0 0 112 58" focusable="false">
                 <path class="preview-axis" d="M10 48h94" />
-                <path class="preview-ci-band" d="M24 48C30 47 36 41 42 29c5-11 10-18 14-18s9 7 14 18c6 12 12 18 18 19Z" />
-                <path class="preview-ci-curve" d="M10 48C27 47 34 40 42 29c5-11 10-18 14-18s9 7 14 18c8 11 15 18 32 19" />
+                <path
+                  class="preview-ci-band"
+                  d="M24 48C30 47 36 41 42 29c5-11 10-18 14-18s9 7 14 18c6 12 12 18 18 19Z"
+                />
+                <path
+                  class="preview-ci-curve"
+                  d="M10 48C27 47 34 40 42 29c5-11 10-18 14-18s9 7 14 18c8 11 15 18 32 19"
+                />
                 <path class="preview-ci-bound" d="M24 48V30" />
                 <path class="preview-ci-bound" d="M88 48V30" />
                 <path class="preview-ci-center" d="M56 14v34" />
@@ -443,6 +463,10 @@ onBeforeUnmount(() => {
                 <circle class="preview-residual-point" cx="92" cy="27" r="2.4" />
               </svg>
             </span>
+            <TceCardPreview
+              v-if="item.id === 'target-to-assay-explorer'"
+              class="desktop-card-preview mobile-card-preview"
+            />
             <span v-if="item.href" class="mobile-card-arrow" aria-hidden="true">›</span>
           </component>
         </div>
