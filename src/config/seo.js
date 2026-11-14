@@ -56,6 +56,11 @@ export const seoPages = [
     "Explore target combinations, a source-backed drug starter catalog, and regulatory evidence.",
   ),
   page(
+    "/learn/assay-design/",
+    "Bioassay Design | BioassayCraft",
+    "Review documented bioactivity methods and verified binding assay reagents by target.",
+  ),
+  page(
     "/tools/cfd-calculator/",
     "CFD Critical Fold Difference Calculator | BioassayCraft",
     "Calculate critical fold difference from validation variance components.",

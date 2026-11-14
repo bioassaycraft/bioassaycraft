@@ -1,5 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import AssayDesignResults from "../components/target-to-assay/AssayDesignResults.vue";
 import ToolTopbar from "../components/common/ToolTopbar.vue";
 import MobileToolHeader from "../components/common/MobileToolHeader.vue";
 import SiteFooter from "../components/layout/SiteFooter.vue";
@@ -23,6 +25,7 @@ import { displayAssayLiterature, literatureSearchUrl, literatureTerm } from "../
 import { loadSupplement } from "../lib/target-to-assay/supplement-client.js";
 import {
   conditionName,
+  ingredientKey,
   organizationName,
   drugDisplayName,
   drugHeadingName,
@@ -33,6 +36,28 @@ import { targetAssayCopy } from "../i18n/target-to-assay.js";
 
 const { locale, setLocale } = useLocale();
 const c = computed(() => targetAssayCopy[locale.value]);
+const route = useRoute();
+const router = useRouter();
+const design = computed(() => route.path.replace(/\/$/, "") === "/learn/assay-design");
+const title = computed(() => design.value ? c.value.assayOptions : c.value.title);
+const designReady = ref(false);
+let contextAvailable = !design.value;
+const targetQuery = ref(example.discovery.resolvedTargets.map(({ inputName }) => inputName).join("，"));
+function openDesign() {
+  router.push({ path: "/learn/assay-design/", query: { targets: targetQuery.value } });
+}
+function syncDesignRoute() {
+  if (!design.value) return;
+  const query = typeof route.query.targets === "string" ? route.query.targets : "";
+  input.value = query.slice(0, 1000);
+  resolutions.value = {};
+  error.value = null;
+  controller?.abort();
+  controller = null;
+  loading.value = false;
+  designReady.value = contextAvailable && query === targetQuery.value;
+  if (query && !designReady.value) submit();
+}
 function stageLabel(stage) {
   if (stage === "UNKNOWN") return c.value.mechanism.unknownStage;
   if (stage === "REPORTED_APPROVAL") return c.value.mechanism.phaseOnly;
@@ -71,6 +96,8 @@ const isHeaderMorphed = ref(false);
 const headerMorphTrigger = ref(null);
 let headerMorphObserver;
 onMounted(() => {
+  syncDesignRoute();
+  watch(() => route.fullPath, syncDesignRoute);
   if (!("IntersectionObserver" in window) || !headerMorphTrigger.value) return;
   headerMorphObserver = new IntersectionObserver(([entry]) => {
     isHeaderMorphed.value = !entry.isIntersecting;
@@ -218,9 +245,30 @@ const drugPresentation = computed(() => Object.fromEntries(data.value.drugs.map(
       (/monoclonal/i.test(format) && !/bispecific|trispecific/i.test(format)) ? "monoclonal" : "other");
   return [drug.id, { name: drug.name, brand: drug.brand || reviewed?.brand, stage, date: earliest?.date, earliest, regional, type, reviewed, isZynlonta }];
 })));
-const approvalScope = computed(() => active.value.matches.map(({ drugId }) => drugById(drugId))
-  .filter((drug) => drug.clinicalStage === "APPROVAL" || drug.approval.status === "approved")
-  .map(({ id }) => id).sort().join("|"));
+const cdeLookupUrl = "https://www.cde.org.cn/main/xxgk/listpage/b40868b5e21c038a6aa8b4319d21b07d";
+const designMatches = computed(() => {
+  if (!designReady.value || !mechanismResult.value) return [];
+  const ids = [...new Set(result.value.combinations.flatMap(({ matches }) => matches.map(({ drugId }) => drugId)))];
+  const names = new Set();
+  return ids.filter((id) => {
+    const drug = drugById(id);
+    const key = ingredientKey(drug.name);
+    if (names.has(key) || !isApproved(drug)) return false;
+    names.add(key);
+    return true;
+  }).map(drugById);
+});
+const isApproved = (drug) => !["WITHDRAWN", "SUSPENDED", "TERMINATED", "DISCONTINUED"].includes(drug.clinicalStage) && (
+  drug.approval.status === "approved" ||
+  drugPresentation.value[drug.id]?.regional.some((row) => !row.certificate &&
+    !["Withdrawn", "Suspended"].includes(row.status) && validApprovalDate(row.date)) ||
+  reviewedMechanism(drug.name)?.chinaApproved);
+const approvalScope = computed(() => {
+  if (design.value) return designMatches.value.map(({ id }) => id).sort().join("|");
+  return active.value.matches.map(({ drugId }) => drugById(drugId))
+    .filter((drug) => drug.clinicalStage === "APPROVAL" || drug.approval.status === "approved")
+    .map(({ id }) => id).sort().join("|");
+});
 watch(approvalScope, async (scope, _, onCleanup) => {
   if (!scope || typeof window === "undefined") return;
   const drugs = scope.split("|").map(drugById);
@@ -296,8 +344,7 @@ const visibleDocuments = (drug) => [
   ...evidenceFor(drug, data.value.sources),
   ...(documents.value[drug.id] || []),
 ];
-const reviewLists = computed(() => Object.fromEntries(visibleMatches.value.map(({ drugId }) => {
-  const drug = drugById(drugId);
+function regulatorsFor(drug) {
   const docs = visibleDocuments(drug).map((doc) => doc.kind === "activity"
     ? { ...doc, kind: "review", url: doc.url.split("#")[0] } : doc);
   const epar = emaRecords.value[drug.name]?.url || researchProfile(drug)?.url;
@@ -306,8 +353,11 @@ const reviewLists = computed(() => Object.fromEntries(visibleMatches.value.map((
     const history = docs.find((doc) => doc.agency === "EMA" && doc.kind === "history");
     if (history) docs.push({ agency: "EMA", kind: "overview", title: "EPAR – Medicine Overview", url: history.url.split("#")[0] });
   }
-  return [drugId, regulatorGroups(docs)];
-})));
+  return regulatorGroups(docs);
+}
+const reviewLists = computed(() => Object.fromEntries(visibleMatches.value.map(({ drugId }) =>
+  [drugId, regulatorsFor(drugById(drugId))],
+)));
 function otherSources(drug, groups) {
   const displayed = new Set(groups.flatMap(({ docs }) => docs.map(({ url }) => url)));
   const sources = [drug.sourceId, ...(drug.sourceIds || [])].map(sourceById).filter(Boolean)
@@ -325,17 +375,23 @@ function otherSources(drug, groups) {
 const fdaReviewCount = (id) => reviewLists.value[id]?.find(({ agency }) => agency === "FDA")
   ?.docs.filter((doc) => doc.kind === "review").length || 0;
 const chemblIds = (drug) => [drug.id, drug.externalIds?.chembl].filter((id) => /^CHEMBL\d+$/.test(id));
-const chemblKey = computed(() => [...new Set(visibleMatches.value.flatMap(({ drugId }) =>
+const chemblKey = computed(() => design.value ? "" : [...new Set(visibleMatches.value.flatMap(({ drugId }) =>
   chemblIds(drugById(drugId))))].sort().join(","));
 const chemblResults = ref({});
 const drugIndications = (drugId) =>
   uniqueIndications((chemblResults.value[chemblKey.value]?.rows || [])
     .filter((row) => chemblIds(drugById(drugId)).includes(row.id)));
 const expandedIndications = ref({});
-watch(chemblKey, async (key) => {
+watch(chemblKey, async (key, _, onCleanup) => {
   if (!key || chemblResults.value[key] || typeof window === "undefined") return;
   chemblResults.value[key] = { state: "loading" };
   const abort = new AbortController();
+  let signalChanged = false;
+  onCleanup(() => {
+    signalChanged = true;
+    if (chemblResults.value[key]?.state === "loading") delete chemblResults.value[key];
+    abort.abort();
+  });
   documentControllers.add(abort);
   const timer = setTimeout(() => abort.abort(), 15000);
   try {
@@ -348,9 +404,9 @@ watch(chemblKey, async (key) => {
       rows.push(...result.rows);
       truncated ||= result.truncated;
     }
-    chemblResults.value[key] = { state: "loaded", rows, truncated };
+    if (!abort.signal.aborted) chemblResults.value[key] = { state: "loaded", rows, truncated };
   } catch {
-    chemblResults.value[key] = { state: "error" };
+    if (!abort.signal.aborted || !signalChanged) chemblResults.value[key] = { state: "error" };
   } finally {
     clearTimeout(timer);
     documentControllers.delete(abort);
@@ -380,8 +436,10 @@ function submitOnEnter(event) {
   if (!event.repeat) submit();
 }
 async function submit() {
+  if (design.value) designReady.value = false;
   controller?.abort();
   const request = new AbortController();
+  const submittedText = input.value;
   controller = request;
   const timeout = setTimeout(() => request.abort(), 27000);
   loading.value = true;
@@ -390,7 +448,7 @@ async function submit() {
     const response = await fetch("/api/v1/target-to-assay/mechanisms", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targets: input.value, resolutions: resolutions.value }),
+      body: JSON.stringify({ targets: submittedText, resolutions: resolutions.value }),
       signal: request.signal,
     });
     if (!response.headers.get("content-type")?.includes("application/json"))
@@ -400,11 +458,18 @@ async function submit() {
     if (!response.ok) throw next?.error;
     if (!next?.catalog || !Array.isArray(next.resolvedTargets) || !next.sourceChecks)
       throw { code: "mechanism_response" };
+    contextAvailable = true;
+    targetQuery.value = submittedText;
     showingExample.value = false;
     data.value = next.catalog;
     submitted.value = next.resolvedTargets.map((t) => t.id);
     mechanismResult.value = next;
     activeKey.value = resultGroups.value[0].key;
+    if (design.value) {
+      designReady.value = true;
+      if (route.query.targets !== targetQuery.value)
+        router.replace({ path: route.path, query: { targets: targetQuery.value } });
+    }
     await nextTick();
     if (controller === request) animateElement(drugPanel.value, getPanelEnterKeyframes());
   } catch (e) {
@@ -505,7 +570,7 @@ async function loadDocuments(drug) {
 <template>
   <div class="target-assay-page morph-header-v1" :class="{ 'is-header-morphed': isHeaderMorphed }">
     <ToolTopbar
-      :title="c.title"
+      :title="title"
       :language="locale"
       :language-label="c.language"
       :home-label="c.home"
@@ -514,9 +579,9 @@ async function loadDocuments(drug) {
     />
     <MobileToolHeader
       class="ta-mobile-header"
-      :aria-label="c.title"
-      :selector-label="c.title"
-      :page-title="c.title"
+      :aria-label="title"
+      :selector-label="title"
+      :page-title="title"
       :options="[]"
       selected-value=""
       :show-selector="false"
@@ -527,7 +592,7 @@ async function loadDocuments(drug) {
     />
     <main class="ta-container">
       <header class="ta-intro">
-        <h1>{{ c.title }}</h1>
+        <h1>{{ title }}</h1>
         <span ref="headerMorphTrigger" class="ta-header-trigger" aria-hidden="true"></span>
       </header>
       <section class="ta-input ta-panel" :aria-label="c.inputTitle">
@@ -536,7 +601,7 @@ async function loadDocuments(drug) {
             <textarea
               id="target-input"
               v-model="input"
-              placeholder="CD3, CD20"
+              :placeholder="design ? undefined : 'CD3, CD20'"
               rows="1"
               maxlength="1000"
               :aria-invalid="!!error"
@@ -566,17 +631,27 @@ async function loadDocuments(drug) {
           </div>
         </form>
       </section>
-      <section class="ta-panel ta-overview" :aria-busy="loading">
+      <AssayDesignResults
+        v-if="design"
+        :locale="locale" :loading="loading" :ready="designReady"
+        :targets="designReady ? result.resolvedTargets : []"
+        :drugs="designMatches" :sources-for="visibleDocuments"
+        :regulators-for="regulatorsFor"
+        :cde-lookup-url="cdeLookupUrl"
+        :document-state="documentState" :load-documents="loadDocuments"
+        :partial="discoveryFailed || discoveryTruncated"
+      />
+      <section v-if="!design" class="ta-panel ta-overview" :aria-busy="loading">
         <div class="ta-section-heading ta-mechanism-heading">
           <h2>{{ c.mechanismTypes }}</h2>
           <div class="ta-literature-actions">
             <button type="button" class="ta-planned" disabled>{{ c.mechanism.ai }}</button>
-            <button type="button" class="ta-planned" disabled>{{ c.assayOptions }}</button>
+            <button type="button" class="ta-planned" :disabled="loading" @click="openDesign">{{ c.assayOptions }}</button>
           </div>
         </div>
         <MechanismEvidence :result="mechanismResult" :locale="locale" :stage-label="stageLabel" :drug-presentation="drugPresentation" :matches="resultGroups[0].matches" />
       </section>
-      <section class="ta-results ta-panel" aria-labelledby="results-title" :aria-busy="loading">
+      <section v-if="!design" class="ta-results ta-panel" aria-labelledby="results-title" :aria-busy="loading">
         <div class="ta-section-heading">
           <h2 id="results-title">{{ c.results }}</h2>
           <p aria-live="polite">
@@ -779,7 +854,7 @@ async function loadDocuments(drug) {
                         target="_blank"
                         rel="noopener noreferrer"
                       >{{ source.title }} ↗</a>
-                      <a href="https://www.cde.org.cn/main/xxgk/listpage/b40868b5e21c038a6aa8b4319d21b07d" target="_blank" rel="noopener noreferrer">{{ locale === "zh" ? "CDE 上市药品信息查询" : "CDE marketed drug lookup" }} ↗</a>
+                      <a :href="cdeLookupUrl" target="_blank" rel="noopener noreferrer">{{ locale === "zh" ? "CDE 上市药品信息查询" : "CDE marketed drug lookup" }} ↗</a>
                       <button type="button" class="ta-text-button" @click="copyCdeKeyword(drugById(match.drugId))">{{ locale === "zh" ? "复制检索关键词" : "Copy search term" }}</button>
                     </div>
                     <small v-if="cdeCopyState[match.drugId]" role="status">
@@ -850,14 +925,14 @@ async function loadDocuments(drug) {
           </div>
         </div>
       </section>
-      <details class="ta-panel ta-investigational">
+      <details v-if="!design" class="ta-panel ta-investigational">
         <summary id="investigational-title">{{ locale === "zh" ? "未上市药物资料" : "Investigational Drug Information" }}</summary>
         <InvestigationalDrugs
           :catalog="data" :combinations="resultGroups" :locale="locale" :stage-label="stageLabel" :target-names="targetNames"
           :example-profiles="showingExample ? example.profiles : null" :discovery="mechanismResult" :searching="loading" :search-error="Boolean(error)" @discover="submit"
         />
       </details>
-      <section class="ta-literature ta-panel" aria-labelledby="literature-title">
+      <section v-if="!design" class="ta-literature ta-panel" aria-labelledby="literature-title">
         <div class="ta-section-heading">
           <h2 id="literature-title">{{ c.literatureTitle }}</h2>
           <span>PubMed · Europe PMC · OpenAlex · {{ targetNames(active.targetIds) }}</span>
@@ -967,6 +1042,7 @@ async function loadDocuments(drug) {
   --ta-group-gap: 16px;
   --ta-drug-spacing: 24px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   width: min(var(--bc-content-max, 1120px), calc(100% - var(--bc-container-inline, 48px)));
   margin: 0 auto;
@@ -1018,7 +1094,7 @@ h5 {
 .ta-panel :is(h2, h3, h4, h5) {
   line-height: var(--ta-heading-line);
 }
-.ta-panel {
+.ta-panel, .ta-container :deep(.assay-design-panel) {
   line-height: var(--ta-body-line);
   padding: 24px;
   border: 1px solid var(--app-rule-subtle);
@@ -1555,7 +1631,7 @@ details.ta-evidence {
     padding: 0;
   }
   .ta-fda-documents { grid-template-columns: minmax(0, 1fr); }
-  .ta-panel {
+  .ta-panel, .ta-container :deep(.assay-design-panel) {
     padding: 18px 14px;
   }
   .ta-input-row > .ta-primary { min-height: 46px; }

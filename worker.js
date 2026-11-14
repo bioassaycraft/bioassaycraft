@@ -4,7 +4,7 @@ import { handleTargetToAssay } from "./src/worker/target-to-assay-api.js";
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/v1/target-to-assay/")) return handleTargetToAssay(request);
+    if (url.pathname.startsWith("/api/v1/target-to-assay/")) return handleTargetToAssay(request, env);
     const targetPath = getLegacyRedirect(url.pathname);
     if (targetPath) {
       url.pathname = targetPath;

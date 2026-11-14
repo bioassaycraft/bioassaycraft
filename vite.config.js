@@ -16,7 +16,7 @@ function configureApi(server) {
               signal: controller.signal,
               ...(req.method === "POST" ? { body: req, duplex: "half" } : {}),
             });
-            const response = await handleTargetToAssay(request);
+            const response = await handleTargetToAssay(request, process.env);
             const body = await response.text();
             if (!res.destroyed) {
               res.writeHead(response.status, Object.fromEntries(response.headers));

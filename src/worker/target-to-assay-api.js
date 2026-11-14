@@ -1,3 +1,5 @@
+import { supplierPageRenderer } from "../lib/assay-design/render-page.js";
+import { liveProteinVendors, queryLiveProteins } from "../lib/assay-design/live-products.js";
 import { handleSupplement, supplementActions } from "./target-to-assay-supplements.js";
 import { fetchEmaApprovals } from "../lib/target-to-assay/approval-records.js";
 import { queryMechanisms } from "../lib/target-to-assay/live-mechanisms.js";
@@ -5,6 +7,7 @@ import { catalog } from "../lib/target-to-assay/catalog.js";
 import { researchGroups } from "../lib/target-to-assay/research.js";
 import { SearchError, resolveTargets, searchDrugs } from "../lib/target-to-assay/search.js";
 
+let inFlightProductQueries = 0;
 let inFlightMechanismQueries = 0;
 let inFlightInvestigationalQueries = 0;
 const discoveryCache = new Map();
@@ -15,10 +18,10 @@ const json = (value, status = 200, extra = {}) =>
     headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...extra },
   });
 
-export async function handleTargetToAssay(request) {
+export async function handleTargetToAssay(request, env = {}) {
   const path = new URL(request.url).pathname;
   const action = path.slice(prefix.length);
-  const expected = ["search", "resolve", "mechanisms", "investigational-discovery", "ema-approvals", ...supplementActions].includes(action) ? "POST" : "GET";
+  const expected = ["search", "resolve", "mechanisms", "investigational-discovery", "ema-approvals", "live-proteins", ...supplementActions].includes(action) ? "POST" : "GET";
   if (request.method !== expected)
     return json({ error: { code: "method_not_allowed" } }, 405, { Allow: expected });
   if (action === "meta")
@@ -34,7 +37,7 @@ export async function handleTargetToAssay(request) {
       ? json({ drug, source: catalog.sources.find((s) => s.id === drug.sourceId) })
       : json({ error: { code: "not_found" } }, 404);
   }
-  if (!["search", "resolve", "mechanisms", "investigational-discovery", "ema-approvals", ...supplementActions].includes(action)) return json({ error: { code: "not_found" } }, 404);
+  if (!["search", "resolve", "mechanisms", "investigational-discovery", "ema-approvals", "live-proteins", ...supplementActions].includes(action)) return json({ error: { code: "not_found" } }, 404);
   if (!request.headers.get("content-type")?.includes("application/json"))
     return json({ error: { code: "unsupported_media_type" } }, 415);
   // Bound the stream, including chunked requests without Content-Length.
@@ -61,6 +64,21 @@ export async function handleTargetToAssay(request) {
   }
   try {
     if (supplementActions.includes(action)) return handleSupplement(action, body, json, request.signal);
+    if (action === "live-proteins") {
+      const { target, vendor, offset = 0 } = body ?? {};
+      if (typeof target !== "string" || !/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,49}$/.test(target) ||
+          !liveProteinVendors.includes(vendor) || !Number.isInteger(offset) || offset < 0 || offset > 216)
+        return json({ error: { code: "invalid_query" } }, 422);
+      if (inFlightProductQueries >= 6) return json({ error: { code: "rate_limited" } }, 429);
+      inFlightProductQueries++;
+      try {
+        const renderPage = supplierPageRenderer(env.CF_BROWSER_ACCOUNT_ID, env.CF_BROWSER_API_TOKEN);
+        const signal = AbortSignal.any([request.signal, AbortSignal.timeout(renderPage ? 14000 : 7000)]);
+        return json(await queryLiveProteins(target, vendor, { signal, offset, renderPage }));
+      } finally {
+        inFlightProductQueries--;
+      }
+    }
     if (action === "ema-approvals") {
       const names = body?.names;
       if (!Array.isArray(names) || names.length > 50 || names.some((name) =>

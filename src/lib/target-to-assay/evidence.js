@@ -178,10 +178,14 @@ export function evidenceFor(drug, sources = []) {
       status: "document",
       application: "BLA761309",
       submissionType: "ORIG",
-      title: "Product Quality Review · Potency control · pp. 4–5",
+      title: "FDA · Product Quality Review · BLA761309 · pp. 4–5",
+      methodType: "Cell-based reporter assay",
+      methodTypeZh: "细胞报告基因法",
+      excerpt: "Potency is controlled using a cell-based reporter assay",
+
       summary:
-        "The quality review describes a cell-based reporter assay for potency control. The readout is NFAT-driven luciferase activity.",
-      summaryZh: "药学审评明确将细胞报告基因法用于效价控制，读数为 NFAT 驱动的荧光素酶活性。",
+        "The potency assay measures activation of CD3-expressing Jurkat reporter cells in the presence of CD20-expressing Z-138 or WIL2-S cells. The signal is NFAT-driven firefly luciferase.",
+      summaryZh: "效价检测使用表达 CD3 的 Jurkat 报告细胞和表达 CD20 的 Z-138 或 WIL2-S 靶细胞，以 NFAT 驱动的萤火虫荧光素酶为读数。",
       url: "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2023/761309Orig1s000ChemR.pdf#page=4",
     });
   }

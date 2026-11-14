@@ -13,6 +13,7 @@ describe("canonical site paths", () => {
     "/learn/residual-explorer/",
     "/tools/converter/",
     "/learn/target-to-assay-explorer/",
+    "/learn/assay-design/",
     "/tools/cfd-calculator/",
     "/tools/specification-limit-calculator/",
     "/tools/oos-risk-explorer/",

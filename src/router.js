@@ -8,6 +8,8 @@ import CfdCalculator from "./pages/CfdCalculator.vue";
 import SpecificationLimitCalculator from "./pages/SpecificationLimitCalculator.vue";
 import NotFound from "./pages/NotFound.vue";
 
+const targetAssayPage = () => import("./pages/TargetToAssayExplorer.vue");
+
 export const routes = [
   { path: "/", component: Home },
   { path: "/learn/", component: ModuleIndexPage, props: { type: "explore" } },
@@ -17,8 +19,9 @@ export const routes = [
   { path: "/learn/residual-explorer/", component: ResidualExplorer },
   {
     path: "/learn/target-to-assay-explorer/",
-    component: () => import("./pages/TargetToAssayExplorer.vue"),
+    component: targetAssayPage,
   },
+  { path: "/learn/assay-design/", component: targetAssayPage },
   { path: "/tools/converter/", component: ConcentrationConverter },
   { path: "/tools/cfd-calculator/", component: CfdCalculator },
   { path: "/tools/specification-limit-calculator/", component: SpecificationLimitCalculator },
